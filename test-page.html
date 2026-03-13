@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel功能测试页面</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #333;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+    .test-section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .test-button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    }
+    .test-button:hover {
+      background: #45a049;
+    }
+    .test-button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .result-area {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 15px;
+      margin-top: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    .success { color: #28a745; }
+    .error { color: #dc3545; }
+    .warning { color: #ffc107; }
+    .info { color: #17a2b8; }
+    .file-input-wrapper {
+      margin: 15px 0;
+    }
+    #testFileInput {
+      display: none;
+    }
+    .file-label {
+      display: inline-block;
+      padding: 10px 20px;
+      background: #2196F3;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .file-label:hover {
+      background: #1976D2;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-left: 10px;
+    }
+    .status-ok { background: #d4edda; color: #155724; }
+    .status-fail { background: #f8d7da; color: #721c24; }
+    .status-warn { background: #fff3cd; color: #856404; }
+  </style>
+</head>
+<body>
+  <h1>🔧 Excel功能测试页面</h1>
+  
+  <div class="test-section">
+    <h3>1. 环境检查</h3>
+    <button class="test-button" onclick="checkEnvironment()">检查环境</button>
+    <div id="envResult" class="result-area" style="display:none;"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>2. XLSX库测试</h3>
+    <button class="test-button" onclick="testXLSX()">测试XLSX库</button>
+    <div id="xlsxResult" class="result-area" style="display:none;"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>3. Excel文件解析测试</h3>
+    <div class="file-input-wrapper">
+      <label for="testFileInput" class="file-label">选择Excel文件</label>
+      <input type="file" id="testFileInput" accept=".xlsx,.xls" onchange="handleTestFile(this)">
+      <span id="selectedFileName"></span>
+    </div>
+    <div id="parseResult" class="result-area" style="display:none;"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>4. 扩展通信测试</h3>
+    <button class="test-button" onclick="testExtensionCommunication()">测试后台通信</button>
+    <div id="commResult" class="result-area" style="display:none;"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>5. 完整流程测试</h3>
+    <button class="test-button" onclick="runAllTests()">运行全部测试</button>
+    <div id="allResult" class="result-area" style="display:none;"></div>
+  </div>
+
+  <!-- 加载XLSX库 -->
+  <script src="consistency-checker-extension/libs/xlsx.full.min.js"></script>
+  
+  <!-- Chrome测试提示 -->
+  <div class="test-section" style="background: #e8f5e9; border-left: 4px solid #4CAF50;">
+    <h3>🌐 Chrome 扩展测试提示</h3>
+    <p><strong>当前配置:</strong> 使用 Manifest V3 + service_worker（Chrome 推荐格式）</p>
+    <p><strong>Chrome 加载步骤:</strong></p>
+    <ol>
+      <li>地址栏输入 <code>chrome://extensions/</code></li>
+      <li>打开右上角 <strong>"开发者模式"</strong></li>
+      <li>点击 <strong>"加载已解压的扩展程序"</strong></li>
+      <li>选择 <code>consistency-checker-extension</code> 文件夹</li>
+    </ol>
+    <p><strong>调试方法:</strong></p>
+    <ul>
+      <li>查看后台脚本日志：扩展卡片 → 点击 <strong>"service worker"</strong> 链接</li>
+      <li>查看 popup 日志：右键扩展图标 → <strong>"检查弹出内容"</strong></li>
+      <li>查看内容脚本日志：目标页面按 <strong>F12</strong> → 控制台</li>
+    </ul>
+  </div>
+  
+  <script>
+    // 日志输出辅助函数
+    function log(elementId, message, type = 'info') {
+      const el = document.getElementById(elementId);
+      el.style.display = 'block';
+      const timestamp = new Date().toLocaleTimeString('zh-CN');
+      const className = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info';
+      el.innerHTML += `[${timestamp}] <span class="${className}">${message}</span>\n`;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function clearLog(elementId) {
+      const el = document.getElementById(elementId);
+      el.innerHTML = '';
+      el.style.display = 'none';
+    }
+
+    // 1. 环境检查
+    function checkEnvironment() {
+      clearLog('envResult');
+      log('envResult', '开始环境检查...', 'info');
+      
+      // 检查浏览器环境
+      if (typeof window === 'undefined') {
+        log('envResult', '❌ 不在浏览器环境中', 'error');
+        return;
+      }
+      log('envResult', '✅ 浏览器环境正常', 'success');
+      
+      // 检查FileReader
+      if (typeof FileReader === 'undefined') {
+        log('envResult', '❌ FileReader不可用', 'error');
+      } else {
+        log('envResult', '✅ FileReader可用', 'success');
+      }
+      
+      // 检查chrome API
+      if (typeof chrome === 'undefined') {
+        log('envResult', '⚠️ chrome对象未定义（可能不在扩展环境中）', 'warning');
+      } else {
+        log('envResult', '✅ chrome对象存在', 'success');
+        
+        if (chrome.runtime) {
+          log('envResult', '✅ chrome.runtime可用', 'success');
+          
+          if (chrome.runtime.getManifest) {
+            try {
+              const manifest = chrome.runtime.getManifest();
+              log('envResult', `✅ Manifest版本: ${manifest.manifest_version}`, 'success');
+              log('envResult', `  扩展版本: ${manifest.version}`, 'info');
+              log('envResult', `  扩展名称: ${manifest.name}`, 'info');
+            } catch (e) {
+              log('envResult', `⚠️ 无法读取manifest: ${e.message}`, 'warning');
+            }
+          }
+        } else {
+          log('envResult', '❌ chrome.runtime不可用', 'error');
+        }
+        
+        if (chrome.storage) {
+          log('envResult', '✅ chrome.storage可用', 'success');
+        } else {
+          log('envResult', '⚠️ chrome.storage不可用', 'warning');
+        }
+      }
+    }
+
+    // 2. XLSX库测试
+    function testXLSX() {
+      clearLog('xlsxResult');
+      log('xlsxResult', '开始XLSX库测试...', 'info');
+      
+      if (typeof XLSX === 'undefined') {
+        log('xlsxResult', '❌ XLSX库未加载！请检查xlsx.full.min.js路径', 'error');
+        return;
+      }
+      
+      log('xlsxResult', '✅ XLSX库已加载', 'success');
+      log('xlsxResult', `  版本: ${XLSX.version || 'unknown'}`, 'info');
+      
+      try {
+        // 创建测试工作簿
+        const wb = XLSX.utils.book_new();
+        const wsData = [
+          ['分类', '零件/总成名称', '公告', '环保', 'CCC', 'CCC证书'],
+          ['发动机系统', '发动机总成', '●', '●', '●', '证书123'],
+          ['底盘系统', '制动盘', '', '●', '●', '证书456'],
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        XLSX.utils.book_append_sheet(wb, ws, '关键件清单');
+        
+        log('xlsxResult', '✅ 创建工作簿成功', 'success');
+        log('xlsxResult', `  工作表数量: ${wb.SheetNames.length}`, 'info');
+        log('xlsxResult', `  工作表名称: ${wb.SheetNames.join(', ')}`, 'info');
+        
+        // 测试读写
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        log('xlsxResult', `✅ 写入成功，数据大小: ${wbout.length} bytes`, 'success');
+        
+        // 读取测试
+        const wb2 = XLSX.read(wbout, { type: 'array' });
+        const ws2 = wb2.Sheets[wb2.SheetNames[0]];
+        const range = XLSX.utils.decode_range(ws2['!ref']);
+        log('xlsxResult', `✅ 读取成功，数据范围: ${ws2['!ref']}`, 'success');
+        log('xlsxResult', `  行数: ${range.e.r + 1}, 列数: ${range.e.c + 1}`, 'info');
+        
+      } catch (e) {
+        log('xlsxResult', `❌ XLSX操作失败: ${e.message}`, 'error');
+        console.error(e);
+      }
+    }
+
+    // 3. 处理测试文件
+    function handleTestFile(input) {
+      clearLog('parseResult');
+      
+      if (!input.files || input.files.length === 0) {
+        log('parseResult', '未选择文件', 'warning');
+        return;
+      }
+      
+      const file = input.files[0];
+      document.getElementById('selectedFileName').textContent = file.name;
+      log('parseResult', `选择文件: ${file.name}`, 'info');
+      log('parseResult', `文件大小: ${(file.size / 1024).toFixed(2)} KB`, 'info');
+      
+      if (!file.name.match(/\.xlsx?$/i)) {
+        log('parseResult', '❌ 文件格式错误，请选择.xlsx或.xls文件', 'error');
+        return;
+      }
+      
+      const reader = new FileReader();
+      
+      reader.onprogress = function(e) {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          log('parseResult', `读取进度: ${percent}%`, 'info');
+        }
+      };
+      
+      reader.onload = function(e) {
+        try {
+          log('parseResult', '✅ 文件读取完成', 'success');
+          
+          const data = new Uint8Array(e.target.result);
+          log('parseResult', `数据大小: ${data.length} bytes`, 'info');
+          
+          log('parseResult', '开始解析Excel...', 'info');
+          const workbook = XLSX.read(data, { type: 'array' });
+          
+          log('parseResult', `✅ 解析成功！工作表: ${workbook.SheetNames.join(', ')}`, 'success');
+          
+          // 解析第一个工作表
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const range = XLSX.utils.decode_range(sheet['!ref']);
+          
+          log('parseResult', `数据范围: ${sheet['!ref']}`, 'info');
+          log('parseResult', `总行数: ${range.e.r + 1}`, 'info');
+          
+          // 显示前几行数据
+          log('parseResult', '\n前5行数据预览:', 'info');
+          for (let r = 0; r < Math.min(5, range.e.r + 1); r++) {
+            const row = [];
+            for (let c = 0; c <= Math.min(5, range.e.c); c++) {
+              const cell = sheet[XLSX.utils.encode_cell({ r, c })];
+              row.push(cell ? String(cell.v || '') : '');
+            }
+            log('parseResult', `  行${r + 1}: ${row.join(' | ')}`, 'info');
+          }
+          
+          // 模拟解析零件数据（从第8行开始）
+          log('parseResult', '\n模拟零件数据解析（从第8行开始）:', 'info');
+          let partCount = 0;
+          for (let r = 7; r <= Math.min(range.e.r, 15); r++) {
+            const getVal = (col) => {
+              const cell = sheet[XLSX.utils.encode_cell({ r, c: col })];
+              return cell ? String(cell.v || '').trim() : '';
+            };
+            
+            const partName = getVal(1); // B列
+            if (partName) {
+              partCount++;
+              log('parseResult', `  零件${partCount}: ${partName}`, 'info');
+            }
+          }
+          
+          if (partCount === 0) {
+            log('parseResult', '⚠️ 未找到零件数据（第8行后无数据）', 'warning');
+          } else {
+            log('parseResult', `✅ 找到 ${partCount} 个零件`, 'success');
+          }
+          
+        } catch (err) {
+          log('parseResult', `❌ 解析失败: ${err.message}`, 'error');
+          console.error(err);
+        }
+      };
+      
+      reader.onerror = function() {
+        log('parseResult', '❌ 文件读取失败', 'error');
+      };
+      
+      reader.readAsArrayBuffer(file);
+    }
+
+    // 4. 测试扩展通信
+    async function testExtensionCommunication() {
+      clearLog('commResult');
+      log('commResult', '开始通信测试...', 'info');
+      
+      if (typeof chrome === 'undefined' || !chrome.runtime) {
+        log('commResult', '❌ 不在扩展环境中，无法测试通信', 'error');
+        return;
+      }
+      
+      // 测试 GET_EXCEL_LIST
+      log('commResult', '测试: GET_EXCEL_LIST', 'info');
+      chrome.runtime.sendMessage({ type: 'GET_EXCEL_LIST' }, (response) => {
+        if (chrome.runtime.lastError) {
+          log('commResult', `❌ 通信失败: ${chrome.runtime.lastError.message}`, 'error');
+          return;
+        }
+        
+        if (response) {
+          log('commResult', '✅ 通信成功', 'success');
+          log('commResult', `响应: ${JSON.stringify(response, null, 2)}`, 'info');
+        } else {
+          log('commResult', '⚠️ 无响应', 'warning');
+        }
+      });
+      
+      // 测试 GET_API_KEY
+      setTimeout(() => {
+        log('commResult', '\n测试: GET_API_KEY', 'info');
+        chrome.runtime.sendMessage({ type: 'GET_API_KEY' }, (response) => {
+          if (chrome.runtime.lastError) {
+            log('commResult', `❌ 通信失败: ${chrome.runtime.lastError.message}`, 'error');
+            return;
+          }
+          
+          if (response && response.apiKey) {
+            log('commResult', '✅ API Key获取成功', 'success');
+            log('commResult', `Key: ...${response.apiKey.slice(-8)}`, 'info');
+          } else {
+            log('commResult', '⚠️ 未获取到API Key', 'warning');
+          }
+        });
+      }, 500);
+    }
+
+    // 5. 运行全部测试
+    async function runAllTests() {
+      clearLog('allResult');
+      log('allResult', '开始全部测试...\n', 'info');
+      
+      // 环境检查
+      log('allResult', '=== 1. 环境检查 ===', 'info');
+      if (typeof window !== 'undefined') {
+        log('allResult', '✅ 浏览器环境', 'success');
+      }
+      if (typeof XLSX !== 'undefined') {
+        log('allResult', '✅ XLSX库已加载', 'success');
+      } else {
+        log('allResult', '❌ XLSX库未加载', 'error');
+      }
+      
+      // Chrome API检查
+      log('allResult', '\n=== 2. Chrome API检查 ===', 'info');
+      if (typeof chrome !== 'undefined') {
+        log('allResult', '✅ chrome对象存在', 'success');
+        if (chrome.runtime) log('allResult', '✅ chrome.runtime', 'success');
+        if (chrome.storage) log('allResult', '✅ chrome.storage', 'success');
+      } else {
+        log('allResult', '⚠️ 不在扩展环境', 'warning');
+      }
+      
+      // XLSX功能测试
+      log('allResult', '\n=== 3. XLSX功能测试 ===', 'info');
+      if (typeof XLSX !== 'undefined') {
+        try {
+          const wb = XLSX.utils.book_new();
+          const ws = XLSX.utils.aoa_to_sheet([['A', 'B'], [1, 2]]);
+          XLSX.utils.book_append_sheet(wb, ws, 'Test');
+          const data = XLSX.write(wb, { type: 'array' });
+          log('allResult', '✅ XLSX读写功能正常', 'success');
+        } catch (e) {
+          log('allResult', `❌ XLSX功能异常: ${e.message}`, 'error');
+        }
+      }
+      
+      log('allResult', '\n=== 测试完成 ===', 'info');
+    }
+
+    // 页面加载完成后自动运行环境检查
+    window.onload = function() {
+      console.log('测试页面已加载');
+      console.log('可用测试函数: checkEnvironment(), testXLSX(), testExtensionCommunication(), runAllTests()');
+    };
+  </script>
+</body>
+</html>

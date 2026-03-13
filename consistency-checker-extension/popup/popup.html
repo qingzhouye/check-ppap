@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>一致性确认助手</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <h1>一致性确认助手</h1>
+        <span class="version">v1.0.1</span>
+      </div>
+      <span class="badge">监测组</span>
+    </div>
+
+    <!-- Scrollable Content -->
+    <div class="main-scroll">
+
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <div class="status-item">
+          <span class="status-dot" id="dotExcel"></span>
+          <span>Excel: <b id="excelCountBrief">0</b>个</span>
+        </div>
+        <div class="status-item">
+          <span class="status-dot dot-ok" id="dotApi"></span>
+          <span>AI识别: <b id="apiStatusBrief">就绪</b></span>
+        </div>
+      </div>
+
+      <!-- Section: Operation Buttons -->
+      <div class="section">
+        <div class="section-title">操作功能</div>
+        <button id="btnExtractList" class="btn btn-primary btn-icon">
+          <svg class="btn-svg" viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" fill="currentColor"/></svg>
+          提取当前任务列表
+        </button>
+        <button id="btnAutoCheck" class="btn btn-success btn-icon">
+          <svg class="btn-svg" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="currentColor"/></svg>
+          一键校验当前详情页 (含AI识别)
+        </button>
+        <button id="btnBatchCheck" class="btn btn-info btn-icon">
+          <svg class="btn-svg" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" fill="currentColor"/></svg>
+          批量校验任务清单
+        </button>
+        <button id="btnAutoApprove" class="btn btn-warning btn-icon">
+          <svg class="btn-svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/></svg>
+          自动审核并提交
+        </button>
+      </div>
+
+      <!-- Section: Excel Management -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">关键件Excel清单</div>
+          <span class="file-count">已导入 <b id="excelTotalCount">0</b> 个</span>
+        </div>
+        <input type="file" id="excelFile" accept=".xlsx,.xls" style="display:none" multiple>
+        <button id="btnAddExcel" class="btn btn-excel btn-icon">
+          <svg class="btn-svg" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" fill="currentColor"/></svg>
+          新增Excel文件
+        </button>
+        <!-- 进度条区域 -->
+        <div id="uploadProgress" class="progress-container" style="display:none;">
+          <div class="progress-info">
+            <span id="progressText">准备上传...</span>
+            <span id="progressPercent">0%</span>
+          </div>
+          <div class="progress-bar">
+            <div id="progressFill" class="progress-fill"></div>
+          </div>
+        </div>
+        <div id="excelFileList" class="excel-file-list"></div>
+      </div>
+
+      <!-- Section: API Key -->
+      <div class="section">
+        <div class="section-title">大模型API Key</div>
+        <div class="key-row">
+          <div class="key-input-group">
+            <input type="password" id="apiKeyInput" class="input-field" placeholder="已内置默认Key，可更换">
+            <button class="icon-btn" id="toggleKeyVisible" title="显示/隐藏">
+              <svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" fill="#999"/></svg>
+            </button>
+          </div>
+          <div class="key-actions">
+            <button id="saveApiKey" class="btn btn-primary btn-sm">保存</button>
+            <button id="resetApiKey" class="btn btn-outline btn-sm">恢复默认</button>
+          </div>
+        </div>
+        <div class="key-status">状态：<span id="apiStatusText" class="status status-ok">已配置 (内置Key)</span></div>
+      </div>
+
+      <!-- Section: Batch Check Results -->
+      <div class="section" id="batchResultSection" style="display:none;">
+        <div class="section-header">
+          <div class="section-title">批量校验结果</div>
+          <span class="link-btn" id="closeBatchResult">关闭</span>
+        </div>
+        <div id="batchResultSummary" class="batch-summary"></div>
+        <div id="batchResultList" class="batch-result-list"></div>
+      </div>
+
+      <!-- Section: Log -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">操作日志</div>
+          <span class="link-btn" id="clearLog">清空</span>
+        </div>
+        <div id="logArea" class="log-area">
+          <div class="log-item log-info">插件已就绪，等待操作...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="../libs/xlsx.full.min.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

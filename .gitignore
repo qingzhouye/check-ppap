@@ -1,0 +1,28 @@
+# IDE and editor files
+.qoder/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+~$*
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files (optional, remove if you want to include them)
+# test-excel-function.js
+# test-page.html
+
+# Excel temporary files
+~$*.xlsx
+~$*.xls
+
+# Large data files (optional)
+# *.xlsx
+# *.xls
