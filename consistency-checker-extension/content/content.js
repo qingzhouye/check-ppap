@@ -1816,6 +1816,9 @@
     document.body.appendChild(panel);
     document.getElementById('ccp-close-btn').addEventListener('click', () => panel.remove());
     setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+    
+    // 使校验结果面板可拖动（通过标题栏拖动）
+    makeDraggable(panel, '.ccp-header');
   }
 
   // ============ Floating Button ============
@@ -1825,18 +1828,31 @@
     const btn = document.createElement('div');
     btn.id = 'consistency-float-btn';
     btn.innerHTML = '<span class="cfb-icon">&#9989;</span><span class="cfb-text">一致性助手</span>';
-    btn.title = '一致性确认助手';
+    btn.title = '一致性确认助手（可拖动）';
 
     const menu = document.createElement('div');
     menu.id = 'consistency-float-menu';
     menu.style.display = 'none';
     menu.innerHTML = `
+      <div class="cfm-header">一致性助手菜单</div>
       <div class="cfm-item" data-action="extract">提取任务列表</div>
       <div class="cfm-item" data-action="check">一键校验(含AI识别)</div>
       <div class="cfm-item" data-action="approve">自动审核</div>
     `;
 
-    btn.addEventListener('click', () => {
+    // 点击按钮打开/关闭菜单（区分点击和拖动）
+    let dragStartTime = 0;
+    btn.addEventListener('mousedown', () => {
+      dragStartTime = Date.now();
+    });
+    
+    btn.addEventListener('click', (e) => {
+      // 如果拖动时间超过200ms，认为是拖动而不是点击
+      const dragDuration = Date.now() - dragStartTime;
+      if (dragDuration > 200) {
+        e.stopPropagation();
+        return;
+      }
       menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
     });
 
@@ -1876,6 +1892,10 @@
 
     document.body.appendChild(btn);
     document.body.appendChild(menu);
+    
+    // 使悬浮按钮和菜单可拖动
+    makeDraggable(btn);
+    makeDraggable(menu, '.cfm-header');
   }
 
   function showNotification(msg, type) {
@@ -1892,6 +1912,134 @@
       notification.style.opacity = '0';
       setTimeout(() => notification.remove(), 300);
     }, 5000);
+  }
+
+  // ============ Drag Functionality ============
+  function makeDraggable(element, handleSelector) {
+    if (!element) return;
+    
+    const handle = handleSelector ? element.querySelector(handleSelector) : element;
+    if (!handle) return;
+    
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+    
+    // 获取当前位置
+    function getCurrentPosition() {
+      const rect = element.getBoundingClientRect();
+      return { left: rect.left, top: rect.top };
+    }
+    
+    handle.addEventListener('mousedown', (e) => {
+      // 如果点击的是按钮、输入框等交互元素，不触发拖动
+      if (e.target.tagName === 'BUTTON' || 
+          e.target.tagName === 'INPUT' || 
+          e.target.tagName === 'SELECT' ||
+          e.target.tagName === 'TEXTAREA' ||
+          e.target.closest('.ccp-close') ||
+          e.target.closest('.cfm-item')) {
+        return;
+      }
+      
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      
+      const pos = getCurrentPosition();
+      initialLeft = pos.left;
+      initialTop = pos.top;
+      
+      // 改为绝对定位
+      element.style.position = 'fixed';
+      element.style.left = initialLeft + 'px';
+      element.style.top = initialTop + 'px';
+      element.style.right = 'auto';
+      element.style.bottom = 'auto';
+      element.style.cursor = 'grabbing';
+      
+      e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      
+      let newLeft = initialLeft + dx;
+      let newTop = initialTop + dy;
+      
+      // 限制在视窗内
+      const rect = element.getBoundingClientRect();
+      const maxLeft = window.innerWidth - rect.width;
+      const maxTop = window.innerHeight - rect.height;
+      
+      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+      newTop = Math.max(0, Math.min(newTop, maxTop));
+      
+      element.style.left = newLeft + 'px';
+      element.style.top = newTop + 'px';
+    });
+    
+    document.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        element.style.cursor = '';
+      }
+    });
+    
+    // 触摸设备支持
+    handle.addEventListener('touchstart', (e) => {
+      if (e.target.tagName === 'BUTTON' || 
+          e.target.tagName === 'INPUT' || 
+          e.target.tagName === 'SELECT' ||
+          e.target.tagName === 'TEXTAREA' ||
+          e.target.closest('.ccp-close') ||
+          e.target.closest('.cfm-item')) {
+        return;
+      }
+      
+      isDragging = true;
+      const touch = e.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+      
+      const pos = getCurrentPosition();
+      initialLeft = pos.left;
+      initialTop = pos.top;
+      
+      element.style.position = 'fixed';
+      element.style.left = initialLeft + 'px';
+      element.style.top = initialTop + 'px';
+      element.style.right = 'auto';
+      element.style.bottom = 'auto';
+    }, { passive: false });
+    
+    document.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      
+      const touch = e.touches[0];
+      const dx = touch.clientX - startX;
+      const dy = touch.clientY - startY;
+      
+      let newLeft = initialLeft + dx;
+      let newTop = initialTop + dy;
+      
+      const rect = element.getBoundingClientRect();
+      const maxLeft = window.innerWidth - rect.width;
+      const maxTop = window.innerHeight - rect.height;
+      
+      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+      newTop = Math.max(0, Math.min(newTop, maxTop));
+      
+      element.style.left = newLeft + 'px';
+      element.style.top = newTop + 'px';
+      e.preventDefault();
+    }, { passive: false });
+    
+    document.addEventListener('touchend', () => {
+      isDragging = false;
+    });
   }
 
   // ============ Initialize ============

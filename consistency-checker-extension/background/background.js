@@ -5,6 +5,164 @@ const ZHIPU_API_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
 const ZHIPU_MODEL = 'glm-4v-flash';
 const DEFAULT_API_KEY = '1508089119b8403dbdf587f551c819e1.pmXHkV7ayy52WYjq';
 
+// ============ Batch Check Results Persistence ============
+// 保存批量校验结果到存储
+function saveBatchCheckResults(results) {
+  return new Promise((resolve) => {
+    const data = {
+      batchCheckResults: results,
+      lastCheckTime: new Date().toISOString()
+    };
+    chrome.storage.local.set(data, () => {
+      resolve({ success: true });
+    });
+  });
+}
+
+// 获取批量校验结果
+function getBatchCheckResults() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['batchCheckResults', 'lastCheckTime'], (result) => {
+      resolve({
+        results: result.batchCheckResults || [],
+        lastCheckTime: result.lastCheckTime || null
+      });
+    });
+  });
+}
+
+// 清空批量校验结果
+function clearBatchCheckResults() {
+  return new Promise((resolve) => {
+    chrome.storage.local.remove(['batchCheckResults', 'lastCheckTime'], () => {
+      resolve({ success: true });
+    });
+  });
+}
+
+// 更新单个任务的人工审核状态
+function updateTaskManualStatus(taskIndex, manualStatus, manualNote) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['batchCheckResults'], (result) => {
+      const results = result.batchCheckResults || [];
+      if (results[taskIndex]) {
+        results[taskIndex].manualStatus = manualStatus; // 'confirmed' | 'rejected' | 'pending'
+        results[taskIndex].manualNote = manualNote || '';
+        results[taskIndex].manualTime = new Date().toISOString();
+        chrome.storage.local.set({ batchCheckResults: results }, () => {
+          resolve({ success: true, results });
+        });
+      } else {
+        resolve({ success: false, error: '任务索引不存在' });
+      }
+    });
+  });
+}
+
+// ============ Check Logs Persistence ============
+// 保存校验日志
+function saveCheckLog(logEntry) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['checkLogs'], (result) => {
+      const logs = result.checkLogs || [];
+      logs.push({
+        ...logEntry,
+        timestamp: new Date().toISOString()
+      });
+      // 只保留最近1000条日志
+      if (logs.length > 1000) {
+        logs.splice(0, logs.length - 1000);
+      }
+      chrome.storage.local.set({ checkLogs: logs }, () => {
+        resolve({ success: true });
+      });
+    });
+  });
+}
+
+// 获取校验日志
+function getCheckLogs(options = {}) {
+  return new Promise((resolve) => {
+    const { startTime, endTime, limit = 100 } = options;
+    chrome.storage.local.get(['checkLogs'], (result) => {
+      let logs = result.checkLogs || [];
+      
+      // 时间过滤
+      if (startTime) {
+        logs = logs.filter(l => l.timestamp >= startTime);
+      }
+      if (endTime) {
+        logs = logs.filter(l => l.timestamp <= endTime);
+      }
+      
+      // 限制数量
+      logs = logs.slice(-limit);
+      
+      resolve({ logs });
+    });
+  });
+}
+
+// 导出校验日志为文本
+function exportCheckLogs() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['checkLogs', 'batchCheckResults'], (result) => {
+      const logs = result.checkLogs || [];
+      const checkResults = result.batchCheckResults || [];
+      
+      let exportText = '========== 一致性校验日志导出 ==========\n';
+      exportText += `导出时间: ${new Date().toLocaleString('zh-CN')}\n`;
+      exportText += `日志条数: ${logs.length}\n`;
+      exportText += `校验任务数: ${checkResults.length}\n`;
+      exportText += '========================================\n\n';
+      
+      // 导出校验结果摘要
+      if (checkResults.length > 0) {
+        exportText += '【校验结果摘要】\n';
+        checkResults.forEach((item, idx) => {
+          const statusText = {
+            'pass': '通过',
+            'fail': '不通过',
+            'warn': '需人工',
+            'pending': '待处理',
+            'checking': '校验中'
+          }[item.status] || item.status;
+          
+          exportText += `${idx + 1}. [${item.task.carType}] ${item.task.partsName}\n`;
+          exportText += `   状态: ${statusText} | 供应商: ${item.task.supplierName}\n`;
+          if (item.manualStatus) {
+            const manualText = {
+              'confirmed': '人工确认通过',
+              'rejected': '人工确认不通过'
+            }[item.manualStatus] || item.manualStatus;
+            exportText += `   人工审核: ${manualText}${item.manualNote ? ' - ' + item.manualNote : ''}\n`;
+          }
+          exportText += '\n';
+        });
+        exportText += '\n';
+      }
+      
+      // 导出详细日志
+      exportText += '【详细日志】\n';
+      logs.forEach((log, idx) => {
+        const time = new Date(log.timestamp).toLocaleString('zh-CN');
+        exportText += `[${time}] [${log.type || 'INFO'}] ${log.message}\n`;
+      });
+      
+      resolve({ success: true, content: exportText });
+    });
+  });
+}
+
+// 清空校验日志
+function clearCheckLogs() {
+  return new Promise((resolve) => {
+    chrome.storage.local.remove(['checkLogs'], () => {
+      resolve({ success: true });
+    });
+  });
+}
+
 // First install: auto-save default API key
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.get(['apiKey'], (result) => {
@@ -126,6 +284,48 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         .then((res) => sendResponse(res))
         .catch((err) => sendResponse({ success: false, error: err.message }));
     });
+    return true;
+  }
+
+  // --- Batch Check Results Persistence ---
+  if (message.type === 'SAVE_BATCH_RESULTS') {
+    saveBatchCheckResults(message.results).then(sendResponse);
+    return true;
+  }
+
+  if (message.type === 'GET_BATCH_RESULTS') {
+    getBatchCheckResults().then(sendResponse);
+    return true;
+  }
+
+  if (message.type === 'CLEAR_BATCH_RESULTS') {
+    clearBatchCheckResults().then(sendResponse);
+    return true;
+  }
+
+  if (message.type === 'UPDATE_TASK_MANUAL_STATUS') {
+    updateTaskManualStatus(message.taskIndex, message.manualStatus, message.manualNote).then(sendResponse);
+    return true;
+  }
+
+  // --- Check Logs Persistence ---
+  if (message.type === 'SAVE_CHECK_LOG') {
+    saveCheckLog(message.logEntry).then(sendResponse);
+    return true;
+  }
+
+  if (message.type === 'GET_CHECK_LOGS') {
+    getCheckLogs(message.options).then(sendResponse);
+    return true;
+  }
+
+  if (message.type === 'EXPORT_CHECK_LOGS') {
+    exportCheckLogs().then(sendResponse);
+    return true;
+  }
+
+  if (message.type === 'CLEAR_CHECK_LOGS') {
+    clearCheckLogs().then(sendResponse);
     return true;
   }
 });

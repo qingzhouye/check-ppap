@@ -8,13 +8,14 @@
 </head>
 <body>
   <div class="popup-container">
-    <!-- Header -->
-    <div class="header">
+    <!-- Header - 可拖拽区域 -->
+    <div class="header" id="dragHeader" title="按住此处拖动窗口">
       <div class="header-left">
         <h1>一致性确认助手</h1>
         <span class="version">v1.0.1</span>
       </div>
       <span class="badge">监测组</span>
+      <div class="drag-hint">⋮⋮</div>
     </div>
 
     <!-- Scrollable Content -->
@@ -99,7 +100,10 @@
       <div class="section" id="batchResultSection" style="display:none;">
         <div class="section-header">
           <div class="section-title">批量校验结果</div>
-          <span class="link-btn" id="closeBatchResult">关闭</span>
+          <div>
+            <span class="link-btn" id="btnClearResults" style="margin-right:10px;color:#f44336;">清空结果</span>
+            <span class="link-btn" id="closeBatchResult">关闭</span>
+          </div>
         </div>
         <div id="batchResultSummary" class="batch-summary"></div>
         <div id="batchApproveArea" class="batch-approve-area" style="display:none;">
@@ -118,7 +122,10 @@
       <div class="section">
         <div class="section-header">
           <div class="section-title">操作日志</div>
-          <span class="link-btn" id="clearLog">清空</span>
+          <div>
+            <span class="link-btn" id="btnExportLogs" style="margin-right:10px;color:#4caf50;">导出日志</span>
+            <span class="link-btn" id="clearLog">清空</span>
+          </div>
         </div>
         <div id="logArea" class="log-area">
           <div class="log-item log-info">插件已就绪，等待操作...</div>
