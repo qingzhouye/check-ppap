@@ -64,56 +64,79 @@
     }
   });
 
-  // 通过API直接获取任务列表
+  // 通过API直接获取任务列表 - 支持分页获取大量数据
   async function fetchTaskListByAPI() {
     try {
       console.log('[API List] 尝试通过API获取任务列表...');
       
-      const apiUrl = `${window.location.origin}/api/unifomity/uniformityCheckSWTaskSearch/listUniCheckTaskSearch`;
+      // 尝试不同的分页参数格式，优先获取500条
+      const pageSize = 500;
+      const baseUrl = `${window.location.origin}/api/unifomity/uniformityCheckSWTaskSearch/listUniCheckTaskSearch`;
       
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        credentials: 'same-origin',
-        headers: {
-          'Accept': 'application/json'
+      // 尝试多种分页参数格式
+      const urlsToTry = [
+        `${baseUrl}?pageSize=${pageSize}&pageNum=1`,
+        `${baseUrl}?limit=${pageSize}&page=1`,
+        `${baseUrl}?rows=${pageSize}&page=1`,
+        `${baseUrl}?size=${pageSize}&current=1`,
+        baseUrl // 原始URL作为fallback
+      ];
+      
+      let lastError = null;
+      
+      for (const apiUrl of urlsToTry) {
+        try {
+          console.log(`[API List] 尝试URL: ${apiUrl}`);
+          
+          const response = await fetch(apiUrl, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (!response.ok) {
+            console.log(`[API List] URL请求失败: ${response.status}`);
+            continue;
+          }
+          
+          const result = await response.json();
+          
+          if (result.respCode === 0 || result.ok === true || result.data) {
+            const list = result.data?.list || result.data || [];
+            console.log(`[API List] ✅ 成功获取 ${list.length} 条任务 (URL: ${apiUrl})`);
+            
+            // 转换为统一格式
+            const tasks = list.map((item, index) => ({
+              id: item.id || '',
+              index: String(index + 1),
+              overtime: item.overtime || '',
+              uniformityCheckNum: item.uniformityCheckNum || '',
+              currentNode: item.currentNodeStr || '',
+              carPlatform: item.carPlatform || '',
+              carType: item.carType || '',
+              source: item.sourceStr || '',
+              latestPartsCode: item.latestPartsCode || '',
+              initialPartsCode: item.initialPartsCode || '',
+              partsName: item.partsName || '',
+              supplierCode: item.supplierCode || '',
+              supplierName: item.supplierName || '',
+              createDate: item.createdate || '',
+              updateDate: item.previousNodeAuditTime || '',
+              sqeName: item.sqeName || '',
+              applicantName: item.applicantName || '',
+            }));
+            
+            return { success: true, tasks, source: 'api', total: result.data?.total || tasks.length };
+          }
+        } catch (err) {
+          console.log(`[API List] URL尝试失败: ${err.message}`);
+          lastError = err;
         }
-      });
-      
-      if (!response.ok) {
-        return { success: false, error: `API请求失败: ${response.status}` };
       }
       
-      const result = await response.json();
-      
-      if (result.respCode === 0 || result.ok === true) {
-        const list = result.data?.list || result.data || [];
-        console.log(`[API List] ✅ 成功获取 ${list.length} 条任务`);
-        
-        // 转换为统一格式
-        const tasks = list.map((item, index) => ({
-          id: item.id || '',
-          index: String(index + 1),
-          overtime: item.overtime || '',
-          uniformityCheckNum: item.uniformityCheckNum || '',
-          currentNode: item.currentNodeStr || '',
-          carPlatform: item.carPlatform || '',
-          carType: item.carType || '',
-          source: item.sourceStr || '',
-          latestPartsCode: item.latestPartsCode || '',
-          initialPartsCode: item.initialPartsCode || '',
-          partsName: item.partsName || '',
-          supplierCode: item.supplierCode || '',
-          supplierName: item.supplierName || '',
-          createDate: item.createdate || '',
-          updateDate: item.previousNodeAuditTime || '',
-          sqeName: item.sqeName || '',
-          applicantName: item.applicantName || '',
-        }));
-        
-        return { success: true, tasks, source: 'api' };
-      }
-      
-      return { success: false, error: result.message || 'API返回错误' };
+      return { success: false, error: lastError?.message || '所有API请求方式均失败' };
     } catch (err) {
       console.log('[API List] ❌ API获取失败:', err.message);
       return { success: false, error: err.message };
