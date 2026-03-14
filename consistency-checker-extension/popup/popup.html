@@ -102,6 +102,15 @@
           <span class="link-btn" id="closeBatchResult">关闭</span>
         </div>
         <div id="batchResultSummary" class="batch-summary"></div>
+        <div id="batchApproveArea" class="batch-approve-area" style="display:none;">
+          <button id="btnBatchApprove" class="btn btn-success btn-sm">
+            <svg class="btn-svg" viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="currentColor"/></svg>
+            一键审核通过并提交 (<span id="batchApproveCount">0</span>个)
+          </button>
+          <div id="batchApproveProgress" class="batch-approve-progress" style="display:none;">
+            <span id="batchApproveText">准备审核...</span>
+          </div>
+        </div>
         <div id="batchResultList" class="batch-result-list"></div>
       </div>
 

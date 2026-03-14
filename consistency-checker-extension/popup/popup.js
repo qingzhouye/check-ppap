@@ -67,6 +67,9 @@ function bindEvents() {
     document.getElementById('batchResultSection').style.display = 'none';
   });
 
+  // Batch approve button
+  document.getElementById('btnBatchApprove').addEventListener('click', batchApproveAll);
+
   // Clear log
   document.getElementById('clearLog').addEventListener('click', function () {
     document.getElementById('logArea').innerHTML = '';
@@ -477,7 +480,9 @@ function processNextBatchTask(index) {
     if (response && response.success) {
       currentTask.status = response.allPassed ? 'pass' : (response.hasWarning ? 'warn' : 'fail');
       currentTask.results = response.results || [];
-      addLog('  校验完成: ' + (response.allPassed ? '通过' : (response.hasWarning ? '需人工确认' : '不通过')), 
+      currentTask.source = response.source || 'unknown'; // 记录数据来源(api/popup)
+      var sourceText = response.source === 'api' ? '[API]' : '[弹窗]';
+      addLog('  校验完成' + sourceText + ': ' + (response.allPassed ? '通过' : (response.hasWarning ? '需人工确认' : '不通过')), 
         response.allPassed ? 'success' : (response.hasWarning ? 'warn' : 'error'));
     } else {
       currentTask.status = 'fail';
@@ -497,6 +502,8 @@ function processNextBatchTask(index) {
 function renderBatchResults() {
   var summaryEl = document.getElementById('batchResultSummary');
   var listEl = document.getElementById('batchResultList');
+  var approveArea = document.getElementById('batchApproveArea');
+  var approveCount = document.getElementById('batchApproveCount');
   
   // 计算统计
   var total = batchCheckResults.length;
@@ -512,6 +519,14 @@ function renderBatchResults() {
     '<div class="batch-summary-item"><span>不通过:</span><span class="batch-status-fail"><b>' + failed + '</b></span></div>' +
     '<div class="batch-summary-item"><span>需人工:</span><span class="batch-status-warn"><b>' + warning + '</b></span></div>' +
     '<div class="batch-summary-item"><span>待处理:</span><span class="batch-status-pending"><b>' + pending + '</b></span></div>';
+  
+  // 显示/隐藏批量审核按钮（只有当有通过的任务且不在校验中时显示）
+  if (total > 0 && pending === 0 && passed > 0) {
+    approveArea.style.display = 'block';
+    approveCount.textContent = passed;
+  } else {
+    approveArea.style.display = 'none';
+  }
   
   // 渲染列表
   if (total === 0) {
@@ -529,8 +544,22 @@ function renderBatchResults() {
       'warn': '需人工'
     }[item.status] || item.status;
     
+    // 如果已审核，显示审核状态
+    if (item.approved) {
+      statusClass = 'batch-status-approved';
+      statusText = '已审核';
+    }
+    
     var title = '[' + item.task.carType + '] ' + item.task.partsName;
     var subtitle = item.task.supplierName + ' | ' + item.task.latestPartsCode;
+    
+    // 数据来源标记
+    var sourceBadge = '';
+    if (item.source === 'api') {
+      sourceBadge = '<span style="font-size:9px;color:#4caf50;background:#e8f5e9;padding:1px 4px;border-radius:2px;margin-left:5px;">API</span>';
+    } else if (item.source === 'popup') {
+      sourceBadge = '<span style="font-size:9px;color:#ff9800;background:#fff3e0;padding:1px 4px;border-radius:2px;margin-left:5px;">弹窗</span>';
+    }
     
     // 构建详情HTML
     var detailsHtml = '';
@@ -546,8 +575,28 @@ function renderBatchResults() {
               '<div class="batch-check-result">' + r.result + '</div>' +
             '</div>' +
           '</div>';
-        }).join('') +
-      '</div>';
+        }).join('');
+      
+      // 添加审核结果信息
+      if (item.approved) {
+        detailsHtml += '<div class="batch-check-item" style="border-top:1px solid #c8e6c9;margin-top:4px;padding-top:8px;">' +
+          '<div class="batch-check-icon pass">✓</div>' +
+          '<div class="batch-check-content">' +
+            '<div class="batch-check-name">审核结果</div>' +
+            '<div class="batch-check-result">' + item.approveResult + '</div>' +
+          '</div>' +
+        '</div>';
+      } else if (item.approveError) {
+        detailsHtml += '<div class="batch-check-item" style="border-top:1px solid #ffcdd2;margin-top:4px;padding-top:8px;">' +
+          '<div class="batch-check-icon fail">✗</div>' +
+          '<div class="batch-check-content">' +
+            '<div class="batch-check-name">审核失败</div>' +
+            '<div class="batch-check-result">' + item.approveError + '</div>' +
+          '</div>' +
+        '</div>';
+      }
+      
+      detailsHtml += '</div>';
     } else if (item.error) {
       detailsHtml = '<div class="batch-task-details" id="batch-details-' + idx + '" style="display:none;">' +
         '<div class="batch-check-item">' +
@@ -560,14 +609,19 @@ function renderBatchResults() {
       '</div>';
     }
     
+    var headerClass = 'batch-task-header';
+    if (item.approved) {
+      headerClass += ' approved';
+    }
+    
     return '<div class="batch-task-item">' +
-      '<div class="batch-task-header" onclick="toggleBatchDetails(' + idx + ')">' +
+      '<div class="' + headerClass + '" onclick="toggleBatchDetails(' + idx + ')">' +
         '<div>' +
           '<div class="batch-task-title">' + (idx + 1) + '. ' + escapeHtml(title) + '</div>' +
           '<div style="font-size:10px;color:#999;margin-top:2px;">' + escapeHtml(subtitle) + '</div>' +
         '</div>' +
         '<div class="batch-task-status">' +
-          '<span class="batch-status-badge ' + statusClass + '">' + statusText + '</span>' +
+          '<span class="batch-status-badge ' + statusClass + '">' + statusText + '</span>' + sourceBadge +
           '<span class="batch-toggle-icon" id="batch-toggle-' + idx + '">▼</span>' +
         '</div>' +
       '</div>' +
@@ -585,6 +639,85 @@ function toggleBatchDetails(index) {
     detailsEl.style.display = isVisible ? 'none' : 'block';
     toggleEl.classList.toggle('expanded', !isVisible);
   }
+}
+
+// ============ Batch Approve Functions ============
+var isBatchApproving = false;
+
+function batchApproveAll() {
+  if (isBatchApproving) {
+    addLog('批量审核正在进行中，请等待完成', 'warn');
+    return;
+  }
+  
+  // 获取所有校验通过的任务
+  var passedTasks = batchCheckResults.filter(function(r) { 
+    return r.status === 'pass' && !r.approved; 
+  });
+  
+  if (passedTasks.length === 0) {
+    addLog('没有待审核的通过任务', 'warn');
+    return;
+  }
+  
+  if (!confirm('确认要一键审核通过 ' + passedTasks.length + ' 个任务吗？\n\n注意：这将自动打开每个任务详情页，填写监测组审核意见并提交。')) {
+    return;
+  }
+  
+  isBatchApproving = true;
+  
+  // 显示进度
+  document.getElementById('btnBatchApprove').disabled = true;
+  document.getElementById('batchApproveProgress').style.display = 'block';
+  
+  addLog('开始批量审核，共 ' + passedTasks.length + ' 个任务', 'info');
+  
+  // 开始逐个审核
+  processNextBatchApprove(0, passedTasks);
+}
+
+function processNextBatchApprove(index, passedTasks) {
+  if (index >= passedTasks.length) {
+    // 所有任务审核完成
+    addLog('批量审核完成！共处理 ' + passedTasks.length + ' 个任务', 'success');
+    isBatchApproving = false;
+    document.getElementById('btnBatchApprove').disabled = false;
+    document.getElementById('batchApproveProgress').style.display = 'none';
+    renderBatchResults();
+    return;
+  }
+  
+  var currentTaskItem = passedTasks[index];
+  var originalIndex = batchCheckResults.indexOf(currentTaskItem);
+  
+  // 更新进度
+  document.getElementById('batchApproveText').textContent = 
+    '正在审核 (' + (index + 1) + '/' + passedTasks.length + '): ' + currentTaskItem.task.partsName;
+  
+  addLog('正在审核第 ' + (index + 1) + '/' + passedTasks.length + ' 条: [' + currentTaskItem.task.carType + '] ' + currentTaskItem.task.partsName, 'info');
+  
+  // 发送消息到内容脚本，打开详情页并审核
+  sendToContentScript({ 
+    action: 'BATCH_APPROVE_TASK', 
+    taskIndex: originalIndex,
+    taskData: currentTaskItem.task
+  }, function (response) {
+    if (response && response.success) {
+      currentTaskItem.approved = true;
+      currentTaskItem.approveResult = response.message || '审核成功';
+      addLog('  审核完成: ' + (response.message || '成功'), 'success');
+    } else {
+      currentTaskItem.approveError = response ? response.error : '审核失败';
+      addLog('  审核失败: ' + (response ? response.error : '未知错误'), 'error');
+    }
+    
+    renderBatchResults();
+    
+    // 延迟处理下一个
+    setTimeout(function() {
+      processNextBatchApprove(index + 1, passedTasks);
+    }, 800);
+  });
 }
 
 // ============ Utils ============

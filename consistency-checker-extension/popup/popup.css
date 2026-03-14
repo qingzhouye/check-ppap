@@ -545,3 +545,50 @@ body {
 .batch-toggle-icon.expanded {
   transform: rotate(180deg);
 }
+
+/* ============ Batch Approve Area ============ */
+.batch-approve-area {
+  margin: 10px 0;
+  padding: 10px;
+  background: #e8f5e9;
+  border-radius: 4px;
+  border: 1px solid #c8e6c9;
+}
+
+.batch-approve-area .btn {
+  margin-bottom: 0;
+}
+
+.batch-approve-area .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.batch-approve-progress {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #2e7d32;
+  text-align: center;
+}
+
+/* 已审核状态样式 */
+.batch-status-approved { 
+  background: #e3f2fd; 
+  color: #1565c0; 
+}
+
+.batch-task-header.approved {
+  background: #e8f5e9;
+}
+
+.batch-approve-info {
+  font-size: 10px;
+  color: #4caf50;
+  margin-top: 2px;
+}
+
+.batch-approve-error {
+  font-size: 10px;
+  color: #f44336;
+  margin-top: 2px;
+}
