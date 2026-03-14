@@ -274,10 +274,15 @@ function bindEvents() {
   document.getElementById('toggleKeyVisible').addEventListener('click', toggleKeyVisibility);
 
   // Function buttons
-  document.getElementById('btnExtractList').addEventListener('click', extractTaskList);
+  document.getElementById('btnExtractList').addEventListener('click', extractTaskListWithCarTypeFilter);
   document.getElementById('btnAutoCheck').addEventListener('click', autoCheckDetail);
   document.getElementById('btnBatchCheck').addEventListener('click', batchCheckTasks);
   document.getElementById('btnAutoApprove').addEventListener('click', autoApprove);
+
+  // Car Type Filter buttons
+  document.getElementById('carTypeSelect').addEventListener('change', handleCarTypeChange);
+  document.getElementById('btnCheckByCarType').addEventListener('click', checkByCarType);
+  document.getElementById('btnRefreshCarTypes').addEventListener('click', extractTaskListWithCarTypeFilter);
 
   // Close batch result
   document.getElementById('closeBatchResult').addEventListener('click', function() {
@@ -679,6 +684,155 @@ function autoApprove() {
   });
 }
 
+// ============ Car Type Filter Functions ============
+var currentTaskList = []; // 存储当前提取的任务列表
+var carTypeFilteredTasks = []; // 存储按车型筛选后的任务列表
+
+// 提取任务列表并显示车型筛选区域
+function extractTaskListWithCarTypeFilter() {
+  addLog('正在提取任务列表...', 'info');
+  sendToContentScript({ action: 'EXTRACT_TASK_LIST' }, function (response) {
+    if (response && response.success) {
+      currentTaskList = response.tasks || [];
+      addLog('提取成功! 共' + currentTaskList.length + '条任务', 'success');
+      
+      // 显示车型筛选区域
+      document.getElementById('carTypeFilterSection').style.display = 'block';
+      
+      // 填充车型下拉框
+      populateCarTypeSelect();
+      
+      // 显示任务统计
+      renderCarTypeStats();
+      
+      // 显示任务列表摘要
+      currentTaskList.forEach(function (t, i) {
+        addLog('  ' + (i + 1) + '. [' + t.carType + '] ' + t.partsName + ' - ' + t.supplierName, 'info');
+      });
+    } else {
+      addLog('提取失败: ' + (response ? response.error : '无法连接到页面'), 'error');
+    }
+  });
+}
+
+// 填充车型下拉框
+function populateCarTypeSelect() {
+  var select = document.getElementById('carTypeSelect');
+  var btnCheck = document.getElementById('btnCheckByCarType');
+  
+  // 清空现有选项（保留默认选项）
+  select.innerHTML = '<option value="">-- 请选择车型/机型 --</option>';
+  
+  if (currentTaskList.length === 0) {
+    select.disabled = true;
+    btnCheck.disabled = true;
+    return;
+  }
+  
+  // 统计各车型的任务数量
+  var carTypeCount = {};
+  currentTaskList.forEach(function(task) {
+    var carType = task.carType || '未知车型';
+    if (!carTypeCount[carType]) {
+      carTypeCount[carType] = 0;
+    }
+    carTypeCount[carType]++;
+  });
+  
+  // 按车型名称排序并添加选项
+  var sortedCarTypes = Object.keys(carTypeCount).sort();
+  sortedCarTypes.forEach(function(carType) {
+    var option = document.createElement('option');
+    option.value = carType;
+    option.textContent = carType + ' (' + carTypeCount[carType] + '条任务)';
+    select.appendChild(option);
+  });
+  
+  select.disabled = false;
+  btnCheck.disabled = true; // 初始禁用，选择车型后启用
+}
+
+// 渲染车型统计信息
+function renderCarTypeStats() {
+  var statsEl = document.getElementById('carTypeStats');
+  
+  if (currentTaskList.length === 0) {
+    statsEl.innerHTML = '<div style="text-align:center;color:#999;">暂无任务数据</div>';
+    return;
+  }
+  
+  // 统计各车型的任务数量
+  var carTypeCount = {};
+  currentTaskList.forEach(function(task) {
+    var carType = task.carType || '未知车型';
+    if (!carTypeCount[carType]) {
+      carTypeCount[carType] = 0;
+    }
+    carTypeCount[carType]++;
+  });
+  
+  // 生成统计HTML
+  var totalTasks = currentTaskList.length;
+  var uniqueCarTypes = Object.keys(carTypeCount).length;
+  
+  var html = '<div class="stat-item"><span>总任务数:</span><span class="stat-value">' + totalTasks + '</span></div>';
+  html += '<div class="stat-item"><span>车型种类:</span><span class="stat-value">' + uniqueCarTypes + '</span></div>';
+  html += '<div style="margin-top:6px;border-top:1px solid #ddd;padding-top:6px;">';
+  
+  // 按数量排序显示前5个车型
+  var sortedTypes = Object.keys(carTypeCount).sort(function(a, b) {
+    return carTypeCount[b] - carTypeCount[a];
+  });
+  
+  sortedTypes.slice(0, 5).forEach(function(carType) {
+    html += '<div class="stat-item"><span>' + escapeHtml(carType) + ':</span><span class="stat-value">' + carTypeCount[carType] + '条</span></div>';
+  });
+  
+  if (sortedTypes.length > 5) {
+    html += '<div style="text-align:center;color:#999;margin-top:4px;">...还有' + (sortedTypes.length - 5) + '种车型</div>';
+  }
+  
+  html += '</div>';
+  statsEl.innerHTML = html;
+}
+
+// 处理车型选择变化
+function handleCarTypeChange() {
+  var select = document.getElementById('carTypeSelect');
+  var btnCheck = document.getElementById('btnCheckByCarType');
+  var selectedCarType = select.value;
+  
+  if (selectedCarType) {
+    // 筛选任务
+    carTypeFilteredTasks = currentTaskList.filter(function(task) {
+      return (task.carType || '未知车型') === selectedCarType;
+    });
+    
+    btnCheck.disabled = false;
+    addLog('已选择车型: ' + selectedCarType + '，共' + carTypeFilteredTasks.length + '条任务', 'info');
+  } else {
+    carTypeFilteredTasks = [];
+    btnCheck.disabled = true;
+  }
+}
+
+// 按车型一键校验
+function checkByCarType() {
+  if (carTypeFilteredTasks.length === 0) {
+    addLog('请先选择车型', 'warn');
+    return;
+  }
+  
+  var selectedCarType = document.getElementById('carTypeSelect').value;
+  
+  if (!confirm('开始校验车型 "' + selectedCarType + '" 的 ' + carTypeFilteredTasks.length + ' 条任务？')) {
+    return;
+  }
+  
+  // 使用筛选后的任务列表进行批量校验
+  startBatchCheckWithTasks(carTypeFilteredTasks, '车型: ' + selectedCarType);
+}
+
 // ============ Batch Check Functions ============
 var batchCheckResults = [];
 var isBatchChecking = false;
@@ -794,6 +948,12 @@ function batchCheckTasks() {
       return;
     }
     
+    // 更新当前任务列表并显示车型筛选区域
+    currentTaskList = tasks;
+    document.getElementById('carTypeFilterSection').style.display = 'block';
+    populateCarTypeSelect();
+    renderCarTypeStats();
+    
     addLog('提取到 ' + tasks.length + ' 条任务，开始批量校验...', 'success');
     
     // 初始化结果数组
@@ -811,6 +971,38 @@ function batchCheckTasks() {
     // 开始逐个校验
     processNextBatchTask(0);
   });
+}
+
+// 使用指定的任务列表开始批量校验
+function startBatchCheckWithTasks(tasks, filterLabel) {
+  if (isBatchChecking) {
+    addLog('批量校验正在进行中，请等待完成', 'warn');
+    return;
+  }
+  
+  isBatchChecking = true;
+  batchCheckResults = [];
+  
+  // 显示结果区域
+  document.getElementById('batchResultSection').style.display = 'block';
+  renderBatchResults();
+  
+  addLog('开始批量校验' + (filterLabel ? ' (' + filterLabel + ')' : '') + '，共' + tasks.length + '条任务...', 'info');
+  
+  // 初始化结果数组
+  batchCheckResults = tasks.map(function(task) {
+    return {
+      task: task,
+      status: 'pending', // pending, checking, pass, fail, warn
+      results: [],
+      error: null
+    };
+  });
+  
+  renderBatchResults();
+  
+  // 开始逐个校验
+  processNextBatchTask(0);
 }
 
 function processNextBatchTask(index) {

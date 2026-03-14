@@ -740,3 +740,63 @@ body {
   font-weight: bold;
   font-size: 14px;
 }
+
+/* ============ Car Type Filter ============ */
+.car-type-filter {
+  padding: 8px 0;
+}
+
+.filter-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.car-type-select {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: 'Microsoft YaHei', sans-serif;
+  background: #fff;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.car-type-select:focus {
+  border-color: #004375;
+  box-shadow: 0 0 0 2px rgba(0,67,117,0.1);
+}
+
+.car-type-select:disabled {
+  background: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.car-type-stats {
+  font-size: 11px;
+  color: #666;
+  background: #f5f5f5;
+  padding: 8px 10px;
+  border-radius: 4px;
+  line-height: 1.6;
+}
+
+.car-type-stats .stat-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.car-type-stats .stat-item:last-child {
+  margin-bottom: 0;
+}
+
+.car-type-stats .stat-value {
+  font-weight: bold;
+  color: #004375;
+}

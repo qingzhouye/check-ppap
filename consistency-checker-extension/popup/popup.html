@@ -96,6 +96,26 @@
         <div class="key-status">状态：<span id="apiStatusText" class="status status-ok">已配置 (内置Key)</span></div>
       </div>
 
+      <!-- Section: Car Type Filter -->
+      <div class="section" id="carTypeFilterSection" style="display:none;">
+        <div class="section-header">
+          <div class="section-title">车型筛选校验</div>
+          <span class="link-btn" id="btnRefreshCarTypes" style="color:#004375;">刷新列表</span>
+        </div>
+        <div class="car-type-filter">
+          <div class="filter-row">
+            <select id="carTypeSelect" class="car-type-select">
+              <option value="">-- 请选择车型/机型 --</option>
+            </select>
+            <button id="btnCheckByCarType" class="btn btn-primary btn-sm" disabled>
+              <svg class="btn-svg" viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="currentColor"/></svg>
+              一键校验选中车型
+            </button>
+          </div>
+          <div id="carTypeStats" class="car-type-stats"></div>
+        </div>
+      </div>
+
       <!-- Section: Batch Check Results -->
       <div class="section" id="batchResultSection" style="display:none;">
         <div class="section-header">
