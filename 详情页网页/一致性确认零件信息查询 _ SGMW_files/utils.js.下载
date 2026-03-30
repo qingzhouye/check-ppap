@@ -1,0 +1,52 @@
+/**
+ * 设置日期的渲染方法
+ * @param elem
+ * @param type
+ * @param obj
+ * @param key
+ */
+function setDateComponent(elem, type,obj,key) {
+    var startDate= layuiEvent.laydate.render({//渲染开始时间选择
+        elem: elem,//通过id绑定html中插入的start
+        type: type,
+        done: function (value, dates) {
+            obj[key] = value;
+        }
+    });
+}
+
+/**
+ * 设置日期的渲染方法
+ * @param elem
+ * @param type
+ * @param obj
+ * @param key
+ */
+function setDateComponentForm(elem, type) {
+    layuiEvent.laydate.render({//渲染开始时间选择
+        elem: elem,//通过id绑定html中插入的start
+        type: type,
+        isInitValue: true,
+        change: function (value, date, endDate) { //监听日期被切换
+            lay(elem).val(value);
+            if ($(".layui-laydate").length) {
+                $(".layui-laydate").remove();
+            }
+        },
+    });
+}
+
+/**
+ * 设置下拉框的渲染方法
+ * @param elem
+ * @param type
+ * @param obj
+ * @param key
+ */
+function setSelectComponent(elem,obj,key) {
+    layuiEvent.form.on('select('+elem+')', function (data) {//对应lay-filter
+        obj[key] = data.value;
+    });
+}
+
+

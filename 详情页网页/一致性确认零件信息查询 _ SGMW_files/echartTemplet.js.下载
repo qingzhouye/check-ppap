@@ -1,0 +1,705 @@
+// echart图组件
+var echartTemple = Vue.component('echart-temple', {
+    props: ['title', 'tabBarType', 'echartId', 'searchData', 'operationFlageLeft', 'operationFlageRight', 'operationEnumLeft', 'operationEnumRight', 'echartData', 'tableOrEchart', 'tableSet', 'reqData', 'exportUrl', 'hasExportUrl','hasExportUrl2', 'defaultVal', 'menuName'],
+    data: function () {
+        return {
+            clickList: [[], []],
+            echartDom: Object,
+            topNowEnumLeft: Object,
+            topNowEnumRight: Object,
+            searchStartDate: '',
+            searchEndDate: '',
+            titleDate: '',
+            firstTable: [],
+            flages: true,
+        }
+    },
+    template:
+        '<div class="echart-box">' +
+        '<div class="echart-title">' +
+        '<div class="title-text" style="overflow: hidden;text-overflow:ellipsis;white-space: nowrap;"> <p class="main-title" style="margin: 15px;font-weight: bold;font-size: 15px;border-left: 3px solid rgb(25,128,206);padding-left: 5px">{{title}}</p> <p class="title-date" style="margin: 15px; color:#5583FF;font-weight: bold">{{titleDate}}</p>'+
+        '<div class="echart-btn" v-if="hasExportUrl">' +
+        '<button class="g-btn-blue" @click="exportDataFunc()">导出</button>' +
+        '</div> ' +
+        '<div class="echart-btn" v-if="hasExportUrl2">' +
+        '<button class="g-btn-blue" @click="exportDataFunc2()">导出</button>' +
+        '</div> ' +
+        '</div>' +
+        '<div class="list-box">' +
+        '<ul class="list-type title-operation"v-if="operationFlageLeft">' +
+        ' <li v-for="(item,index) in clickList[0]" :key="index" @click="leftClick(item,index)" :class="topNowEnumLeft.TypeNumber==index?`li-click`:``">{{item.Name}}</li>' +
+        '</ul>' +
+        '<span></span>' +
+        '<ul class="list-type title-operation" v-if="operationFlageRight">' +
+        ' <li v-for="(item,index) in clickList[1]" :key="index" @click="rightClick(item,index)" :class="topNowEnumRight.TypeNumber==index?`li-click`:``">{{item.Name}}</li>' +
+        '</ul>' +
+        '</div>' +
+        '</div>' +
+        '<div class="echart-content" :id="`echart-content-${tabBarType}-${echartId}`">' +
+        '<div :id="`echart-${tabBarType}-${echartId}`" style="width: 100%;height: 100%;" v-if="tableOrEchart === `echart`"></div>' +
+        '<table :id="`echart-${tabBarType}-${echartId}`" :lay-filter="`echart-${tabBarType}-${echartId}`" v-if="tableOrEchart === `table`"></table>' +
+        '</div>' +
+        '</div>'
+    ,
+    created() {
+        var _this = this;
+        _this.echartData = JSON.parse(JSON.stringify(_this.echartData));
+        _this.showTitleTime();
+    },
+    mounted: function () {
+        var _this = this;
+        _this.initEchartDom();
+        _this.initClickList();
+    },
+    updated() {
+        var _this = this;
+    },
+    methods: {
+        showTitleTime: function () {
+            var _this = this;
+            if (!_this.searchData) {
+                _this.searchStartDate = new Date().toLocaleDateString();
+                _this.searchEndDate = new Date().toLocaleDateString();
+            }
+
+        },
+
+        //辅助函数，将2021年8月第2周格式转换成2021-08-08
+        dateTransition: function (week) {
+            let time = '';
+            let i = 0;
+            const reg = new RegExp('\\d+', 'g');
+            // 返回的是所有的数字组成的数组
+            const dataArr = week.match(reg);
+            // 获取到年份
+            const year = dataArr[0];
+            // 获取到月份
+            let month = +dataArr[1] < 10 ? '0' + dataArr[1] : dataArr[1];
+            // 获取到当前月份的第几周
+            const weeks = dataArr[2];
+            //获取到当前月的最后一天
+            const currentMonthLast = new Date(year, month, 0).getDate();
+            // 年月的拼接 2021-08-
+            let yearMonth = year + '-' + month + '-';
+            for (let j = 1; j <= currentMonthLast; j++) {
+                // 返回的是该日期对应的星期（0对应周日）
+                if (j < 10) {
+                    j = '0' + j;
+                }
+                let day = new Date(`${yearMonth + j}`).getDay();
+                if (day != 0) {
+                    continue;
+                }
+                i++;
+                if (weeks == i) {
+                    time = yearMonth + j;
+                }
+            }
+            return time;
+        },
+        // 初始化echartdom
+        initEchartDom: function () {
+            var _this = this;
+            if (_this.tableOrEchart == 'echart') {
+                _this.echartDom = echarts.init(document.getElementById('echart-' + _this.tabBarType + '-' + _this.echartId));
+                //代表的是第三个tab签的图 0 1 2
+                if (_this.tabBarType == '2' && _this.menuName == 'ADC_stwl_gysscyy_gysscyy_zlyx') {  //质量运行页面
+                    _this.echartDom.on('click', function (params) {
+                        if (_this.echartId == '0') {//第一个统计图
+                            let searchstart = '',
+                                searchend ='';
+                            let year = params.name.substring(0, 4);
+                            let month = params.name.substring(4, 6);
+                            let currentMonthLast = new Date(year, month, 0).getDate();
+                            if (_this.searchData.dateType.dateType == 'day' && params.name.length == 8) {
+                                // 20210902
+                                searchstart = year + '-' + month + '-' + params.name.substring(6, 8);
+                                searchend = year + '-' + month + '-' + params.name.substring(6, 8);
+                            } else if (_this.searchData.dateType.dateType == 'month' && params.name.length == 6){
+                                // 202109
+                                searchstart = year + '-' + month + '-01';
+                                searchend = year + '-' + month + '-' + currentMonthLast;
+                            } else {
+                                //2021年6月第3周
+                                searchstart = _this.dateTransition(params.name);
+                                let end = new Date(searchstart).getTime() + (24 * 60 * 60 * 1000) * 6;
+                                var data = new Date(end);
+                                var yy = data.getFullYear();
+                                var mm = data.getMonth() + 1 > 10 ? data.getMonth() + 1 : '0' + (data.getMonth() + 1);
+                                var dd = data.getDate() > 10 ? data.getDate() : '0' + data.getDate();
+                                searchend = yy + '-' + mm + '-' + dd;
+                            }
+                            _this.searchData.searchStartDate = searchstart;
+                            _this.searchData.searchEndDate = searchend;
+                        } else if (_this.echartId == '1') {
+                            _this.searchData.supplierCode = params.name;   //供应商代码
+                        }
+                        // _this.getDataReq(_this.searchData);
+                        _this.renderColume(_this.searchData);
+                    })
+                }
+            } else if (_this.tableOrEchart == 'table') {
+                var _this = this;
+                _this.tableColumn = [];
+                _this.columnObjArr = [];
+                _this.tableColumn.push({type: 'numbers', title: '序号', width: '4%'})
+                // 循环表头数据，整合绘制表格所需要的数据格式
+                _this.tableSet.set.forEach(function (item) {
+                    _this.columnObj = {
+                        title: item.title,
+                        align: "center",
+                        field: item.field,
+                        width: item.width,
+                        templet: item.templet,
+                    }
+                    _this.columnObjArr.push(_this.columnObj);
+                    _this.columnObj = {};
+                });
+                // 循环中间变量数组，将数组中的每一条数据添加进新的数组中，然后新的数组是表格所需要的并且已经整理好格式的数据
+                _this.columnObjArr.forEach(function (item) {
+                    _this.tableColumn.push(item)
+                });
+            }
+        },
+        //生成表格的表头
+        renderColume: function (searchData) {
+            var _this = this;
+            var coloum = [{
+                title: '项目名称',
+                align: "center",
+                field: 'cartype',
+                width: '20%',
+                templet: null,
+            },
+                {
+                    title: '供应商名称',
+                    align: "center",
+                    field: 'supplierName',
+                    width: '20%',
+                    templet: null,
+                },
+                {
+                    title: '零件号',
+                    align: "center",
+                    field: 'assypartscode',
+                    width: '20%',
+                    templet: null,
+                },
+                {
+                    title: '零件名称',
+                    align: "center",
+                    field: 'sp1',
+                    width: '20%',
+                    templet: null,
+                },
+                {
+                    title: '合格率',
+                    align: "center",
+                    field: 'qualifiedRate',
+                    width: '18%',
+                    templet: null,
+                },
+            ];
+            _this.tableColumn = [];
+            _this.columnObjArr = [];
+            _this.tableColumn.push({type: 'numbers', title: '序号', width: '4%'})
+            // 循环表头数据，整合绘制表格所需要的数据格式
+            coloum.forEach(function (item) {
+                _this.columnObj = {
+                    title: item.title,
+                    align: "center",
+                    field: item.field,
+                    width: item.width,
+                    templet: item.templet,
+                }
+                _this.columnObjArr.push(_this.columnObj);
+                _this.columnObj = {};
+            });
+            // 循环中间变量数组，将数组中的每一条数据添加进新的数组中，然后新的数组是表格所需要的并且已经整理好格式的数据
+            _this.columnObjArr.forEach(function (item) {
+                _this.tableColumn.push(item)
+            });
+            _this.renderThreeTable(searchData);
+        },
+        //渲染第三个tab签的第三个表格
+        renderThreeTable: function (searchData) {
+            var _this = this;
+            //整理查询条件
+            _this.searchData = searchData
+            var data = _this.reqData.searchDataFormat(searchData, _this.topNowEnumLeft, _this.topNowEnumRight);
+            //请求第三个表格的数据
+            layuiEvent.admin.req('/api/spo/GP12/getProblemStatusStatistics', data, function (res) {
+                if (res.ok) {
+                    // _this.tableSet.tableData = ;
+                    const objData = {
+                        tableData: res.data.list,
+                        time: res && res.message ? res.message : ''
+                    };
+                    //拿到数据绘制第三个表格
+                    layui.use('table', function () {
+                        var table = layui.table;
+                        _this.titleDate = objData.time;
+                        //展示已知数据
+                        table.render({
+                            elem: '#echart-2-2',
+                            data: objData.tableData,
+                            cols: [_this.tableColumn],
+                            width: $('#echart-content-2-2').width(),
+                            height: $('#echart-content-2-2').height(),
+                            limit: 999999,
+                        });
+                        if (objData.tableData.length == 0) {
+
+                        } else {
+                            _this.renderFourColume(searchData, objData.tableData[0]);
+                        }
+                        _this.rowInLineOperationFunc(searchData);
+                    });
+                } else {
+                    layerInfo(res.message, 2);
+                }
+                layuiEvent.admin.removeLoading();
+            }, {method: 'GET'})
+        },
+        //点击表格行更新子表
+        rowInLineOperationFunc: function (searchData) {
+            var _this = this;
+            layui.table.on('row(echart-2-2)', function (obj) {
+                //取到点击行的数据，渲染子表
+                _this.renderFourColume(searchData, obj);
+            });
+        },
+        //生成表格的表头
+        renderFourColume: function (searchData, obj) {
+            var _this = this;
+            var coloum = [{
+                    title: '检查项目',
+                    align: "center",
+                    field: 'chkobj',
+                    width: '25%',
+                    templet: null,
+                },
+                    {
+                        title: '判定标准',
+                        align: "center",
+                        field: 'standar',
+                        width: '25%',
+                        templet: null,
+                    },
+
+                    {
+                        title: '不合格数',
+                        align: "center",
+                        field: 'ngcount',
+                        width: '25%',
+                        templet: null,
+                    },
+                    {
+                        title: '主要问题',
+                        align: "center",
+                        field: 'discription',
+                        width: '24%',
+                        templet: null,
+                    },
+                ];
+            _this.tableColumnFour = [];
+            _this.columnObjArrFour = [];
+            _this.tableColumnFour.push({type: 'numbers', title: '序号', width: '4%'})
+            // 循环表头数据，整合绘制表格所需要的数据格式
+            coloum.forEach(function (item) {
+                _this.columnObjFour = {
+                    title: item.title,
+                    align: "center",
+                    field: item.field,
+                    width: item.width,
+                    templet: item.templet,
+                }
+                _this.columnObjArrFour.push(_this.columnObjFour);
+                _this.columnObjFour = {};
+            });
+            // 循环中间变量数组，将数组中的每一条数据添加进新的数组中，然后新的数组是表格所需要的并且已经整理好格式的数据
+            _this.columnObjArrFour.forEach(function (item) {
+                _this.tableColumnFour.push(item)
+            });
+            _this.renderFourTable(searchData, obj);
+        },
+        //渲染第四个表格（子表）
+        renderFourTable: function (searchData, obj) {
+            var _this = this;
+            //整理查询条件
+            _this.searchData = searchData;
+            var data = _this.reqData.searchDataFormat(searchData, _this.topNowEnumLeft, _this.topNowEnumRight);
+            if (obj) {
+                data.id = obj.data ? obj.data.chkcode : obj.chkcode; //点击行的数据的chkcode
+            } else {
+                delete data.id;
+            }
+            //请求第三个表格的数据
+            layuiEvent.admin.req('/api/spo/GP12/nonconformityDetails', data, function (res) {
+                if (res.ok) {
+                    // _this.tableSet.tableData = ;
+                    const objData = {
+                        tableData: res.data,
+                        time: res && res.message ? res.message : ''
+                    };
+                    //拿到数据绘制第三个表格
+                    layui.use('table', function () {
+                        var table = layui.table;
+                        _this.titleDate = objData.time;
+                        //展示已知数据
+                        table.render({
+                            elem: '#echart-2-3',
+                            data: objData.tableData,
+                            cols: [_this.tableColumnFour],
+                            width: $('#echart-content-2-3').width(),
+                            height: $('#echart-content-2-3').height(),
+                            limit: 999999,
+                        });
+                    });
+                } else {
+                    layerInfo(res.message, 2);
+                }
+                layuiEvent.admin.removeLoading();
+            }, {method: 'GET'})
+        },
+
+        getenum: function (url, flage) {
+            var _this = this;
+            var num = flage == 'Right' ? 1 : 0;
+            layuiEvent.admin.req(url, {}, function (res) {
+                if (res.ok) {
+                    var obj = {}
+                    if (_this.title == '变化点TOP供应商分析'){
+                        res.data.unshift({value: "全部", key: ''})
+                    }
+                    res.data.forEach((e, i) => {
+                        obj[e.key] = {
+                            Name: e.key,
+                            Type: e.key,
+                            TypeNumber: i
+                        }
+                    });
+                    $.each(obj, (key, val) => {
+                        _this.clickList[num].push(val)
+                    })
+                    if (_this.title == '变化点TOP供应商分析'){
+                        _this.clickList[num][0].Name = "全部"
+                    }
+                    _this['topNowEnum' + flage] = _this.clickList[1][0];
+                    _this['operationFlage' + flage] = true;
+                } else {
+                    layerInfo(res.message, 2);
+                }
+                layuiEvent.admin.removeLoading();
+            }, {method: 'GET'})
+        },
+        // 初始化点击list
+        initClickList: function () {
+            var _this = this;
+            if (typeof _this.operationEnumLeft == 'string') {
+                _this.operationFlageLeft = false;
+                _this.getenum(_this.operationEnumLeft, 'Left');
+            } else {
+                $.each(_this.operationEnumLeft, (key, val) => {
+                    _this.clickList[0].push(val)
+                })
+                _this.topNowEnumLeft = _this.clickList[0][0];
+            }
+            if (typeof _this.operationEnumRight == 'string') {
+                _this.operationFlageRight = false
+                _this.getenum(_this.operationEnumRight, 'Right');
+            } else {
+                $.each(_this.operationEnumRight, (key, val) => {
+                    _this.clickList[1].push(val)
+                })
+                _this.topNowEnumRight = _this.clickList[1][0];
+            }
+        },
+        leftClick: function (item, index) {
+            var _this = this;
+            _this.topNowEnumLeft = item;
+            _this.getDataReq(_this.searchData);
+        },
+        rightClick: function (item, index) {
+            var _this = this;
+            _this.topNowEnumRight = item;
+            _this.getDataReq(_this.searchData);
+        },
+        // 重置方法
+        resetSearchFunc: function () {
+            var _this = this;
+            if (_this.operationFlageLeft) {
+                _this.topNowEnumLeft = _this.clickList[0][0];
+            }
+            if (_this.operationFlageRight) {
+                _this.topNowEnumRight = _this.clickList[1][0];
+            }
+        },
+        // 刷新echart图方法
+        resetEchart: function (data) {
+            var _this = this;
+            _this.titleDate = data.time;
+            if (_this.tableOrEchart == 'echart') {
+                _this.echartDom.setOption(data.echartData, true);
+                _this.echartDom.resize();
+            } else if (_this.tableOrEchart == 'table') {
+                layui.use('table', function () {
+                    var table = layui.table;
+                    _this.titleDate = data.time;
+                    //展示已知数据
+                    table.render({
+                        elem: '#echart-' + _this.tabBarType + '-' + _this.echartId,
+                        data: data.tableData,
+                        cols: [_this.tableColumn],
+                        width: $('#echart-content-' + _this.tabBarType + '-' + _this.echartId).width(),
+                        height: $('#echart-content-' + _this.tabBarType + '-' + _this.echartId).height(),
+                        limit: 999999,
+                        done: function () {
+                            if (_this.tabBarType == '2' && _this.echartId == '2' && _this.menuName == 'ADC_stwl_gysscyy_gysscyy_zlyx') {
+                                _this.rowInLineOperationFunc(_this.searchData);
+                            }
+                        }
+                    });
+                });
+            }
+        },
+        // 请求展示图数据方法
+        getDataReq: function (searchData) {
+            var _this = this;
+            _this.searchData = searchData
+            if (_this.tableOrEchart == 'echart') {
+                var data = _this.reqData.searchDataFormat(searchData, _this.topNowEnumLeft, _this.topNowEnumRight);
+                layuiEvent.admin.req(_this.reqData.reqUrl, data, function (res) {
+                    if (res.ok) {
+                        // _this.echartData = ;'tabBarType', 'echartId',
+                        if (_this.tabBarType == '2' && _this.echartId == '0' && _this.menuName == 'ADC_stwl_gysscyy_gysscyy_zlyx') {
+                            //将第三个tab签的第一个统计图数据保存下来
+                            _this.firstEcharts = res.data;
+                        }
+                        _this.resetEchart(_this.reqData.reqDataFormat(res.data, _this.echartData, _this.topNowEnumLeft, _this.topNowEnumRight, res));
+                    } else {
+                        layerInfo(res.message, 2);
+                    }
+                    layuiEvent.admin.removeLoading();
+                }, {method: _this.reqData.reqType})
+            } else if (_this.tableOrEchart == 'table') {
+                if (_this.defaultVal) {
+                    searchData.id = _this.defaultVal;
+                }
+                var data = _this.reqData.searchDataFormat(searchData, _this.topNowEnumLeft, _this.topNowEnumRight);
+                layuiEvent.admin.req(_this.reqData.reqUrl, data, function (res) {
+                    if (res.ok) {
+                        // _this.tableSet.tableData = ;
+                        if (_this.tabBarType == '2' && _this.echartId == '2' && _this.menuName == 'ADC_stwl_gysscyy_gysscyy_zlyx') {
+                            if (res.data.list.length != 0) {
+                                // 将第三个tab签的第三个图的数据保存下来
+                                _this.$emit('changeya', res.data.list[0].chkcode);
+                            } else {
+                                _this.renderFourColume(searchData, false);
+                            }
+                        }
+                        _this.resetEchart(_this.reqData.reqDataFormat(res, _this.echartData, _this.topNowEnumLeft, _this.topNowEnumRight));
+                    } else {
+                        layerInfo(res.message, 2);
+                    }
+                    layuiEvent.admin.removeLoading();
+                }, {method: _this.reqData.reqType})
+            }
+            // _this.resetEchart();
+        },
+        //导出方法
+        exportDataFunc: function () {
+            var _this = this
+            var myDate = new Date();
+            var year = myDate.getFullYear(); //获取完整的年份(4位,1970-????)
+            var month = myDate.getMonth() + 1 < 10 ? '0' + (myDate.getMonth() + 1) : myDate.getMonth() + 1; //获取当前月份(0-11,0代表1月)
+            var date = myDate.getDate(); //获取当前日(1-31)
+            var currentDate = year + '' + month + '' + date //拼接组成当前时间
+            var exportObj = {}
+            exportObj = JSON.parse(JSON.stringify(searchDatafotmat_two(_this.searchData)));
+            //exportObj.dateType = exportObj.dateType.dateType
+            fetch(_this.exportUrl, {
+                method: 'post',
+                headers: {
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Content-Type': 'application/json'
+                },
+                'credentials': 'include',
+                body: JSON.stringify(exportObj),
+            })
+                .then(res => res.blob())
+                .then(blob => {
+                    var a = document.createElement('a');
+                    var url = window.URL.createObjectURL(blob);
+                    a.href = url;
+                    a.setAttribute("download", currentDate + '.xlsx');
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                })
+        },
+        exportDataFunc2: function () {
+            var _this = this
+            var myDate = new Date();
+            var year = myDate.getFullYear(); //获取完整的年份(4位,1970-????)
+            var month = myDate.getMonth() + 1 < 10 ? '0' + (myDate.getMonth() + 1) : myDate.getMonth() + 1; //获取当前月份(0-11,0代表1月)
+            var date = myDate.getDate(); //获取当前日(1-31)
+            var currentDate = year + '' + month + '' + date //拼接组成当前时间
+            var data = _this.reqData.searchDataFormat(_this.searchData, _this.topNowEnumLeft, _this.topNowEnumRight);
+            let url = _this.exportUrl + '?'
+            for (let key in data) {
+                url += `${key}=${data[key]}&`
+            }
+            layui.use('layer', function () {
+                    var config = layui.config;
+                    var xhr = new XMLHttpRequest();
+                    //GET请求,请求路径url,async(是否异步)
+                // _this.exportUrl+ `?projectId=${data.projectId}&searchType=${data.searchType}&startDate=${data.startDate}&endDate=${data.endDate}&supplierName=${data.supplierName}&projectName=${data.projectName}&issueSource=${data.issueSource}&issueType=${data.issueType}`
+                    xhr.open('GET',url , true);
+                    //设置请求头参数的方式,如果没有可忽略此行代码
+                    if (config.EDUCASTGC) {
+                        xhr.setRequestHeader("EDU-CASTGC", config.EDUCASTGC);
+                        xhr.setRequestHeader("type", "EDU-CASTGC");
+                    } else {
+                        xhr.setRequestHeader("CASTGC", config.CASTGC);
+                        xhr.setRequestHeader("type", 'CASTGC');
+                    }
+                    //设置响应类型为 blob
+                    xhr.responseType = 'blob';
+                    //关键部分
+                    xhr.onload = function (e) {
+                        //如果请求执行成功
+                        if (this.status == 200) {
+                            var blob = this.response;
+                            var filename = currentDate + '.xls';//如123.xls
+                            var a = document.createElement('a');
+
+                            blob.type = "application/octet-stream";
+                            //创键临时url对象
+                            var url = URL.createObjectURL(blob);
+
+                            a.href = url;
+                            a.download=filename;
+                            a.click();
+                            //释放之前创建的URL对象
+                            window.URL.revokeObjectURL(url);
+                        }
+                    };
+                    //发送请求
+                    xhr.send();
+                })
+            // fetch(_this.exportUrl, {
+            //     method: 'post',
+            //     headers: {
+            //         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            //         'Content-Type': 'application/json'
+            //     },
+            //     'credentials': 'include',
+            //     body: JSON.stringify(data),
+            // })
+            //     .then(res => res.blob())
+            //     .then(blob => {
+            //         var a = document.createElement('a');
+            //         var url = window.URL.createObjectURL(blob);
+            //         a.href = url;
+            //         a.setAttribute("download", currentDate + '.xlsx');
+            //         a.click();
+            //         window.URL.revokeObjectURL(url);
+            //     })
+        }
+    },
+    watch: {
+        searchData: {
+            handler(newData, oldData) {
+                if (newData) {
+                    this.searchData = newData;
+                    this.searchStartDate = this.searchData.searchStartDate;
+                    this.searchEndDate = this.searchData.searchEndDate;
+                }
+            },
+            deep: true,
+            immediate: true,
+        }
+    }
+});
+
+/*
+    * author: linzijian
+    * description: 循环对象数组，获取每个下拉菜单对应的数据
+    * time: 2020/10/09
+*/
+function getViceFormSelectDataFunc(reqSelectData) {
+    reqSelectData.forEach(function (ss) {
+        $.each(ss, function (key, val) {
+            layuiEvent.admin.req(val, {}, function (res) {
+                    if (res.ok) {
+                        res.data.forEach(function (item) {
+                            $('#' + key).append("<option value='" + item + "'>" + item + "</option>");
+                        })
+                        layuiEvent.form.render("select");
+                    } else {
+                        layerInfo(res.message, 2);
+                    }
+                }, {method: 'GET'}
+            );
+        })
+    })
+}
+
+/*
+* author: linzijian
+* description: 获取新增或编辑的表单中，下拉菜单类型的查询条件中的所有数据，这个方法在此js中封装，
+*              可以简化前端页面的代码重复性，当选择好下拉菜单中的数据后，这样操作还可以直接获取选择的数据，传入接口中（联动下拉）
+* time: 2020/10/13
+*/
+var searchData = {};
+
+function resetSearctData(clearDomID, index) {
+    searchData = {};
+    clearDomID.forEach(function (item) {
+        $('#' + item + '-' + index).html('<option value=""> 请选择 </option>');
+    })
+}
+
+function getLinkageSelectDataFunc(viceLinkageSelectInterfaceArr, index) {
+    var domIndex = index !== null ? '-' + index : '';
+    viceLinkageSelectInterfaceArr.forEach(function (ss) {
+        getLinkageData(ss, null, domIndex);
+    })
+}
+
+function getLinkageData(ss, data, domindex) {
+    $.each(ss, function (key, val) {
+        if (data) {
+            searchData[val.fieldIdentifier] = data;
+        }
+        layuiEvent.admin.req(val.url, searchData, function (res) {
+                if (res.ok) {
+                    $('#' + key + domindex).html('<option value=""> 请选择 </option>');
+                    if (val.clearDomID) {
+                        val.clearDomID.forEach(function (item) {
+                            $('#' + item + domindex).html('<option value=""> 请选择 </option>');
+                        })
+                    }
+                    res.data.forEach(function (item, index) {
+                        $('#' + key + domindex).append("<option value='" + item[val.value] + "'>" + item[val.name] + "</option>");
+                    })
+                    layuiEvent.form.on('select(' + key + ')', function (data) {//对应lay-filter
+                        if (val.echoSelectId) {
+                            $('#' + val.echoSelectId + domindex).val(data.value);
+                        }
+                        if (val.children) {
+                            val.children.forEach(function (ss) {
+                                getLinkageData(ss, data.value, domindex);
+                            })
+                        }
+                        layuiEvent.form.render("select");
+                    })
+                    layuiEvent.form.render("select");
+                } else {
+                    layerInfo(res.message, 2);
+                }
+                layuiEvent.admin.removeLoading();
+            }, {method: val.requestType}
+        );
+    })
+}

@@ -1,0 +1,504 @@
+
+const colorList = ['#f4a71a','#4e93dc','#e79647','#5bb4c0','#e2d061','#ed6b4b','#67c6f2','#fe5e5e','#7b7de8','#61cda3']
+var gysscyyEnum = {
+    _5E1MEnum:function(){
+    },
+    scyyTapBarEnum:{
+        PRODUCTION_PLAN_COMPLETED:{
+            Name:'生产计划完成',
+            Type:'生产计划完成',
+            TypeNumber:0
+        },
+        STOP_LINE_ANALYSIS:{
+            Name:'停线分析',
+            Type:'停线分析',
+            TypeNumber:1
+        },
+        PRODUCTIVITY:{
+            Name:'生产效率',
+            Type:'生产效率',
+            TypeNumber:2
+        },
+        PRODUCTION_LINE_LOAD:{
+            Name:'产线负荷',
+            Type:'产线负荷',
+            TypeNumber:3
+        },
+    },
+    bhdztTapBarEnum:{
+        STOP_LINE_ANALYSIS:{
+            Name:'变化点分析',
+            Type:'变化点分析',
+            TypeNumber:0
+        },
+        PRODUCTION_PLAN_COMPLETED:{
+            Name:'变化点总览',
+            Type:'变化点总览',
+            TypeNumber:1
+        },
+    },
+    zlyxTapBarEnum:{
+        PRODUCTION_PLAN_COMPLETED:{
+            Name:'质量问题',
+            Type:'质量问题',
+            TypeNumber:0
+        },
+        STOP_LINE_ANALYSIS:{
+            Name:'不合格分析',
+            Type:'不合格分析',
+            TypeNumber:1
+        },
+        GP12_EXAMINE: {
+          Name: 'GP12检查',
+          Type: 'GP12检查',
+          TypeNumber: 2
+        },
+    },
+    jfztTapBarEnum:{
+        PRODUCTION_PLAN_COMPLETED:{
+            Name:'产能分析',
+            Type:'产能分析',
+            TypeNumber:0
+        },
+        STOP_LINE_ANALYSIS:{
+            Name:'库存风险',
+            Type:'库存风险',
+            TypeNumber:1
+        },
+    },
+    searchTimeEnum:{
+        DAY:{
+            Name:'日',
+            dateType:'day',
+            Type:'date',
+            TypeNumber:0
+        },
+        WEEK:{
+            Name:'周',
+            dateType:'week',
+            Type:'date',
+            TypeNumber:1
+        },
+        MONTH:{
+            Name:'月',
+            dateType:'month',
+            Type:'month',
+            TypeNumber:2
+        },
+    },
+    topEnum:{
+        TOPTEN:{
+            Name:'TOP-10',
+            Type:10,
+            TypeNumber:0
+        },
+        TOPTWENTY:{
+            Name:'TOP-20',
+            Type:20,
+            TypeNumber:1
+        },
+        TOPTHIRTY:{
+            Name:'TOP-30',
+            Type:30,
+            TypeNumber:2
+        },
+    },
+    typeEnum:{
+        PART:{
+            Name:'零件',
+            Type:'part',
+            TypeNumber:0
+        },
+        SUPPLIER:{
+          Name:'供应商',
+          Type:'supplier',
+          TypeNumber:1
+        },
+        MODULE:{
+            Name:'模块',
+            Type:'module',
+            TypeNumber:2
+        }
+    },
+    stackTypeEnum:{
+        PART:{
+            Name:'零件',
+            Type:'part',
+            TypeNumber:0
+        },
+        SUPPLIER:{
+            Name:'供应商',
+            Type:'supplier',
+            TypeNumber:1
+        },
+    },
+    baseEnum:{
+        ALL:{
+            Name:'整体',
+            Type:'',
+            TypeNumber:0
+        },
+        QD:{
+            Name:'青岛',
+            Type:'QD',
+            TypeNumber:1
+        },
+        BJ:{
+          Name:'宝骏',
+          Type:'BJ',
+          TypeNumber:2
+        },
+        CQ:{
+            Name:'重庆',
+            Type:'CQ',
+            TypeNumber:3
+        },
+        HX:{
+            Name:'河西',
+            Type:'HX',
+            TypeNumber:4
+        }
+    },
+    disqualificationEnum:{
+        ALL:{
+            Name:'全部',
+            Type:'全部',
+            TypeNumber:0
+        },
+        REWORK:{
+            Name:'返工',
+            Type:'返工',
+            TypeNumber:1
+        },
+        SCRAPPED:{
+            Name:'报废',
+            Type:'报废',
+            TypeNumber:2
+        },
+        CONCESSIONUSE:{
+            Name:'让步使用',
+            Type:'让步使用',
+            TypeNumber:3
+        },
+    },
+    finishedProductEnum:{
+        ACCOMPLISH:{
+            Name:'成品',
+            Type:'成品',
+            TypeNumber:0
+        },
+        UNFINISHED:{
+            Name:'半成品',
+            Type:'半成品',
+            TypeNumber:1
+        },
+        All:{
+            Name:'整体',
+            Type:'',
+            TypeNumber:2
+        }
+    },
+    echartMenu:{
+        PIE:{
+            TypeNumber:0,
+            data:{
+                color: colorList,
+                title: {
+                    show:false,
+                    text: '某站点用户访问来源',
+                    //     subtext: '纯属虚构',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{a} <br/>{b} : {c} ({d}%)'
+                },
+                legend: {
+                    orient: 'vertical',
+                    right: '5%',
+                    top:'center',
+                    data: []
+                },
+                series: [
+                    {
+                        name: '供应商：',
+                        type: 'pie',
+                        radius: ['45%', '60%'],
+                        hoverAnimation: false,
+                        itemStyle: {
+                            normal: {
+                                show:false,
+                                borderColor:'#FFF',
+                                borderWidth:3,
+                            },
+                        },
+                        data: [],
+                        emphasis: {
+                            // itemStyle: {
+                            //     // shadowBlur: 10,
+                            //     // shadowOffsetX: 0,
+                            //     // shadowColor: 'rgba(0, 0, 0, 0.5)'
+                            // }
+                        }
+                    },
+                    {
+                        name: '零件：',
+                        type: 'pie',
+                        radius: ['30%', '45%'],
+                        hoverAnimation: false,
+                        itemStyle: {
+                            normal: {
+                                show:false,
+                                borderColor:'#FFF',
+                                borderWidth:3,
+                            },
+                        },
+                        data: [],
+                        emphasis: {
+                            // itemStyle: {
+                            //     // shadowBlur: 10,
+                            //     // shadowOffsetX: 0,
+                            //     // shadowColor: 'rgba(0, 0, 0, 0.5)'
+                            // }
+                        }
+                    }
+                ]
+            }
+        },
+        PAR:{
+            TypeNumber:0,
+            data:{
+                color: colorList,
+                title: {
+                    show:false,
+                    text: '某站点用户访问来源',
+                //     subtext: '纯属虚构',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{a} <br/>{b} : {c} ({d}%)'
+                },
+                legend: {
+                    orient: 'vertical',
+                    right: '5%',
+                    top:'center',
+                    data: []
+                },
+                series: [
+                    {
+                        name: '详细信息：',
+                        type: 'pie',
+                        radius: ['45%', '60%'],
+                        hoverAnimation: false,
+                        itemStyle: {
+                            normal: {
+                                show:false,
+                                borderColor:'#FFF',
+                                borderWidth:3,
+                            },
+                        },
+                        data: [],
+                        emphasis: {
+                            // itemStyle: {
+                            //     // shadowBlur: 10,
+                            //     // shadowOffsetX: 0,
+                            //     // shadowColor: 'rgba(0, 0, 0, 0.5)'
+                            // }
+                        }
+                    }
+                ]
+            }
+        },
+        PILLAR:{
+            TypeNumber:1,
+            data:{
+                color: colorList,
+                title:{
+                    show:false,
+                    text:'原油计划进口量执行情况',
+                    top:'1%',
+                    left:'1%',
+                    textStyle:{
+                      color:'#005580',
+                      fontSize:24,
+                    },
+                },
+                backgroundColor: "#fff",
+                tooltip: {
+                    trigger: "axis",
+                      axisPointer: {
+                        // 坐标轴指示器，坐标轴触发有效
+                        type: "shadow" // 默认为直线，可选为：'line' | 'shadow'
+                      }
+                },
+                grid: {
+                    top: '12%',
+                    left: '1%',
+                    right: '1%',
+                    bottom: '8%',
+                    containLabel: true,
+                },
+                legend: {
+                    itemGap: 20,
+                    right:'center',
+                    top:'2%',
+                    data: [],
+                },
+                xAxis: [{
+                    type: 'category',
+                    boundaryGap: true,
+                    axisLine: { //坐标轴轴线相关设置。数学上的x轴
+                        show: false,
+                        lineStyle: {
+                            color: '#f9f9f9'
+                        },
+                    },
+                    axisLabel: { //坐标轴刻度标签的相关设置
+                        textStyle: {
+                            color: '#005580',
+                            margin: 15,
+                        },
+                        interval: 0,   //这个一定要有，别忘记了
+                        rotate: 15
+                    },
+                    axisTick: {
+                        show: false,
+                    },
+                    data: [],
+                }],
+                yAxis: [{
+                    name:'',
+                    type: 'value',
+                    min: 0,
+                    splitNumber: 7,
+                    splitLine: {
+                        show: false,
+                        lineStyle: {
+                            color: '#e6e5e5'
+                        }
+                    },
+                    axisLine: {
+                        show: false,
+                    },
+                    axisLabel: {
+                        margin: 20,
+                        textStyle: {
+                            color: '#005580',
+                        },
+                        formatter:function (value, index) {
+                            return value.toFixed(1).split("").join("\n");
+                        }
+                    },
+                    axisTick: {
+                        show: false,
+                    },
+                }],
+                series: []
+            }
+        },
+        HEAPUP:{
+            TypeNumber:1,
+            data:{
+                title:{
+                    show:false,
+                    text:'原油计划进口量执行情况',
+                    top:'1%',
+                    left:'1%',
+                    textStyle:{
+                      color:'#005580',
+                      fontSize:24,
+                    },
+                },
+                backgroundColor: "#fff",
+                tooltip: {
+                    trigger: "axis",
+                      axisPointer: {
+                        // 坐标轴指示器，坐标轴触发有效
+                        type: "shadow" // 默认为直线，可选为：'line' | 'shadow'
+                      }
+                },
+                grid: {
+                    top: '12%',
+                    left: '1%',
+                    right: '1%',
+                    bottom: '8%',
+                    containLabel: true,
+                },
+                legend: {
+                    itemGap: 20,
+                    right:'center',
+                    top:'2%',
+                    data: [],
+                },
+                xAxis: [{
+                    type: 'category',
+                    boundaryGap: true,
+                    axisLine: { //坐标轴轴线相关设置。数学上的x轴
+                        show: false,
+                        lineStyle: {
+                            color: '#f9f9f9'
+                        },
+                    },
+                    axisLabel: { //坐标轴刻度标签的相关设置
+                        textStyle: {
+                            color: '#005580',
+                            margin: 15,
+                        },
+                    },
+                    axisTick: {
+                        show: false,
+                    },
+                    data: [],
+                }],
+                yAxis: [{
+                    name:'',
+                    type: 'value',
+                    min: 0,
+                    splitNumber: 7,
+                    splitLine: {
+                        show: false,
+                        lineStyle: {
+                            color: '#e6e5e5'
+                        }
+                    },
+                    axisLine: {
+                        show: false,
+                    },
+                    axisLabel: {
+                        margin: 20,
+                        textStyle: {
+                            color: '#005580',
+                        },
+                        formatter:function (value, index) {
+                            return value.toFixed(1);
+                        }
+                    },
+                    axisTick: {
+                        show: false,
+                    },
+                }, {
+                    name:'',
+                    type: 'value',
+                    axisLine: {
+                        show: false,
+                    },
+                    splitLine: {
+                        show: false,
+                        lineStyle: {
+                            color: '#e6e5e5'
+                        }
+                    },
+                    axisLabel: {
+                        formatter:function (value, index) {
+                            return value.toFixed(1) + '%';
+                        }
+                    },
+                }],
+                series: []
+            }
+        },
+
+    }
+};
+// var

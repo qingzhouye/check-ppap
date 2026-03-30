@@ -1,0 +1,685 @@
+/*
+* Created: 2020-09-15
+* Author : zhangqi
+* Description: 封装公用方法或组件的js文件
+* */
+
+//主表格中点击某一行，使点击的行高亮的功能代码
+$("body").on('click', '.main-table .layui-table-body tr ', function () {
+    var data_index = $(this).attr('data-index');//得到当前的tr的index
+    $(".main-table .layui-table-body tr").attr({"style": "background:#FFFFFF; color:#666666"});//其他tr恢复颜色
+    $(".main-table .layui-table-body tr[data-index=" + data_index + "]").attr({"style": "background:rgb(224,245,255);color:#666666"});//改变当前tr颜色
+});
+
+//子表格中点击某一行，使点击的行高亮的功能代码
+$("body").on('click', '.vice-table .layui-table-body tr ', function () {
+    var data_index = $(this).attr('data-index');//得到当前的tr的index
+    $(".vice-table .layui-table-body tr").attr({"style": "background:#FFFFFF; color:#666666"});//其他tr恢复颜色
+    $(".vice-table .layui-table-body tr[data-index=" + data_index + "]").attr({"style": "background:rgb(224,245,255);color:#666666"});//改变当前tr颜色
+});
+
+
+//定义表单dom元素的全局变量
+var layuiEvent = {}
+
+// 定义中间组件(中转实例)
+var transfer = new Vue();
+
+// 定义一个全局的对象变量，用于根据点击主表格的某一行，和下方tabs标签项中的某一项去查询副表格的的数据
+var searchViceObjParam = {
+    "parentId": '', //主表格中被选中的一行数据的id
+    "childType": 0, //tabs标签项中的位置
+    "size": "", //每页展示的数据的条数（每页展示几条数据）
+    "current": "" //当前所在的页码数（当前在第几页）
+}
+
+// 提示语类型的方法(layer提示信息)
+function layerInfo(text, type) {
+    if (type == 0) { //提示图标为黄色感叹号，一般用于警告的提示语
+        layer.msg(text, {
+            icon: 0,
+            time: 2000,
+            shade: 0.5
+        });
+    }
+    if (type == 1) { //提示图标为绿色对勾，一般用于方法执行成功，或接口执行成功的提示语
+        layer.msg(text, {
+            icon: 1,
+            time: 2000,
+            shade: 0.5
+        });
+    }
+    if (type == 2) { //提示图标为红色红叉，一般用于方法执行失败，或接口执行失败的提示语
+        layer.msg(text, {
+            icon: 2,
+            shade: 0.5,
+            time: 2000,
+        });
+    }
+    if (type == 3) { //提示图标为黄色问号
+        layer.msg(text, {
+            icon: 3,
+            shade: 0.5,
+            time: 2000,
+        });
+    }
+    if (type == 4) { //提示图标为灰色锁
+        layer.msg(text, {
+            icon: 4,
+            shade: 0.5,
+            time: 0,
+        });
+    }
+    if (type == 5) { //提示图标为红色哭脸
+        layer.msg(text, {
+            icon: 5,
+            shade: 0.5,
+            time: 2000,
+        });
+    }
+    if (type == 6) { //提示图标为绿色笑脸
+        layer.msg(text, {
+            icon: 6,
+            shade: 0.5,
+            time: 2000,
+        });
+    }
+}
+
+//定义加载layUi表单，接口等方法
+//自执行函
+(function () {
+    layui.use(['form', 'adc', 'element', 'laypage', 'laydate', 'upload'], function () {
+        layuiEvent.form = layui.form;
+        layuiEvent.admin = layui.adc;
+        layuiEvent.element = layui.element; //元素操作
+        layuiEvent.laypage = layui.laypage; //分页
+        layuiEvent.laydate = layui.laydate; //选择时间
+        layuiEvent.upload = layui.upload; //上传文件
+        var $ = layui.jquery;
+        var config = layui.config;
+        // $.ajax({
+        //     url: config.base_server + '/api/pmr/MenuPrivilege/allMenuPrivilege',
+        //     type: 'GET',
+        //     dataType: 'JSON',
+        //     timeout: 5000,
+        //     async: false,
+        //     success: function (data) {
+        //         config.putAccountlogin(data.data);
+        //     }
+        // })
+        //自定义验证规则
+        layuiEvent.form.verify({
+            //数字格式，非必填项类型的验证
+            number: function (value) {
+                var reg = /^[0-9]{1}([0-9]|[.])*$/;
+                if (value) {
+                    if (!reg.test(value)) {
+                        return '只能输入数字';
+                    }
+                }
+            },
+            //数字格式，必填项类型的验证
+            required_number: [
+                /^[0-9]{1}([0-9]|[.])*$/,
+                '必填项不能为空，并且只能输入数字'
+            ],
+            phone: function (value) {
+                let reg = /^[0-9]{11}$/;
+                if (value) {
+                    if (!reg.test(value)) {
+                        return '请输入11位数字格式的手机号';
+                    }
+                }
+            },
+            email: function (value) {
+                let reg = /^[0-9a-zA-Z_.-]+[@][0-9a-zA-Z_.-]+([.][a-zA-Z]+){1,2}$/;
+                if (value) {
+                    if (!reg.test(value)) {
+                        return '请输入正确的邮箱格式';
+                    }
+                }
+            },
+            textarea: function (value) {
+                if (value.length > 500) {
+                    return '最多只能输入500个字符';
+                }
+            }
+        });
+    });
+})()
+
+//加载下拉菜单中带有分页表格的方法的插件方法
+function loadTableSelect() {
+    layui.define(['table', 'jquery', 'form'], function (exports) {
+        "use strict";
+
+        var MOD_NAME = 'tableSelect',
+            $ = layui.jquery,
+            table = layui.table,
+            form = layui.form;
+        var tableSelect = function () {
+            this.v = '1.1.0';
+        };
+
+        /**
+         * 初始化表格选择器
+         */
+        tableSelect.prototype.render = function (opt) {
+            var elem = $(opt.elem);
+            var tableDone = opt.table.done || function () {
+            };
+
+            //默认设置
+            opt.searchKey = opt.searchKey || 'keyword';
+            opt.searchPlaceholder = opt.searchPlaceholder || '关键词搜索';
+            opt.checkedKey = opt.checkedKey;
+            opt.table.page = opt.table.page || true;
+            opt.table.height = opt.table.height || 315;
+
+            elem.off('click').on('click', function (e) {
+                e.stopPropagation();
+
+                if ($('div.tableSelect').length >= 1) {
+                    return false;
+                }
+
+                var t = elem.offset().top + elem.outerHeight() + "px";
+                var l = elem.offset().left + "px";
+                var tableName = "tableSelect_table_" + new Date().getTime();
+                var tableBox = '<div class="tableSelect layui-anim layui-anim-upbit" style="left:' + l + ';top:' + t + ';border: 1px solid #d2d2d2;background-color: #fff;box-shadow: 0 2px 4px rgba(0,0,0,.12);padding:10px 10px 0 10px;position: absolute;z-index:66666666;margin: 5px 0;border-radius: 2px;min-width:530px;">';
+                tableBox += '<div class="tableSelectBar">';
+                tableBox += '<form class="layui-form" action="" style="display:inline-block;">';
+                tableBox += '<input style="display:inline-block;width:190px;height:30px;vertical-align:middle;margin-right:-1px;border: 1px solid #C9C9C9;" type="text" name="' + opt.searchKey + '" placeholder="' + opt.searchPlaceholder + '" autocomplete="off" class="layui-input"><button class="layui-btn layui-btn-sm layui-btn-primary tableSelect_btn_search" lay-submit lay-filter="tableSelect_btn_search"><i class="layui-icon layui-icon-search"></i></button>';
+                tableBox += '</form>';
+                tableBox += '<button style="float:right;" class="layui-btn layui-btn-sm tableSelect_btn_select">选择<span></span></button>';
+                tableBox += '</div>';
+                tableBox += '<table id="' + tableName + '" lay-filter="' + tableName + '"></table>';
+                tableBox += '</div>';
+                tableBox = $(tableBox);
+                $('body').append(tableBox);
+
+                //数据缓存
+                var checkedData = [];
+
+                //渲染TABLE
+                opt.table.elem = "#" + tableName;
+                opt.table.id = tableName;
+                opt.table.done = function (res, curr, count) {
+                    defaultChecked(res, curr, count);
+                    setChecked(res, curr, count);
+                    tableDone(res, curr, count);
+                };
+                var tableSelect_table = table.render(opt.table);
+
+                //分页选中保存数组
+                table.on('radio(' + tableName + ')', function (obj) {
+                    if (opt.checkedKey) {
+                        checkedData = table.checkStatus(tableName).data
+                    }
+                    updataButton(table.checkStatus(tableName).data.length)
+                })
+                table.on('checkbox(' + tableName + ')', function (obj) {
+                    if (opt.checkedKey) {
+                        if (obj.checked) {
+                            for (var i = 0; i < table.checkStatus(tableName).data.length; i++) {
+                                checkedData.push(table.checkStatus(tableName).data[i])
+                            }
+                        } else {
+                            if (obj.type == 'all') {
+                                for (var j = 0; j < table.cache[tableName].length; j++) {
+                                    for (var i = 0; i < checkedData.length; i++) {
+                                        if (checkedData[i][opt.checkedKey] == table.cache[tableName][j][opt.checkedKey]) {
+                                            checkedData.splice(i, 1)
+                                        }
+                                    }
+                                }
+                            } else {
+                                //因为LAYUI问题，操作到变化全选状态时获取到的obj为空，这里用函数获取未选中的项。
+                                function nu() {
+                                    var noCheckedKey = '';
+                                    for (var i = 0; i < table.cache[tableName].length; i++) {
+                                        if (!table.cache[tableName][i].LAY_CHECKED) {
+                                            noCheckedKey = table.cache[tableName][i][opt.checkedKey];
+                                        }
+                                    }
+                                    return noCheckedKey
+                                }
+
+                                var noCheckedKey = obj.data[opt.checkedKey] || nu();
+                                for (var i = 0; i < checkedData.length; i++) {
+                                    if (checkedData[i][opt.checkedKey] == noCheckedKey) {
+                                        checkedData.splice(i, 1);
+                                    }
+                                }
+                            }
+                        }
+                        checkedData = uniqueObjArray(checkedData, opt.checkedKey);
+                        updataButton(checkedData.length)
+                    } else {
+                        updataButton(table.checkStatus(tableName).data.length)
+                    }
+                });
+
+                //渲染表格后选中
+                function setChecked(res, curr, count) {
+                    for (var i = 0; i < res.data.length; i++) {
+                        for (var j = 0; j < checkedData.length; j++) {
+                            if (res.data[i][opt.checkedKey] == checkedData[j][opt.checkedKey]) {
+                                res.data[i].LAY_CHECKED = true;
+                                var index = res.data[i]['LAY_TABLE_INDEX'];
+                                var checkbox = $('#' + tableName + '').next().find('tr[data-index=' + index + '] input[type="checkbox"]');
+                                checkbox.prop('checked', true).next().addClass('layui-form-checked');
+                                var radio = $('#' + tableName + '').next().find('tr[data-index=' + index + '] input[type="radio"]');
+                                radio.prop('checked', true).next().addClass('layui-form-radioed').find("i").html('&#xe643;');
+                            }
+                        }
+                    }
+                    var checkStatus = table.checkStatus(tableName);
+                    if (checkStatus.isAll) {
+                        $('#' + tableName + '').next().find('.layui-table-header th[data-field="0"] input[type="checkbox"]').prop('checked', true);
+                        $('#' + tableName + '').next().find('.layui-table-header th[data-field="0"] input[type="checkbox"]').next().addClass('layui-form-checked');
+                    }
+                    updataButton(checkedData.length)
+                }
+
+                //写入默认选中值(puash checkedData)
+                function defaultChecked(res, curr, count) {
+                    if (opt.checkedKey && elem.attr('ts-selected')) {
+                        var selected = elem.attr('ts-selected').split(",");
+                        for (var i = 0; i < res.data.length; i++) {
+                            for (var j = 0; j < selected.length; j++) {
+                                if (res.data[i][opt.checkedKey] == selected[j]) {
+                                    checkedData.push(res.data[i])
+                                }
+                            }
+                        }
+                        checkedData = uniqueObjArray(checkedData, opt.checkedKey);
+                    }
+                }
+
+                //更新选中数量
+                function updataButton(n) {
+                    tableBox.find('.tableSelect_btn_select span').html(n == 0 ? '' : '(' + n + ')')
+                }
+
+                //数组去重
+                function uniqueObjArray(arr, type) {
+                    var newArr = [];
+                    var tArr = [];
+                    if (arr.length == 0) {
+                        return arr;
+                    } else {
+                        if (type) {
+                            for (var i = 0; i < arr.length; i++) {
+                                if (!tArr[arr[i][type]]) {
+                                    newArr.push(arr[i]);
+                                    tArr[arr[i][type]] = true;
+                                }
+                            }
+                            return newArr;
+                        } else {
+                            for (var i = 0; i < arr.length; i++) {
+                                if (!tArr[arr[i]]) {
+                                    newArr.push(arr[i]);
+                                    tArr[arr[i]] = true;
+                                }
+                            }
+                            return newArr;
+                        }
+                    }
+                }
+
+                //FIX位置
+                var overHeight = (elem.offset().top + elem.outerHeight() + tableBox.outerHeight() - $(window).scrollTop()) > $(window).height();
+                var overWidth = (elem.offset().left + tableBox.outerWidth()) > $(window).width();
+                overHeight && tableBox.css({'top': 'auto', 'bottom': '0px'});
+                overWidth && tableBox.css({'left': 'auto', 'right': '5px'})
+
+                //关键词搜索
+                form.on('submit(tableSelect_btn_search)', function (data) {
+                    tableSelect_table.reload({
+                        where: data.field,
+                        page: {
+                            curr: 1
+                        }
+                    });
+                    return false;
+                });
+
+                //双击行选中
+                table.on('rowDouble(' + tableName + ')', function (obj) {
+                    var checkStatus = {data: [obj.data]};
+                    selectDone(checkStatus);
+                })
+
+                //按钮选中
+                tableBox.find('.tableSelect_btn_select').on('click', function () {
+                    var checkStatus = table.checkStatus(tableName);
+                    if (checkedData.length > 1) {
+                        checkStatus.data = checkedData;
+                    }
+                    selectDone(checkStatus);
+                })
+
+                //写值回调和关闭
+                function selectDone(checkStatus) {
+                    if (opt.checkedKey) {
+                        var selected = [];
+                        for (var i = 0; i < checkStatus.data.length; i++) {
+                            selected.push(checkStatus.data[i][opt.checkedKey])
+                        }
+                        elem.attr("ts-selected", selected.join(","));
+                    }
+                    opt.done(elem, checkStatus);
+                    tableBox.remove();
+                    delete table.cache[tableName];
+                    checkedData = [];
+                }
+
+                //点击其他区域关闭
+                $(document).mouseup(function (e) {
+                    var userSet_con = $('' + opt.elem + ',.tableSelect');
+                    if (!userSet_con.is(e.target) && userSet_con.has(e.target).length === 0) {
+                        tableBox.remove();
+                        delete table.cache[tableName];
+                        checkedData = [];
+                    }
+                });
+            })
+        }
+
+        /**
+         * 隐藏选择器
+         */
+        tableSelect.prototype.hide = function (opt) {
+            $('.tableSelect').remove();
+        }
+
+        //自动完成渲染
+        var tableSelect = new tableSelect();
+
+        //FIX 滚动时错位
+        if (window.top == window.self) {
+            $(window).scroll(function () {
+                tableSelect.hide();
+            });
+        }
+
+        exports(MOD_NAME, tableSelect);
+    })
+
+    //加载下拉菜单中带有分页表格多查询条件的方法的插件方法
+    layui.define(['table', 'jquery', 'form'], function (exports) {
+        "use strict";
+
+        var MOD_NAME = 'tableSelects',
+            $ = layui.jquery,
+            table = layui.table,
+            form = layui.form;
+        var tableSelects = function () {
+            this.v = '1.1.0';
+        };
+
+        /**
+         * 初始化表格选择器
+         */
+        tableSelects.prototype.render = function (opt) {
+            var elem = $(opt.elem);
+            var tableDone = opt.table.done || function () {
+            };
+
+            //默认设置
+            opt.searchKey = opt.searchKey || 'keyword';
+            opt.searchPlaceholder = opt.searchPlaceholder || '关键词搜索';
+            opt.checkedKey = opt.checkedKey;
+            opt.table.page = opt.table.page || true;
+            opt.table.height = opt.table.height || 315;
+            // console.log('opt.searchKey===' + opt.searchKey,opt.searchParmar)
+            elem.off('click').on('click', function (e) {
+                e.stopPropagation();
+
+                if ($('div.tableSelects').length >= 1) {
+                    return false;
+                }
+
+                var t = elem.offset().top + elem.outerHeight() + "px";
+                var l = elem.offset().left + "px";
+                var tableName = "tableSelect_table_" + new Date().getTime();
+                var tableBox = '';
+                tableBox = '<div class="tableSelect layui-anim layui-anim-upbit" style="left:' + l + ';top:' + t + ';border: 1px solid #d2d2d2;background-color: #fff;box-shadow: 0 2px 4px rgba(0,0,0,.12);padding:10px 10px 0 10px;position: absolute;z-index:16666666;margin: 5px 0;border-radius: 2px;min-width:530px;">';
+                tableBox += '<div class="tableSelectBar">';
+                tableBox += '<form class="layui-form" action="" style="display:inline-block;">';
+                console.log(opt.searchKey.length,)
+                for (var iNum = 0; iNum < opt.searchKey.length; iNum++) {
+                    // console.log(opt.searchKey.length, iNum)
+                    tableBox += '<input style="display:inline-block;width:190px;height:30px;vertical-align:middle;margin-right:-1px;border: 1px solid #C9C9C9;" type="text" name="' + opt.searchKey[iNum] + '" placeholder="' + opt.searchPlaceholder[iNum] + '" autocomplete="off" class="layui-input"><button style="margin-right: 5px;" class="layui-btn layui-btn-sm layui-btn-primary tableSelect_btn_search" lay-submit lay-filter="tableSelect_btn_search"><i class="layui-icon layui-icon-search"></i></button>';
+                }
+                // console.log(opt.searchKey.length,)
+                tableBox += '</form>';
+                tableBox += '<button style="float:right;" class="layui-btn layui-btn-sm tableSelect_btn_select">选择<span></span></button>';
+                tableBox += '</div>';
+                tableBox += '<table id="' + tableName + '" lay-filter="' + tableName + '"></table>';
+                tableBox += '</div>';
+                tableBox = $(tableBox);
+                $('body').append(tableBox);
+
+                //数据缓存
+                var checkedData = [];
+
+                //渲染TABLE
+                opt.table.elem = "#" + tableName;
+                opt.table.id = tableName;
+                opt.table.done = function (res, curr, count) {
+                    defaultChecked(res, curr, count);
+                    setChecked(res, curr, count);
+                    tableDone(res, curr, count);
+                };
+                var tableSelect_table = table.render(opt.table);
+
+                //分页选中保存数组
+                table.on('radio(' + tableName + ')', function (obj) {
+                    if (opt.checkedKey) {
+                        checkedData = table.checkStatus(tableName).data
+                    }
+                    updataButton(table.checkStatus(tableName).data.length)
+                })
+                table.on('checkbox(' + tableName + ')', function (obj) {
+                    if (opt.checkedKey) {
+                        if (obj.checked) {
+                            for (var i = 0; i < table.checkStatus(tableName).data.length; i++) {
+                                checkedData.push(table.checkStatus(tableName).data[i])
+                            }
+                        } else {
+                            if (obj.type == 'all') {
+                                for (var j = 0; j < table.cache[tableName].length; j++) {
+                                    for (var i = 0; i < checkedData.length; i++) {
+                                        if (checkedData[i][opt.checkedKey] == table.cache[tableName][j][opt.checkedKey]) {
+                                            checkedData.splice(i, 1)
+                                        }
+                                    }
+                                }
+                            } else {
+                                //因为LAYUI问题，操作到变化全选状态时获取到的obj为空，这里用函数获取未选中的项。
+                                function nu() {
+                                    var noCheckedKey = '';
+                                    for (var i = 0; i < table.cache[tableName].length; i++) {
+                                        if (!table.cache[tableName][i].LAY_CHECKED) {
+                                            noCheckedKey = table.cache[tableName][i][opt.checkedKey];
+                                        }
+                                    }
+                                    return noCheckedKey
+                                }
+
+                                var noCheckedKey = obj.data[opt.checkedKey] || nu();
+                                for (var i = 0; i < checkedData.length; i++) {
+                                    if (checkedData[i][opt.checkedKey] == noCheckedKey) {
+                                        checkedData.splice(i, 1);
+                                    }
+                                }
+                            }
+                        }
+                        checkedData = uniqueObjArray(checkedData, opt.checkedKey);
+                        updataButton(checkedData.length)
+                    } else {
+                        updataButton(table.checkStatus(tableName).data.length)
+                    }
+                });
+
+                //渲染表格后选中
+                function setChecked(res, curr, count) {
+                    for (var i = 0; i < res.data.length; i++) {
+                        for (var j = 0; j < checkedData.length; j++) {
+                            if (res.data[i][opt.checkedKey] == checkedData[j][opt.checkedKey]) {
+                                res.data[i].LAY_CHECKED = true;
+                                var index = res.data[i]['LAY_TABLE_INDEX'];
+                                var checkbox = $('#' + tableName + '').next().find('tr[data-index=' + index + '] input[type="checkbox"]');
+                                checkbox.prop('checked', true).next().addClass('layui-form-checked');
+                                var radio = $('#' + tableName + '').next().find('tr[data-index=' + index + '] input[type="radio"]');
+                                radio.prop('checked', true).next().addClass('layui-form-radioed').find("i").html('&#xe643;');
+                            }
+                        }
+                    }
+                    var checkStatus = table.checkStatus(tableName);
+                    if (checkStatus.isAll) {
+                        $('#' + tableName + '').next().find('.layui-table-header th[data-field="0"] input[type="checkbox"]').prop('checked', true);
+                        $('#' + tableName + '').next().find('.layui-table-header th[data-field="0"] input[type="checkbox"]').next().addClass('layui-form-checked');
+                    }
+                    updataButton(checkedData.length)
+                }
+
+                //写入默认选中值(puash checkedData)
+                function defaultChecked(res, curr, count) {
+                    if (opt.checkedKey && elem.attr('ts-selected')) {
+                        var selected = elem.attr('ts-selected').split(",");
+                        for (var i = 0; i < res.data.length; i++) {
+                            for (var j = 0; j < selected.length; j++) {
+                                if (res.data[i][opt.checkedKey] == selected[j]) {
+                                    checkedData.push(res.data[i])
+                                }
+                            }
+                        }
+                        checkedData = uniqueObjArray(checkedData, opt.checkedKey);
+                    }
+                }
+
+                //更新选中数量
+                function updataButton(n) {
+                    tableBox.find('.tableSelect_btn_select span').html(n == 0 ? '' : '(' + n + ')')
+                }
+
+                //数组去重
+                function uniqueObjArray(arr, type) {
+                    var newArr = [];
+                    var tArr = [];
+                    if (arr.length == 0) {
+                        return arr;
+                    } else {
+                        if (type) {
+                            for (var i = 0; i < arr.length; i++) {
+                                if (!tArr[arr[i][type]]) {
+                                    newArr.push(arr[i]);
+                                    tArr[arr[i][type]] = true;
+                                }
+                            }
+                            return newArr;
+                        } else {
+                            for (var i = 0; i < arr.length; i++) {
+                                if (!tArr[arr[i]]) {
+                                    newArr.push(arr[i]);
+                                    tArr[arr[i]] = true;
+                                }
+                            }
+                            return newArr;
+                        }
+                    }
+                }
+
+                //FIX位置
+                var overHeight = (elem.offset().top + elem.outerHeight() + tableBox.outerHeight() - $(window).scrollTop()) > $(window).height();
+                var overWidth = (elem.offset().left + tableBox.outerWidth()) > $(window).width();
+                overHeight && tableBox.css({'top': 'auto', 'bottom': '0px'});
+                overWidth && tableBox.css({'left': 'auto', 'right': '5px'})
+
+                //关键词搜索
+                form.on('submit(tableSelect_btn_search)', function (data) {
+                    if(opt.searchParmar){
+                        data.field.change = opt.searchParmar
+                    }
+                    tableSelect_table.reload({
+                        where: data.field,
+                        page: {
+                            curr: 1
+                        }
+                    });
+                    // console.log('data.field,========'+JSON.stringify(data.field),opt.searchParmar)
+                    return false;
+                });
+
+                //双击行选中
+                table.on('rowDouble(' + tableName + ')', function (obj) {
+                    var checkStatus = {data: [obj.data]};
+                    selectDone(checkStatus);
+                })
+
+                //按钮选中
+                tableBox.find('.tableSelect_btn_select').on('click', function () {
+                    var checkStatus = table.checkStatus(tableName);
+                    if (checkedData.length > 1) {
+                        checkStatus.data = checkedData;
+                    }
+                    selectDone(checkStatus);
+                })
+
+                //写值回调和关闭
+                function selectDone(checkStatus) {
+                    if (opt.checkedKey) {
+                        var selected = [];
+                        for (var i = 0; i < checkStatus.data.length; i++) {
+                            selected.push(checkStatus.data[i][opt.checkedKey])
+                        }
+                        elem.attr("ts-selected", selected.join(","));
+                    }
+                    opt.done(elem, checkStatus);
+                    tableBox.remove();
+                    delete table.cache[tableName];
+                    checkedData = [];
+                }
+
+                //点击其他区域关闭
+                $(document).mouseup(function (e) {
+                    var userSet_con = $('' + opt.elem + ',.tableSelect');
+                    if (!userSet_con.is(e.target) && userSet_con.has(e.target).length === 0) {
+                        tableBox.remove();
+                        delete table.cache[tableName];
+                        checkedData = [];
+                    }
+                });
+            })
+        }
+
+        /**
+         * 隐藏选择器
+         */
+        tableSelects.prototype.hide = function (opt) {
+            $('.tableSelect').remove();
+        }
+
+        //自动完成渲染
+        var tableSelects = new tableSelects();
+
+        //FIX 滚动时错位
+        if (window.top == window.self) {
+            $(window).scroll(function () {
+                tableSelects.hide();
+            });
+        }
+
+        exports(MOD_NAME, tableSelects);
+    })
+}
+
+
+var tabsIndex = 0 //全局变量，当前选中的tabs的下标
+
+

@@ -1,0 +1,237 @@
+var type="href"
+var navAddType='1';//1拼接 0重置
+function obtainObj(id,unfold,navTabAddType){
+    let list = JSON.parse(localStorage.getItem("menusTree")).subMenus
+    list = platFn(list);
+    let obj = list.filter(t=>t.id == id)[0]
+    if(unfold){
+        type = unfold;
+    }
+    if(navAddType){
+        navAddType = navTabAddType
+    }
+    sideLoad(obj);
+    navTabLoad(obj);
+    if(obj.level == 1){
+        firstLevelMenu(obj)
+    }else if(obj.level == 2){
+        secondaryMenu(obj)
+    }else if(obj.level == 3){
+        threeLevelMenu(obj)
+    }
+}
+// 获取cooke
+function getCookie(cname) {
+    var name = cname + "=";
+    var ca = document.cookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+        var c = ca[i].trim();
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
+}
+//扁平化 树结构
+function platFn(list) {
+    let res = []
+    res = list.concat(...list.map(item => {
+        if (item.children instanceof Array && item.children.length > 0) {
+            return platFn(item.children)
+        }
+        return null
+    }).filter(o => o instanceof Array && o.length > 0))
+    return res;
+}
+// 一级菜单
+function firstLevelMenu(obj){
+    // let list = platFn(obj);
+    // list
+    if(obj.subMenus && obj.subMenus.length>0){
+        for(let i = 0 ;i < obj.subMenus.length; i++){
+            if(obj.subMenus[i].display == '1'){
+                secondaryMenu(obj.subMenus[i])
+                break;
+            }
+        }
+    }else{
+        openUrl(obj);
+    }
+}
+// 二级菜单
+function secondaryMenu(obj){
+    if(obj.subMenus && obj.subMenus.length>0){
+        let menus=obj.subMenus.filter(t=>t.display == '1');
+        if(menus.length==0){
+            threeLevelMenu(obj);
+            return;
+        }
+        for(let i = 0 ;i < menus.length; i++){
+            // if(obj.subMenus[i].display=='1'){
+            openUrl(menus[i]);
+            // }
+            return;
+        }
+    }else{
+        openUrl(obj);
+    }
+}
+//三级菜单
+function threeLevelMenu(obj){
+    openUrl(obj);
+}
+// 获取左侧导航
+function sideLoad(obj,level){
+    let sideList=[];
+    let list = JSON.parse(localStorage.getItem("menusTree")).subMenus
+    list = platFn(list);
+    if(obj.level == '1'){
+        sideList = obj.subMenus;
+        sideList.forEach((item,index)=>{
+            item.active = false;
+        })
+        sideList[0].active=true;
+    }else if(obj.level == '2'){
+        let pid = obj.pid;
+        sideList = list.filter(t=>t.id == pid);
+        sideList = sideList[0].subMenus
+        sideList.forEach((item,index)=>{
+            if(item.id == obj.id){
+                item.active = true;
+            }else{
+                item.active = false;
+            }
+        })
+    }else if(obj.level == '3'){
+        let pid = obj.id.split('.');
+        // 二级id
+        let secondidList = pid.splice(0 , pid.length - 1);
+        let secondid=secondidList.join('.')
+        // 一级id
+        let firstid = secondidList.splice(0 , secondidList.length - 1);
+        firstid = firstid.join(".");
+        sideList = list.filter(t=>t.id == firstid)[0].subMenus;
+        sideList.forEach((item,index)=>{
+            if(item.id == secondid){
+                item.active = true;
+            }else{
+                item.active = false;
+            }
+        })
+    }
+    sideList = JSON.stringify(sideList);
+    localStorage.setItem("sideNav", sideList)
+}
+//获取三级导航  id3='三级id’
+function navTabLoad(obj,id3){
+    let navTabList=[];
+    let list = JSON.parse(localStorage.getItem("menusTree")).subMenus
+    list = platFn(list);
+    if(obj.level == '1'){
+        navTabLoad(obj.subMenus[0]);
+    }else if(obj.level == '2'){
+        let oldnavTab = localStorage.getItem("navTab");
+        if(oldnavTab){
+            oldnavTab=JSON.parse(oldnavTab);
+        }else{
+            oldnavTab=[];
+        }
+        if(obj.subMenus && obj.subMenus.length>0){
+            if(navAddType == '1'){
+                navTabList = [...oldnavTab,...obj.subMenus];
+            }else{
+                navTabList = obj.subMenus;
+            }
+            navTabList = navTabList.filter(t=>t.display=='1')
+            if(navTabList.length == 0){
+                obj.subMenus=[];
+                navTabLoad(obj);
+                return;
+            }
+            if(id3){
+                navTabList.map(t=> t.id == id3 ? t.checkType =true :  t.checkType =false)
+            }else{
+                for(let i = 0 ; i < navTabList.length;i++){
+                    navTabList[i].checkType=false;
+                }
+                navTabList[0].checkType=true;
+            }
+            navTabList = JSON.stringify(navTabList);
+            localStorage.setItem("navTab", navTabList)
+        }else{
+            if(navAddType == '1'){
+                navTabList = [...oldnavTab,...navTabList]
+            }
+            navTabList = list.filter(t=>t.id == obj.id);
+            navTabList = navTabList.filter(t=>t.display=='1')
+            navTabList[0].checkType=true;
+            navTabList = JSON.stringify(navTabList);
+            localStorage.setItem("navTab", navTabList)
+        }
+    }else if(obj.level == '3'){
+        let pid = obj.id.split('.');
+        // 二级id
+        let secondid = pid.splice(0 , pid.length - 1);
+        secondid = secondid.join(".")
+        navTabList = list.filter(t=>t.id == secondid);
+        if(navTabList.length>0){
+            navTabLoad(navTabList[0],obj.id);
+        }
+    }
+}
+function openUrl(obj){
+    var cur = window.document.location.href;
+    var pathname = window.document.location.pathname;
+    var pos = cur.indexOf(pathname);
+    var localhostPath = cur.substring(0, pos);
+    let openNewMenus=[
+        '0.3.3.1',
+        '0.3.3.2',
+        '0.3.3.3',
+        '0.3.3.4',
+        '0.3.3.5',
+        '0.3.3.6',
+        '0.3.3.7',
+        '0.3.3.8',
+        '0.3.1.1',
+        // '0.3.1.2',
+        // '0.3.1.3',
+        // '0.3.1.4',
+        // '0.3.1.5',
+        // '0.3.1.6',
+        // '0.3.1.7',
+    ];
+    let id=obj.id;
+    let openNewType=openNewMenus.filter(t=>t == id);
+    if(openNewType.length == 1){
+        window.open(localhostPath+'/components/'+obj.path);
+        return;
+    }
+    var LOGINUSERGUID = getCookie("LOGINUSERGUID");
+    if(obj.isAloneDisplay && obj.isAloneDisplay == '1'){
+        if(obj.isCarryToken && obj.isCarryToken == '0'){
+            window.open(obj.url);
+            return;
+        }else{
+            window.open(obj.url+'?token='+LOGINUSERGUID + '&target=sgmw');
+            return;
+        }
+    }
+    if(type == 'href'){
+        if(obj.edition == 'new' || obj.edition == 'both'){
+            window.location.href=localhostPath + obj.url;
+        }else if(obj.edition == 'old'){
+            window.location.href=localhostPath +'/smsh'+ obj.path;
+        }else if(obj.edition == 'pm'){
+            window.location.href=localhostPath +'/pm-ui'+ obj.url;
+        }
+    }else{
+        if(obj.edition == 'new' || obj.edition == 'both'){
+            window.open(localhostPath + obj.url);
+        }else if(obj.edition == 'old'){
+            window.open(localhostPath +'/smsh'+ obj.path);
+        }else if(obj.edition == 'pm'){
+            window.open(localhostPath +'/pm-ui'+ obj.url);
+        }
+    }
+}

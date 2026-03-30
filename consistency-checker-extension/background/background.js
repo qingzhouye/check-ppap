@@ -5,6 +5,226 @@ const ZHIPU_API_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
 const ZHIPU_MODEL = 'glm-4v-flash';
 const DEFAULT_API_KEY = '1508089119b8403dbdf587f551c819e1.pmXHkV7ayy52WYjq';
 
+// ============ Background Batch Check ============
+// 后台批量校验任务状态
+let backgroundBatchCheck = {
+  isRunning: false,
+  tasks: [],
+  currentIndex: 0,
+  results: [],
+  filterLabel: '',
+  startTime: null,
+  currentTabId: null
+};
+
+// 保存后台任务状态到存储
+function saveBackgroundBatchState() {
+  const state = {
+    isRunning: backgroundBatchCheck.isRunning,
+    tasks: backgroundBatchCheck.tasks,
+    currentIndex: backgroundBatchCheck.currentIndex,
+    results: backgroundBatchCheck.results,
+    filterLabel: backgroundBatchCheck.filterLabel,
+    startTime: backgroundBatchCheck.startTime
+  };
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ backgroundBatchState: state }, () => {
+      resolve({ success: true });
+    });
+  });
+}
+
+// 从存储恢复后台任务状态
+function loadBackgroundBatchState() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['backgroundBatchState'], (result) => {
+      if (result.backgroundBatchState) {
+        backgroundBatchCheck = {
+          ...backgroundBatchCheck,
+          ...result.backgroundBatchState
+        };
+      }
+      resolve(backgroundBatchCheck);
+    });
+  });
+}
+
+// 清除后台任务状态
+function clearBackgroundBatchState() {
+  return new Promise((resolve) => {
+    chrome.storage.local.remove(['backgroundBatchState'], () => {
+      backgroundBatchCheck = {
+        isRunning: false,
+        tasks: [],
+        currentIndex: 0,
+        results: [],
+        filterLabel: '',
+        startTime: null,
+        currentTabId: null
+      };
+      resolve({ success: true });
+    });
+  });
+}
+
+// 启动后台批量校验
+async function startBackgroundBatchCheck(tasks, filterLabel = '') {
+  if (backgroundBatchCheck.isRunning) {
+    return { success: false, error: '批量校验正在进行中' };
+  }
+
+  // 获取当前活动标签页
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tabs || tabs.length === 0) {
+    return { success: false, error: '无法获取当前标签页' };
+  }
+
+  backgroundBatchCheck = {
+    isRunning: true,
+    tasks: tasks,
+    currentIndex: 0,
+    results: tasks.map(function(task) {
+      return {
+        task: task,
+        status: 'pending',
+        results: [],
+        error: null
+      };
+    }),
+    filterLabel: filterLabel,
+    startTime: new Date().toISOString(),
+    currentTabId: tabs[0].id
+  };
+
+  await saveBackgroundBatchState();
+  
+  // 保存到批量校验结果存储（供popup显示）
+  await saveBatchCheckResults(backgroundBatchCheck.results);
+  
+  // 开始处理第一个任务
+  processNextBackgroundTask();
+  
+  return { success: true, totalTasks: tasks.length };
+}
+
+// 处理下一个后台任务
+async function processNextBackgroundTask() {
+  if (!backgroundBatchCheck.isRunning) {
+    console.log('[Background] 批量校验已停止');
+    return;
+  }
+
+  const index = backgroundBatchCheck.currentIndex;
+  
+  if (index >= backgroundBatchCheck.results.length) {
+    // 所有任务完成
+    console.log('[Background] 批量校验完成');
+    backgroundBatchCheck.isRunning = false;
+    await saveBackgroundBatchState();
+    await saveBatchCheckResults(backgroundBatchCheck.results);
+    await saveCheckLog({
+      type: 'SUCCESS',
+      message: `后台批量校验完成，共 ${backgroundBatchCheck.results.length} 条任务`
+    });
+    return;
+  }
+
+  const currentTask = backgroundBatchCheck.results[index];
+  currentTask.status = 'checking';
+  await saveBackgroundBatchState();
+  await saveBatchCheckResults(backgroundBatchCheck.results);
+
+  console.log(`[Background] 正在校验第 ${index + 1}/${backgroundBatchCheck.results.length} 条: [${currentTask.task.carType}] ${currentTask.task.partsName}`);
+
+  try {
+    // 向内容脚本发送校验请求
+    const response = await sendMessageToTab(backgroundBatchCheck.currentTabId, {
+      action: 'BATCH_CHECK_TASK',
+      taskIndex: index,
+      taskData: currentTask.task
+    });
+
+    console.log('[Background] 收到响应:', response);
+    
+    if (response && response.success) {
+      currentTask.status = response.allPassed ? 'pass' : (response.hasWarning ? 'warn' : 'fail');
+      currentTask.results = response.results || [];
+      currentTask.source = response.source || 'unknown';
+    } else {
+      currentTask.status = 'fail';
+      currentTask.error = response ? response.error : '校验失败';
+      currentTask.results = [];
+    }
+  } catch (error) {
+    console.error('[Background] 校验出错:', error);
+    currentTask.status = 'fail';
+    currentTask.error = error.message || '通信错误';
+    currentTask.results = [];
+  }
+
+  backgroundBatchCheck.currentIndex = index + 1;
+  await saveBackgroundBatchState();
+  await saveBatchCheckResults(backgroundBatchCheck.results);
+
+  // 延迟处理下一个任务
+  setTimeout(() => {
+    processNextBackgroundTask();
+  }, 500);
+}
+
+// 停止后台批量校验
+async function stopBackgroundBatchCheck() {
+  backgroundBatchCheck.isRunning = false;
+  await saveBackgroundBatchState();
+  return { success: true };
+}
+
+// 获取后台任务状态
+function getBackgroundBatchStatus() {
+  return {
+    isRunning: backgroundBatchCheck.isRunning,
+    currentIndex: backgroundBatchCheck.currentIndex,
+    totalTasks: backgroundBatchCheck.tasks.length,
+    progress: backgroundBatchCheck.tasks.length > 0 
+      ? Math.round((backgroundBatchCheck.currentIndex / backgroundBatchCheck.tasks.length) * 100) 
+      : 0
+  };
+}
+
+// 向指定标签页发送消息
+function sendMessageToTab(tabId, message) {
+  return new Promise((resolve, reject) => {
+    chrome.tabs.sendMessage(tabId, message, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+      } else {
+        resolve(response);
+      }
+    });
+  });
+}
+
+// 监听标签页更新，如果当前校验的标签页被关闭或导航到其他页面，暂停任务
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (backgroundBatchCheck.isRunning && backgroundBatchCheck.currentTabId === tabId) {
+    console.log('[Background] 校验中的标签页被关闭，暂停批量校验');
+    stopBackgroundBatchCheck();
+    saveCheckLog({
+      type: 'WARN',
+      message: '校验中的标签页被关闭，批量校验已暂停'
+    });
+  }
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (backgroundBatchCheck.isRunning && 
+      backgroundBatchCheck.currentTabId === tabId && 
+      changeInfo.status === 'loading') {
+    // 标签页正在加载新页面，等待加载完成后再继续
+    console.log('[Background] 标签页正在导航，等待加载完成...');
+  }
+});
+
 // ============ Batch Check Results Persistence ============
 // 保存批量校验结果到存储
 function saveBatchCheckResults(results) {
@@ -326,6 +546,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === 'CLEAR_CHECK_LOGS') {
     clearCheckLogs().then(sendResponse);
+    return true;
+  }
+
+  // --- Background Batch Check ---
+  if (message.type === 'START_BACKGROUND_BATCH_CHECK') {
+    startBackgroundBatchCheck(message.tasks, message.filterLabel).then(sendResponse);
+    return true;
+  }
+
+  if (message.type === 'STOP_BACKGROUND_BATCH_CHECK') {
+    stopBackgroundBatchCheck().then(sendResponse);
+    return true;
+  }
+
+  if (message.type === 'GET_BACKGROUND_BATCH_STATUS') {
+    sendResponse(getBackgroundBatchStatus());
+    return true;
+  }
+
+  if (message.type === 'GET_BACKGROUND_BATCH_STATE') {
+    loadBackgroundBatchState().then(sendResponse);
     return true;
   }
 });

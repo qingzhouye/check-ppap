@@ -40,10 +40,7 @@
           <svg class="btn-svg" viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" fill="currentColor"/></svg>
           提取当前任务列表
         </button>
-        <button id="btnAutoCheck" class="btn btn-success btn-icon">
-          <svg class="btn-svg" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="currentColor"/></svg>
-          一键校验当前详情页 (含AI识别)
-        </button>
+
         <button id="btnBatchCheck" class="btn btn-info btn-icon">
           <svg class="btn-svg" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" fill="currentColor"/></svg>
           批量校验任务清单
@@ -121,6 +118,7 @@
         <div class="section-header">
           <div class="section-title">批量校验结果</div>
           <div>
+            <span class="link-btn" id="btnExportResults" style="margin-right:10px;color:#4caf50;">导出Excel</span>
             <span class="link-btn" id="btnClearResults" style="margin-right:10px;color:#f44336;">清空结果</span>
             <span class="link-btn" id="closeBatchResult">关闭</span>
           </div>
@@ -153,6 +151,8 @@
       </div>
 
     </div>
+    <!-- 调整大小手柄 -->
+    <div class="resize-handle" id="resizeHandle" title="拖动调整大小"></div>
   </div>
 
   <script src="../libs/xlsx.full.min.js"></script>

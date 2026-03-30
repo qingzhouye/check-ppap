@@ -1,0 +1,130 @@
+/**********************************搜索面板样式**********************************/
+.xian {
+    margin: 20px 0px;
+    border-top: 1px solid #eeeeee;
+}
+.search {
+    background: #fff;
+    margin: 10px 0 10px 0;
+}
+
+.search .layui-form-item {
+    padding-top: 10px;
+    margin-bottom: 0;
+}
+
+.search .layui-form-item .search-btn a {
+    margin-right: 10px;
+}
+
+.search .layui-form-item .search-btn button {
+    width: 85px;
+
+}
+
+.search-r {
+    float: right;
+    padding-right: 35px;
+    line-height: 50px;
+}
+
+/**********************************数据列表样式**********************************/
+.tableList {
+    background: #fff;
+    margin: 10px 0 10px 0;
+}
+
+.table-form {
+    clear: both;
+}
+
+.table-round {
+    padding: 1px 15px 10px
+}
+
+/**********************************各模块公共样式**********************************/
+.search .layui-form, .tableList .layui-form {
+    background: #fff;
+}
+
+.search .search-title button, .tip .tip-title button, .tableList .tableList-title button {
+    height: 27px;
+    border: 2px solid #C1C0BF;
+    font-weight: bolder;
+    background-color: #F1F1F1;
+    border-radius: 8px;
+    padding-left: 5px;
+    padding-right: 5px;
+
+}
+
+.search .search-title, .tableList .tableList-title {
+    height: 50px;
+    width: 100%;
+    border-bottom: solid 1px #ededed;
+}
+
+.title-l i {
+    background-color: #00a0e9;
+    border-radius: 50%;
+    font-size: 25px !important;
+    color: #fff;
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
+.title-l {
+    font-size: 14px;
+    font-family: PingFangSC-Semibold,sans-serif;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.65);
+    line-height: 32px;
+    float: left;
+}
+
+.search-l, .table-l {
+    border-left: solid 4px #86CCFF;
+    height: 32px;
+    margin-top: 10px;
+}
+
+.search-l label, .table-l label {
+    font-size: 16px;
+    font-family: PingFangSC-Semibold,sans-serif;
+    font-weight: 600;
+    color: #333333;
+    line-height: 32px;
+    float: left;
+    margin-left: 24px;
+}
+
+.title-r img, .search-r img {
+    margin-left: 3px;
+}
+
+.hide {
+    display: none;
+}
+
+.nostyle-btn img {
+    margin-right: 5px;
+    margin-top: -4px;
+}
+
+/**********************************layui样式覆盖**********************************/
+.layui-form-label {
+    white-space: nowrap;
+    color:#696969;
+}
+
+.layui-card {
+    background: none;
+    border: none;
+}
+.layui-input-block {
+     padding-right: 10px;
+    margin-left: 105px;
+}
+.layui-layout-admin .layui-body {
+    overflow-y: auto;
+}

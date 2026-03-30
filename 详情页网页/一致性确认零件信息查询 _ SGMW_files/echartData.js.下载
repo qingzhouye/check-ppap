@@ -1,0 +1,3433 @@
+var colors = ['#2B8DF5', '#4CEAFF', '#43CD74', '#DACD3D', '#FF9249', '#24BFFF', '#4CFFA3', '#FF6758', '#3169FF', '#FFA405'];
+var echartData = {
+    gysscyy_scyy: [{
+        title: '生产计划完成',
+        echartList: [
+            {
+                title: '供应商生产计划完成率情况分布',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/interaction/prdrateanalysisspo/finished/pie/chart',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_one(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData.legend.right = '5%';
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        if (reqData) {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                            echartData.legend.textStyle = {
+                                color: '#02b8da'//字体颜色
+                            };
+                            reqData.forEach(item => {
+                                echartData.legend.data.push(item.toConfigure);
+                                // echartData.series. =
+                                echartData.series[0].data.push({
+                                    name: item.toConfigure,
+                                    value: item.dataPercentage,
+                                    count: item.count,
+                                })
+                            })
+                        } else {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: gysscyyEnum.topEnum,
+                operationEnumRight: gysscyyEnum.topEnum,
+                echartData: gysscyyEnum.echartMenu.PAR,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '生产计划完成率TOP供应商',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/interaction/prdrateanalysisspo/plan/top',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_one(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        if (reqData) {
+                            echartData.backgroundColor = 'transparent'
+                            echartData.tooltip.formatter = function (params) {
+                                return params[0].name + ' , ' + params[0].data.toFixed(2) + '%';
+                            }
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                            echartData.xAxis[0].data = reqData.supplierNames.slice(0, topNowEnumRight.Type);
+                            echartData.xAxis[0].axisLabel = {color: '#02b8da',interval: 0,   //这个一定要有，别忘记了
+                            rotate: 15,};
+                            // echartData.legend.data = ['返修','报废','让使用'];
+                            echartData.yAxis[0].axisLabel = {
+                                formatter: '{value} %',
+                                color: '#02b8da'
+                            }
+                            // echartData.yAxis[0].splitLine.lineStyle = {color: '#1467AA'}
+                            echartData.series.push({
+                                // name: element,
+                                type: 'bar',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#5B9BD5", // 线条颜色
+                                    },
+                                },
+                                symbol: 'circle',
+                                data: reqData.completionRates.slice(0, topNowEnumRight.Type)
+                            })
+                        } else {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: true,
+                operationEnumLeft: null,
+                operationEnumRight: gysscyyEnum.topEnum,
+                echartData: gysscyyEnum.echartMenu.PILLAR,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '供应商生产欠产零件明细',
+                widthRank: 12,
+                reqData: {
+                    reqUrl: '/api/interaction/prdrateanalysisspo/finished/list',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_one(SearchData)
+
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        return {
+                            tableData: reqData.data,
+                            time: reqData && reqData.message ? reqData.message : ''
+                        }
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: gysscyyEnum.topEnum,
+                operationEnumRight: gysscyyEnum.topEnum,
+                tableSet: {
+                    set: [{
+                        title: '零件号',
+                        align: "center",
+                        field: 'partsCode',
+                        width: '12%',
+                        templet: null,
+                    },
+                        {
+                            title: '零件名称',
+                            align: "center",
+                            field: 'partsName',
+                            width: '12%',
+                            templet: null,
+                        },
+
+                        {
+                            title: '供应商代码',
+                            align: "center",
+                            field: 'supplierCode',
+                            width: '12%',
+                            templet: null,
+                        },
+                        {
+                            title: '供应商名称',
+                            align: "center",
+                            field: 'supplierName',
+                            width: '12%',
+                            templet: null,
+                        },
+                        {
+                            title: '车型机型',
+                            align: "center",
+                            field: 'carTypeName',
+                            width: '12%',
+                            templet: null,
+                        },
+                        {
+                            title: '计划生产量',
+                            align: "center",
+                            field: 'planCount',
+                            width: '12%',
+                            templet: null,
+                        },
+                        {
+                            title: '实际生产量',
+                            align: "center",
+                            field: 'trueCount',
+                            width: '12%',
+                            templet: null,
+                        },
+                        {
+                            title: '欠产量',
+                            align: "center",
+                            field: 'gapCount',
+                            width: '12%',
+                            templet: null,
+                        },
+                    ],
+                    tableData: [],
+                },
+                tableOrEchart: 'table'
+            },
+            {
+                title: '供应商产品一次合格率状态分布',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/interaction/prdrateanalysisspo/qualified/finished/pie/chart',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        let searchData = searchDatafotmat_one(SearchData);
+                        searchData.partType = topNowEnumRight.Name;
+                        return searchData
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        echartData.legend.right = '5%';
+                        if (reqData) {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                            echartData.legend.textStyle = {
+                                color: '#02b8da'//字体颜色
+                            };
+                            reqData.forEach(item => {
+                                echartData.legend.data.push(item.toConfigure);
+                                echartData.series[0].data.push({
+                                    name: item.toConfigure,
+                                    value: item.dataPercentage,
+                                    count: item.count,
+                                })
+                            })
+                        } else {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: true,
+                operationEnumLeft: gysscyyEnum.topEnum,
+                operationEnumRight: gysscyyEnum.finishedProductEnum,
+                echartData: gysscyyEnum.echartMenu.PAR,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '一次合格率TOP10供应商',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/interaction/prdrateanalysisspo/qualified/top',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_one(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        if (reqData) {
+                            echartData.backgroundColor = 'transparent'
+                            echartData.tooltip.formatter = function (params) {
+                                return params[0].name + ' , ' + params[0].data.toFixed(2) + '%';
+                            }
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                            echartData.xAxis[0].data = reqData.supplierNames.slice(0, topNowEnumRight.Type);
+                            echartData.xAxis[0].axisLabel = {color: '#02b8da',interval: 0,   //这个一定要有，别忘记了
+                            rotate: 15};
+                            // echartData.legend.data = ['返修','报废','让使用'];
+                            echartData.yAxis[0].axisLabel = {
+                                formatter: '{value} %',
+                                color: '#02b8da'
+                            }
+                            echartData.series.push({
+                                // name: element,
+                                type: 'bar',
+                                // stack: '总量',
+                                symbol: 'circle',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#5B9BD5", // 线条颜色
+                                    }
+                                },
+                                data: reqData.completionRates.slice(0, topNowEnumRight.Type)
+                            })
+                        } else {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: true,
+                operationEnumLeft: null,
+                operationEnumRight: gysscyyEnum.topEnum,
+                echartData: gysscyyEnum.echartMenu.PILLAR,
+                tableOrEchart: 'echart'
+            }
+        ]
+    }, {
+        title: '停线分析',
+        echartList: [
+            {
+                title: '供应商内部停线趋势',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/stopAnalysis/supplierInsideStopTendency',
+                    searchDataFormat: function (SearchData) {
+                        return searchDatafotmat_three(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        if (reqData) {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                            echartData.legend.data = ['停线时间(min)', '停线率(%)'];
+                            echartData.grid.left = '6%';
+                            echartData.grid.right = '5%';
+                            echartData.yAxis[1] = JSON.parse(JSON.stringify(echartData.yAxis[0]));
+                            echartData.yAxis[0].name = '停线时间(min)';
+                            echartData.yAxis[1].name = '停线率(%)';
+                            echartData.xAxis[0].data = reqData.x;
+                            echartData.legend.data.forEach(element => {
+                                echartData.series = [
+                                    {
+                                        name: '停线时间(min)',
+                                        type: 'bar',
+                                        // stack: '总量',
+                                        symbol: 'circle',
+                                        barWidth: 30,
+                                        color: '#73A4D0',
+                                        yAxisIndex: 0,
+                                        data: reqData.minute
+                                    },
+                                    {
+                                        name: '停线率(%)',
+                                        type: 'line',
+                                        yAxisIndex: 1,
+                                        // stack: '总量',
+                                        symbol: 'circle',
+                                        color: '#ED7D31',
+                                        // barWidth: 30,
+                                        data: reqData.rate,
+                                    },
+                                ]
+                            });
+                            if (reqData.x.length == 0) {
+                                echartData.legend.data = [];
+                                echartData.yAxis[0].name = '';
+                                echartData.yAxis[1].name = '';
+                            }
+                        } else {
+
+                        }
+                        return {echartData: echartData, time: reqData && reqData.title ? reqData.title : ''};
+                    },
+
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: gysscyyEnum.topEnum,
+                operationEnumRight: gysscyyEnum.topEnum,
+                echartData: gysscyyEnum.echartMenu.HEAPUP,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '供应商内部停线时间（min）',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/stopAnalysis/supplierStopMinute',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_three(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        echartData.legend.right = '5%';
+                        if (reqData) {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                            reqData.pieInsideVOS.forEach(item => {
+                                echartData.legend.data.push(item.name);
+                                echartData.series[0].data.push({
+                                    name: item.name,
+                                    value: item.value,
+                                })
+                            })
+                        } else {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                        }
+                        return {echartData: echartData, time: reqData && reqData.title ? reqData.title : ''};
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: null,
+                operationEnumRight: null,
+                echartData: gysscyyEnum.echartMenu.PAR,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '停线率TOP10供应商',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/stopAnalysis/stopTop10Supplier',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_three(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight) {
+                        echartData = JSON.parse(JSON.stringify(echartData));
+                        if (reqData) {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                            echartData.tooltip.formatter = function (params) {
+                                return params[0].name + ' , ' + Number(params[0].data).toFixed(2) + '%';
+                            }
+                            echartData.yAxis[0].axisLabel = {
+                                formatter: '{value} %'
+                            }
+                            echartData.xAxis[0].data = reqData.x.slice(0, topNowEnumRight.Type);
+                            echartData.series.push({
+                                type: 'bar',
+                                symbol: 'circle',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#5B9BD5", // 线条颜色
+                                    }
+                                },
+                                data: reqData.rate.slice(0, topNowEnumRight.Type)
+                            })
+                        } else {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                        }
+                        return {echartData: echartData, time: reqData && reqData.title ? reqData.title : ''};
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: true,
+                operationEnumLeft: null,
+                operationEnumRight: gysscyyEnum.topEnum,
+                echartData: gysscyyEnum.echartMenu.PILLAR,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '供应商生产线停线明细表',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/stopAnalysis/supplierStopList',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_three(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        return {
+                            tableData: reqData.data,
+                            time: reqData && reqData.message ? reqData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: gysscyyEnum.topEnum,
+                operationEnumRight: gysscyyEnum.topEnum,
+                tableSet: {
+                    set: [
+                        // {
+                        //     title: '日期',
+                        //     align: "center",
+                        //     field: 'partsCode',
+                        //     width: '19.2%',
+                        //     templet: null,
+                        // },
+                        {
+                            title: '供应商',
+                            align: "center",
+                            field: 'supplier',
+                            width: '24%',
+                            templet: null,
+                        },
+
+                        {
+                            title: '生产线名称',
+                            align: "center",
+                            field: 'productionLine',
+                            width: '24%',
+                            templet: null,
+                        },
+                        {
+                            title: '停线时长(min)',
+                            align: "center",
+                            field: 'stopTime',
+                            width: '24%',
+                            templet: null,
+                        },
+                        {
+                            title: '停线次数',
+                            align: "center",
+                            field: 'stopCount',
+                            width: '24%',
+                            templet: null,
+                        },
+                        // {
+                        //     title: '查看明细',
+                        //     align: "center",
+                        //     field: 'planCount',
+                        //     width: '16%',
+                        //     templet: null,
+                        // }
+                    ],
+                    tableData: [],
+                },
+                tableOrEchart: 'table'
+            },
+        ]
+    }, {
+        title: '生产效率',
+        echartList: [
+            {
+                title: '供应商生产效率状态分布',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/productivity/productivityRateStatus',///api/productivity/productivityRateStatus
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_three(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight) {
+                        echartData.legend.right = '5%';
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        if (reqData) {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                            reqData.data.forEach(item => {
+                                echartData.legend.data.push(item.name);
+                                echartData.series[0].data.push(item)
+                            })
+                        } else {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                        }
+                        return {echartData: echartData, time: reqData && reqData.title ? reqData.title : ''};
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: null,
+                operationEnumRight: null,
+                operationEnumRight: gysscyyEnum.finishedProductEnum,
+                echartData: gysscyyEnum.echartMenu.PAR,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '生产效率TOP供应商',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/productivity/ProductivityTop10Supplier',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_three(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData));
+                        if (reqData) {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                            echartData.tooltip.formatter = function (params) {
+                                return params[0].name + ' , ' + Number(params[0].data).toFixed(2) + '%';
+                            }
+                            echartData.xAxis[0].data = reqData.x.slice(0, topNowEnumRight.Type);
+                            echartData.series.push({
+                                type: 'bar',
+                                symbol: 'circle',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#5B9BD5", // 线条颜色
+                                    }
+                                },
+                                data: reqData.value.slice(0, topNowEnumRight.Type)
+                            })
+                        } else {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: true,
+                operationEnumLeft: null,
+                operationEnumRight: gysscyyEnum.topEnum,
+                echartData: gysscyyEnum.echartMenu.PILLAR,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '供应商生产效率目标达成分布',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/productivity/supplierProductivityTargetRate',///api/productivity/supplierProductivityTargetRate
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_three(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight) {
+                        echartData.legend.right = '5%';
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        if (reqData) {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                            reqData.data.forEach(item => {
+                                echartData.legend.data.push(item.name);
+                                echartData.series[0].data.push(item)
+                            })
+                        } else {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                        }
+                        return {echartData: echartData, time: reqData && reqData.title ? reqData.title : ''};
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: null,
+                operationEnumRight: null,
+                echartData: gysscyyEnum.echartMenu.PAR,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '供应商生产效率不达标目标TOP分析',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/productivity/supplierProductivitySubstandardTop',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_three(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData));
+                        if (reqData) {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                            echartData.tooltip.formatter = function (params) {
+                                return params[0].name + ' , ' + Number(params[0].data).toFixed(2) + '%';
+                            }
+                            echartData.xAxis[0].data = reqData.x.slice(0, topNowEnumRight.Type);
+                            echartData.series.push({
+                                type: 'bar',
+                                symbol: 'circle',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#5B9BD5", // 线条颜色
+                                    }
+                                },
+                                data: reqData.value.slice(0, topNowEnumRight.Type)
+                            })
+                        } else {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: true,
+                operationEnumLeft: null,
+                operationEnumRight: gysscyyEnum.topEnum,
+                echartData: gysscyyEnum.echartMenu.PILLAR,
+                tableOrEchart: 'echart'
+            },
+        ]
+    }, {
+        title: '产线负荷',
+        echartList: [
+            {
+                title: '供应商生产计划完成率情况分布',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/interaction/prdrateanalysisspo/finished/pie/chart',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        var searchdata = {}
+                        return searchDatafotmat_one(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        echartData.legend.right = '5%';
+                        if (reqData) {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                            reqData.forEach(item => {
+                                echartData.legend.data.push(item.toConfigure);
+                                echartData.series[0].data.push({
+                                    name: item.toConfigure,
+                                    value: item.dataPercentage,
+                                    count: item.count,
+                                })
+                            })
+                        } else {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: gysscyyEnum.topEnum,
+                operationEnumRight: gysscyyEnum.topEnum,
+                echartData: gysscyyEnum.echartMenu.PAR,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '生产计划完成率TOP供应商',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/interaction/prdrateanalysisspo/plan/top',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_one(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        if (reqData) {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                            // // 测试代码start
+                            // var data = reqData.supplierNames[0];
+                            // for (let index = 0; index < 30; index++) {
+                            //     reqData.supplierNames.push(data + '1');
+                            //     reqData.completionRates.push(index * 3);
+                            // }
+                            // // 测试代码end
+                            echartData.xAxis[0].data = reqData.supplierNames.slice(0, topNowEnumRight.Type);
+                            // echartData.legend.data = ['返修','报废','让使用'];
+                            echartData.series.push({
+                                // name: element,
+                                type: 'bar',
+                                stack: '总量',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#5B9BD5", // 线条颜色
+                                    },
+                                },
+                                symbol: 'circle',
+                                data: reqData.completionRates.slice(0, topNowEnumRight.Type)
+                            })
+                        } else {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: true,
+                operationEnumLeft: null,
+                operationEnumRight: gysscyyEnum.topEnum,
+                echartData: gysscyyEnum.echartMenu.PILLAR,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '供应商生产欠产零件明细',
+                widthRank: 12,
+                reqData: {
+                    reqUrl: '/api/interaction/prdrateanalysisspo/finished/list',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_one(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        return {
+                            tableData: reqData.data,
+                            time: reqData && reqData.message ? reqData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: gysscyyEnum.topEnum,
+                operationEnumRight: gysscyyEnum.topEnum,
+                tableSet: {
+                    set: [{
+                        title: '零件号',
+                        align: "center",
+                        field: 'partsCode',
+                        width: '12%',
+                        templet: null,
+                    },
+                        {
+                            title: '零件名称',
+                            align: "center",
+                            field: 'partsName',
+                            width: '12%',
+                            templet: null,
+                        },
+
+                        {
+                            title: '供应商代码',
+                            align: "center",
+                            field: 'supplierCode',
+                            width: '12%',
+                            templet: null,
+                        },
+                        {
+                            title: '供应商名称',
+                            align: "center",
+                            field: 'supplierName',
+                            width: '12%',
+                            templet: null,
+                        },
+                        {
+                            title: '车型机型',
+                            align: "center",
+                            field: 'carTypeName',
+                            width: '12%',
+                            templet: null,
+                        },
+                        {
+                            title: '计划生产量',
+                            align: "center",
+                            field: 'planCount',
+                            width: '12%',
+                            templet: null,
+                        },
+                        {
+                            title: '实际生产量',
+                            align: "center",
+                            field: 'trueCount',
+                            width: '12%',
+                            templet: null,
+                        },
+                        {
+                            title: '欠产量',
+                            align: "center",
+                            field: 'gapCount',
+                            width: '12%',
+                            templet: null,
+                        },
+                    ],
+                    tableData: [],
+                },
+                tableOrEchart: 'table'
+            },
+            {
+                title: '供应商产品一次合格率状态分布',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/interaction/prdrateanalysisspo/qualified/finished/pie/chart',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_one(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        echartData.legend.right = '5%';
+                        if (reqData) {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                            reqData.forEach(item => {
+                                echartData.legend.data.push(item.toConfigure);
+                                echartData.series[0].data.push({
+                                    name: item.toConfigure,
+                                    value: item.dataPercentage,
+                                    count: item.count,
+                                })
+                            })
+                        } else {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: true,
+                operationEnumLeft: gysscyyEnum.topEnum,
+                operationEnumRight: gysscyyEnum.finishedProductEnum,
+                echartData: gysscyyEnum.echartMenu.PAR,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '一次合格率TOP10供应商',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/interaction/prdrateanalysisspo/qualified/top',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_one(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        if (reqData) {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                            echartData.xAxis[0].data = reqData.supplierNames.slice(0, topNowEnumRight.Type);
+                            // echartData.legend.data = ['返修','报废','让使用'];
+                            echartData.series.push({
+                                // name: element,
+                                type: 'bar',
+                                // stack: '总量',
+                                symbol: 'circle',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#5B9BD5", // 线条颜色
+                                    }
+                                },
+                                data: reqData.completionRates.slice(0, topNowEnumRight.Type)
+                            })
+                        } else {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: true,
+                operationEnumLeft: null,
+                operationEnumRight: gysscyyEnum.topEnum,
+                echartData: gysscyyEnum.echartMenu.PILLAR,
+                tableOrEchart: 'echart'
+            }
+        ]
+    }],
+    gysscyy_zlyx: [{
+        title: '质量问题',
+        echartList: [{
+            title: '供应商内部质量问题运行趋势图',
+            widthRank: 12,
+            reqData: {
+                reqUrl: '/api/spo/unqualifiedAnalysis/getProblemNum',
+                searchDataFormat: function (SearchData) {
+                    return searchDatafotmat_one(SearchData)
+                },
+                reqType: 'GET',
+                reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                    echartData = JSON.parse(JSON.stringify(echartData))
+                    if (reqData && reqData[0] && reqData[0].length > 0) {
+                        echartData.color = colors
+                        echartData.series = [];
+                        echartData.legend.data = [];
+                        echartData.legend.data = reqData[0];
+                        echartData.tooltip.formatter = function (params) {
+                            var res = '';
+                            var sum = '';
+                            res += params[0].name + "<br/>";
+                            params.forEach(function (item) {
+                                res += item.seriesName + '：' + item.value + "<br/>";
+                                sum = Number(item.value) + Number(sum);
+                            })
+                            res += '全部：' + sum;
+                            return res;
+                        };
+                        echartData.xAxis[0].data = reqData[1];
+                        echartData.xAxis[0].axisLabel = {color: '#02b8da',interval: 0,   //这个一定要有，别忘记了
+                        rotate: 15};
+                        echartData.legend.data.forEach((element, index) => {
+                            let color = '';
+                            switch (element) {
+                                case 'A类':
+                                    color = '#FF0101';
+                                    break;
+                                case 'B类':
+                                    color = '#FFC101';
+                                    break;
+                                case 'C类':
+                                    color = '#FFFF01';
+                                    break;
+                                default:
+                                    color = "#"+("00000"+((Math.random()*16777215+0.5)>>0).toString(16)).slice(-6);
+                            }
+                            echartData.series.push(
+                                {
+                                    name: element,
+                                    type: 'bar',
+                                    stack: '总量',
+                                    symbol: 'circle',
+                                    barWidth: reqData[index + 2].length<40?30:5,
+                                    color: color,
+                                    data: reqData[index + 2]
+                                },
+                            )
+                        });
+                    } else {
+                        echartData.xAxis[0].data = reqData[1];
+                    }
+                    return {
+                        echartData: echartData,
+                        time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                    };
+                },
+            },
+            operationFlageLeft: false,
+            operationFlageRight: false,
+            operationEnumLeft: gysscyyEnum.topEnum,
+            operationEnumRight: gysscyyEnum.topEnum,
+            echartData: gysscyyEnum.echartMenu.HEAPUP,
+            tableOrEchart: 'echart'
+        },
+            {
+                title: '供应商内部质量问题等级分布',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/spo/unqualifiedAnalysis/getProblemLevel',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_one(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData));
+                        echartData.legend.right = '5%';
+                        if (reqData) {
+                            echartData.color = colors
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                            echartData.legend.data = reqData.columnNames;
+                            echartData.legend.data.forEach((item, index) => {
+                                echartData.series[0].data.push({
+                                    name: item,
+                                    value: reqData.nums[index],
+                                    rate: reqData.rates[index],
+                                })
+                            })
+                        } else {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: null,
+                operationEnumRight: null,
+                echartData: gysscyyEnum.echartMenu.PAR,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '供应商内部质量问题原因类型分布',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/spo/unqualifiedAnalysis/getCauseType',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_one(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData));
+                        echartData.legend.right = '5%';
+                        echartData.series[0].center = ["35%", "53%"];
+                        if (reqData) {
+                            echartData.color = colors
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                            echartData.legend.data = reqData.columnNames;
+                            echartData.legend.data.forEach((item, index) => {
+                                echartData.series[0].data.push({
+                                    name: item,
+                                    value: reqData.nums[index],
+                                    rate: reqData.rates[index],
+                                })
+                            })
+                        } else {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: null,
+                operationEnumRight: null,
+                echartData: gysscyyEnum.echartMenu.PAR,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '质量问题TOP供应商',
+                widthRank: 12,
+                reqData: {
+                    reqUrl: '/api/spo/unqualifiedAnalysis/getProblemStatusStatistics',
+                    searchDataFormat: function (SearchData) {
+                        return searchDatafotmat_one(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData));
+                        echartData.color = colors;
+                        if (reqData && reqData[0] && reqData[0].length > 0) {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                            echartData.legend.data = reqData[0];
+                            echartData.legend.type = 'scroll';
+                            echartData.xAxis[0].data = reqData[1].slice(0, topNowEnumRight.Type);
+                            echartData.legend.data.forEach((element, index) => {
+                                echartData.series.push(
+                                    {
+                                        name: element,
+                                        type: 'bar',
+                                        stack: '总量',
+                                        symbol: 'circle',
+                                        barWidth: 30,
+                                        // color: colorList[index],
+                                        data: reqData[index + 2].slice(0, topNowEnumRight.Type)
+                                    },
+                                )
+                            });
+                        } else {
+                            echartData.xAxis[0].data = reqData[1];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: true,
+                operationEnumLeft: gysscyyEnum.topEnum,
+                operationEnumRight: gysscyyEnum.topEnum,
+                echartData: gysscyyEnum.echartMenu.HEAPUP,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '质量问题表格',
+                widthRank: 12,
+                reqData: {
+                    reqUrl: '/api/spo/unqualifiedAnalysis/getPageData',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        let data = searchDatafotmat_one(SearchData)
+                        data.size = 99999;
+                        return data
+
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        return {
+                            tableData: reqData.data.records,
+                            time: reqData && reqData.message ? reqData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: gysscyyEnum.topEnum,
+                operationEnumRight: gysscyyEnum.topEnum,
+                tableSet: {
+                    set: [{
+                        title: '供应商代码',
+                        align: "center",
+                        field: 'suppliercode',
+                        width: '12%',
+                        templet: null,
+                    },
+                        {
+                            title: '供应商名称',
+                            align: "center",
+                            field: 'suppliername',
+                            width: '12%',
+                            templet: null,
+                        },
+                        {
+                            title: '问题等级',
+                            align: "center",
+                            field: 'pblevel',
+                            width: '12%',
+                            templet: null,
+                        },
+                        {
+                            title: '问题描述',
+                            align: "center",
+                            field: 'discription',
+                            width: '12%',
+                            templet: null,
+                        },
+                        {
+                            title: '失效模式',
+                            align: "center",
+                            field: 'shixiaomoshi2',
+                            width: '12%',
+                            templet: null,
+                        },
+                        {
+                            title: '原因分析',
+                            align: "center",
+                            field: 'reasonalz',
+                            width: '12%',
+                            templet: null,
+                        },
+                        {
+                            title: '解决措施',
+                            align: "center",
+                            field: 'solvestep',
+                            width: '12%',
+                            templet: null,
+                        },
+                        {
+                            title: '状态',
+                            align: "center",
+                            field: 'status',
+                            width: '12%',
+                            templet: null,
+                        }
+                    ],
+                    tableData: [],
+                },
+                tableOrEchart: 'table'
+            },]
+    }, {
+        title: '不合格分析',
+        echartList: [{
+            title: '供应商不合格品数量运行趋势图',
+            widthRank: 6,
+            reqData: {
+                reqUrl: '/api/spo/unqualifiedAnalysis/getDisqualificationBar',
+                searchDataFormat: function (SearchData) {
+                    return searchDatafotmat_one(SearchData)
+                },
+                reqType: 'GET',
+                reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                    echartData = JSON.parse(JSON.stringify(echartData))
+                    //
+                    if (reqData) {
+                        echartData.series = [];
+                        echartData.legend.data = [];
+                        echartData.legend.data = ['报废', '让步使用', '返工返修'];
+                        echartData.tooltip.formatter = function (params) {
+                            var res = '';
+                            var sum = '';
+                            res += params[0].name + "<br/>";
+                            params.forEach(function (item) {
+                                res += item.seriesName + '：' + item.value + "<br/>";
+                                sum = Number(item.value) + Number(sum);
+                            })
+                            res += '全部：' + sum;
+                            return res;
+                        };
+                        echartData.xAxis[0].data = reqData.columnName;
+                        echartData.legend.data.forEach(element => {
+                            echartData.series = [
+                                {
+                                    name: '报废',
+                                    type: 'bar',
+                                    stack: '总量',
+                                    symbol: 'circle',
+                                    barWidth: 30,
+                                    color: '#FF0101',
+                                    data: reqData.scrapCount
+                                },
+                                {
+                                    name: '让步使用',
+                                    type: 'bar',
+                                    stack: '总量',
+                                    symbol: 'circle',
+                                    color: '#FFC101',
+                                    barWidth: 30,
+                                    data: reqData.permitThroughCount
+                                },
+                                {
+                                    name: '返工返修',
+                                    type: 'bar',
+                                    stack: '总量',
+                                    symbol: 'circle',
+                                    color: '#FFFF01',
+                                    barWidth: 30,
+                                    data: reqData.reworkCount
+                                },
+                            ]
+                        });
+                    } else {
+
+                    }
+                    return {
+                        echartData: echartData,
+                        time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                    };
+                },
+
+            },
+            operationFlageLeft: false,
+            operationFlageRight: false,
+            operationEnumLeft: gysscyyEnum.topEnum,
+            operationEnumRight: gysscyyEnum.topEnum,
+            echartData: gysscyyEnum.echartMenu.HEAPUP,
+            tableOrEchart: 'echart'
+        },
+            {
+                title: '不合格率TOP供应商',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/spo/unqualifiedAnalysis/suppliersUnqualifiedRate',
+                    searchDataFormat: function (SearchData, topNowEnumLeft) {
+                        var seardata = searchDatafotmat_one(SearchData);
+                        seardata['handleType'] = topNowEnumLeft.TypeNumber
+                        return seardata;
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        if (reqData) {
+                            echartData.tooltip.formatter = function (params) {
+                                return params[0].name + ' , ' + params[0].data.toFixed(2) + '%';
+                            }
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                            echartData.xAxis[0].data = reqData.columnName.slice(0, topNowEnumRight.Type);
+                            echartData.yAxis[0].axisLabel = {
+                                formatter: '{value} %',
+                            }
+                            echartData.series.push({
+                                type: 'bar',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#5B9BD5", // 线条颜色
+                                    },
+                                },
+                                symbol: 'circle',
+                                data: reqData.disqualificationRate.slice(0, topNowEnumRight.Type)
+                            })
+                        } else {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: true,
+                operationFlageRight: true,
+                operationEnumLeft: gysscyyEnum.disqualificationEnum,
+                operationEnumRight: gysscyyEnum.topEnum,
+                echartData: gysscyyEnum.echartMenu.HEAPUP,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '供应商内部不合格品处置方式分布',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/spo/unqualifiedAnalysis/diqualificationPie',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_one(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        echartData.legend.right = '5%';
+                        if (reqData) {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = ['报废', '让步使用', '返工返修'];
+                            echartData.series[0].data = [
+                                {
+                                    name: '报废',
+                                    value: reqData.scrapCount,
+                                    count: reqData.scrapRate,
+                                },
+                                {
+                                    name: '让步使用',
+                                    value: reqData.permitThroughCount,
+                                    count: reqData.permitThroughRate,
+                                },
+                                {
+                                    name: '返工返修',
+                                    value: reqData.reworkCount,
+                                    count: reqData.reworkRate,
+                                }
+                            ]
+                        } else {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: null,
+                operationEnumRight: null,
+                echartData: gysscyyEnum.echartMenu.PAR,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '供应商不合格零件明细',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/spo/unqualifiedAnalysis/getdefect',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_one(SearchData)
+
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        return {
+                            tableData: reqData.data.records,
+                            time: reqData && reqData.message ? reqData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: gysscyyEnum.topEnum,
+                operationEnumRight: gysscyyEnum.topEnum,
+                tableSet: {
+                    set: [{
+                        title: '供应商',
+                        align: "center",
+                        field: 'suppliername',
+                        width: '15.5%',
+                        templet: null,
+                    },
+                        {
+                            title: '零件号',
+                            align: "center",
+                            field: 'partscode',
+                            width: '13.5%',
+                            templet: null,
+                        },
+
+                        {
+                            title: '零件名称',
+                            align: "center",
+                            field: 'partsname',
+                            width: '13.5%',
+                            templet: null,
+                        },
+                        {
+                            title: '车型/机型',
+                            align: "center",
+                            field: 'cartypecode',
+                            width: '13.5%',
+                            templet: null,
+                        },
+                        {
+                            title: '报废数',
+                            align: "center",
+                            field: 'scrapcnt',
+                            width: '13.5%',
+                            templet: null,
+                        },
+                        {
+                            title: '返工返修数',
+                            align: "center",
+                            field: 'repaircnt',
+                            width: '13.5%',
+                            templet: null,
+                        },
+                        {
+                            title: '让步使用数',
+                            align: "center",
+                            field: 'releasecnt',
+                            width: '13.5%',
+                            templet: null,
+                        },
+                    ],
+                    tableData: [],
+                },
+                tableOrEchart: 'table'
+            },]
+    }, {
+        title: 'GP12检查',
+        echartList: [
+            {
+                title: 'GP12检查运行趋势',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/spo/GP12/GP12operationTrend',
+                    searchDataFormat: function (SearchData, topNowEnumLeft) {
+                        return searchDatafotmat_one(SearchData);
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        if (reqData) {
+                            //y轴的不合格数
+                            const yValue = reqData.map(item => {
+                                return item.value;
+                            })
+                            //y轴的合格率
+                            const yQualifiedRate = reqData.map(item => {
+                                return item.qualifiedRate;
+                            })
+                            //x轴的数值
+                            const xLabel = reqData.map(item => {
+                                return item.label;
+                            })
+                            echartData.series = [];
+                            echartData.legend.data = ['不合格数', '合格率'];
+                            echartData.xAxis[0].data = xLabel;
+                            echartData.yAxis[0].name = '不合格数';
+                            echartData.yAxis[1].name = '合格率';
+                            echartData.yAxis[1].axisLabel = {
+                                formatter: '{value} %'
+                            };
+                            echartData.tooltip.formatter = function (params) {
+                                return params[0].axisValue + '<br>' + params[0].seriesName + ':' + params[0].data + '<br>' + params[1].seriesName + ':' + params[1].data + '%';
+                            }
+                            echartData.series.push({
+                                name: '不合格数',
+                                type: 'bar',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#5B9BD5", // 线条颜色
+                                    },
+                                },
+                                data: yValue
+                            },{
+                                name: '合格率',
+                                type: 'line',
+                                yAxisIndex: 1,
+                                data: yQualifiedRate
+                            })
+                        } else {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                echartData: gysscyyEnum.echartMenu.HEAPUP,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '不合格率TOP10供应商分析',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/spo/GP12/unqualifiedRate',
+                    searchDataFormat: function (SearchData, topNowEnumLeft) {
+                        return searchDatafotmat_one(SearchData);
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        if (reqData) {
+                            //y轴的不合格数
+                            const yValue = reqData.map(item => {
+                                return item.value;
+                            })
+                            //y轴的合格率
+                            const yQualifiedRate = reqData.map(item => {
+                                return item.qualifiedRate;
+                            })
+                            //x轴的数值
+                            const xLabel = reqData.map(item => {
+                                return item.label;
+                            })
+                            console.log(yQualifiedRate)
+                            echartData.series = [];
+                            echartData.legend.data = ['不合格数', '合格率'];
+                            echartData.xAxis[0].data = xLabel;
+                            echartData.yAxis[0].name = '不合格数';
+                            echartData.yAxis[1].name = '合格率';
+                            echartData.yAxis[1].axisLabel = {
+                                formatter: '{value} %'
+                            };
+                            echartData.tooltip.formatter = function (params) {
+                                return params[0].axisValue + '<br>' + params[0].seriesName + ':' + params[0].data + '<br>' + params[1].seriesName + ':' + params[1].data + '%';
+                            }
+                            echartData.series.push({
+                                name: '不合格数',
+                                type: 'bar',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#5B9BD5", // 线条颜色
+                                    },
+                                },
+                                data: yValue
+                            })
+                            echartData.series.push({
+                                name: '合格率',
+                                type: 'line',
+                                yAxisIndex: 1,
+                                data: yQualifiedRate
+                            })
+                        } else {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                echartData: gysscyyEnum.echartMenu.HEAPUP,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '主要问题清单',
+                widthRank: 12,
+                reqData: {
+                    reqUrl: '/api/spo/GP12/getProblemStatusStatistics',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return earchDatafotmat_seven(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight) {
+                        return {
+                            tableData: reqData.data.list,
+                            time: reqData && reqData.message ? reqData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                //在这里加一个exporturl，
+                hasExportUrl: true,
+                exportUrl: '/api/spo/deliveryStatusExport/monthDelivery',
+                operationEnumLeft: gysscyyEnum.topEnum,
+                operationEnumRight: gysscyyEnum.topEnum,
+                tableSet: {
+                    set: [{
+                        title: '项目名称',
+                        align: "center",
+                        field: 'cartype',
+                        width: '20%',
+                        templet: null,
+                    },
+                        {
+                            title: '供应商名称',
+                            align: "center",
+                            field: 'supplierName',
+                            width: '20%',
+                            templet: null,
+                        },
+                        {
+                            title: '零件号',
+                            align: "center",
+                            field: 'assypartscode',
+                            width: '20%',
+                            templet: null,
+                        },
+                        {
+                            title: '零件名称',
+                            align: "center",
+                            field: 'sp1',
+                            width: '20%',
+                            templet: null,
+                        },
+                        {
+                            title: '合格率',
+                            align: "center",
+                            field: 'qualifiedRate',
+                            width: '18%',
+                            templet: function (val) {
+                                return val.qualifiedRate + '%';
+                            },
+                        },
+                    ],
+                    tableData: [],
+                },
+                tableOrEchart: 'table'
+            },
+            {
+                title: '不合格项明细',
+                widthRank: 12,
+                reqData: {
+                    reqUrl: '/api/spo/GP12/nonconformityDetails',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return earchDatafotmat_seven(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight) {
+                        return {
+                            tableData: reqData.data,
+                            time: reqData && reqData.message ? reqData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                //在这里加一个exporturl，
+                hasExportUrl: true,
+                exportUrl: '/api/spo/deliveryStatusExport/monthDelivery',
+                operationEnumLeft: gysscyyEnum.topEnum,
+                operationEnumRight: gysscyyEnum.topEnum,
+                tableSet: {
+                    set: [{
+                        title: '检查项目',
+                        align: "center",
+                        field: 'chkobj',
+                        width: '25%',
+                        templet: null,
+                    },
+                        {
+                            title: '判定标准',
+                            align: "center",
+                            field: 'standar',
+                            width: '25%',
+                            templet: null,
+                        },
+
+                        {
+                            title: '不合格数',
+                            align: "center",
+                            field: 'ngcount',
+                            width: '25%',
+                            templet: null,
+                        },
+                        {
+                            title: '主要问题',
+                            align: "center",
+                            field: 'discription',
+                            width: '24%',
+                            templet: null,
+                        },
+                    ],
+                    tableData: [],
+                },
+                tableOrEchart: 'table'
+            },
+            ]
+    }],
+    gysscyy_jfzt: [{
+        title: '产能分析',
+        echartList: [{
+            title: '供应商产能风险分布图',
+            widthRank: 12,
+            reqData: {
+                reqUrl: '/api/spo/deliveryStatus/capacityRisk',
+                searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRigh) {
+                    var searchData = searchDatafotmat_one(SearchData)
+                    searchData.type = topNowEnumRigh.Type;
+                    return searchData
+                },
+                reqType: 'GET',
+                reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                    echartData = JSON.parse(JSON.stringify(echartData))
+                    if (reqData) {
+                        echartData.xAxis[0].data = [];
+                        echartData.legend.data = ['高', '中', '低'];
+                        echartData.series = [{
+                            name: '高',
+                            type: 'bar',
+                            symbol: 'circle',
+                            barWidth: 30,
+                            color: '#5B9BD5',
+                            data: [],
+                        }, {
+                            name: '中',
+                            type: 'bar',
+                            symbol: 'circle',
+                            barWidth: 30,
+                            color: '#ED7D31',
+                            data: [],
+                        }, {
+                            name: '低',
+                            type: 'bar',
+                            symbol: 'circle',
+                            barWidth: 30,
+                            color: '#A5A5A5',
+                            data: [],
+                        },];
+                        reqData.forEach((element, index) => {
+                            echartData.xAxis[0].data.push(element.base);
+                            echartData.series[0].data.push(element.high);
+                            echartData.series[1].data.push(element.middle);
+                            echartData.series[2].data.push(element.low);
+                        });
+                    } else {
+                    }
+                    return {
+                        echartData: echartData,
+                        time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                    };
+                },
+            },
+            operationFlageLeft: false,
+            operationFlageRight: true,
+            operationEnumLeft: gysscyyEnum.topEnum,
+            operationEnumRight: gysscyyEnum.typeEnum,
+            echartData: gysscyyEnum.echartMenu.HEAPUP,
+            tableOrEchart: 'echart'
+        },
+            {
+                title: '供应商产能风险零件明细',
+                widthRank: 12,
+                reqData: {
+                    reqUrl: '/api/spo/deliveryStatus/capacityRiskParts',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_two(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight) {
+                        return {
+                            tableData: reqData.data,
+                            time: reqData && reqData.message ? reqData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                //在这里加一个exporturl，
+                hasExportUrl: true,
+                exportUrl: '/api/spo/deliveryStatusExport/monthDelivery',
+                operationEnumLeft: gysscyyEnum.topEnum,
+                operationEnumRight: gysscyyEnum.topEnum,
+                tableSet: {
+                    set: [{
+                        title: '基地',
+                        align: "center",
+                        field: 'base',
+                        width: '10%',
+                        templet: null,
+                    },
+                        {
+                            title: '供应商代码',
+                            align: "center",
+                            field: 'supplierCode',
+                            width: '10%',
+                            templet: null,
+                        },
+
+                        {
+                            title: '供应商名称',
+                            align: "center",
+                            field: 'supplierName',
+                            width: '10%',
+                            templet: null,
+                        },
+                        {
+                            title: '零件号',
+                            align: "center",
+                            field: 'partNumber',
+                            width: '10%',
+                            templet: null,
+                        },
+                        {
+                            title: '零件名称',
+                            align: "center",
+                            field: 'partName',
+                            width: '10%',
+                            templet: null,
+                        },
+                        {
+                            title: '车型',
+                            align: "center",
+                            field: 'applicableModels',
+                            width: '10%',
+                            templet: null,
+                        },
+                        {
+                            title: '需求产能',
+                            align: "center",
+                            field: 'monthlyDemand',
+                            width: '10%',
+                            templet: null,
+                        },
+                        {
+                            title: '实际产能',
+                            align: "center",
+                            field: 'availability',
+                            width: '10%',
+                            templet: null,
+                        },
+                        {
+                            title: '缺口数量',
+                            align: "center",
+                            field: 'monthlyGap',
+                            width: '10%',
+                            templet: null,
+                        },
+                        {
+                            title: '缺口比例',
+                            align: "center",
+                            field: 'gapRate',
+                            width: '10%',
+                            templet: null,
+                        },
+                        {
+                            title: '风险等级',
+                            align: "center",
+                            field: "riskLevel",
+                            width: '10%',
+                            templet: null,
+                        },
+                    ],
+                    tableData: [],
+                },
+                tableOrEchart: 'table'
+            },
+            {
+                title: '供应商产能整体满足情况表',
+                widthRank: 6,
+                falg: true,
+                reqData: {
+                    reqUrl: '/api/spo/deliveryStatus/capacitySatisfactionOverView',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRigh) {
+                        var searchData = searchDatafotmat_one(SearchData)
+                        searchData.base = topNowEnumRigh.Type;
+                        return searchData
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        echartData.legend.right = '5%';
+                        if (reqData) {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                            reqData.supplier.forEach(item => {
+                                echartData.legend.data.push(item.name);
+                                echartData.series[0].data.push({
+                                    name: item.name,
+                                    value: item.count,
+                                    rate: item.rate
+                                })
+                            })
+                            reqData.parts.forEach(item => {
+                                echartData.series[1].data.push({
+                                    name: item.name,
+                                    value: item.count,
+                                    rate: item.rate
+                                })
+                            })
+                        } else {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: true,
+                operationEnumLeft: null,
+                operationEnumRight: gysscyyEnum.baseEnum,
+                echartData: gysscyyEnum.echartMenu.PIE,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '产能高风险物料分布图',
+                widthRank: 12,
+                reqData: {
+                    reqUrl: '/api/spo/deliveryStatus/productionHighRiskDistribution',
+                    searchDataFormat: function (SearchData) {
+                        return earchDatafotmat_six(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        if (reqData) {
+                            echartData.xAxis[0].data = [];
+                            echartData.legend.data = ['河西', '宝骏', '青岛', '重庆'];
+                            echartData.series = [{
+                                name: '河西',
+                                type: 'bar',
+                                symbol: 'circle',
+                                barWidth: 20,
+                                color: '#5B9BD5',
+                                data: [],
+                            }, {
+                                name: '宝骏',
+                                type: 'bar',
+                                symbol: 'circle',
+                                barWidth: 20,
+                                color: '#ED7D31',
+                                data: [],
+                            }, {
+                                name: '青岛',
+                                type: 'bar',
+                                symbol: 'circle',
+                                barWidth: 20,
+                                color: '#A5A5A5',
+                                data: [],
+                            },
+                                {
+                                    name: '重庆',
+                                    type: 'bar',
+                                    symbol: 'circle',
+                                    barWidth: 20,
+                                    color: '#FFC000',
+                                    data: [],
+                                }];
+                            reqData.forEach((element, index) => {
+                                echartData.xAxis[0].data.push(element.moduleName);
+                                echartData.series[0].data.push(element.hexi);
+                                echartData.series[1].data.push(element.baojun);
+                                echartData.series[2].data.push(element.qingdao);
+                                echartData.series[3].data.push(element.chongqing);
+
+                            });
+                        } else {
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: gysscyyEnum.topEnum,
+                operationEnumRight: gysscyyEnum.topEnum,
+                echartData: gysscyyEnum.echartMenu.HEAPUP,
+                tableOrEchart: 'echart'
+
+            }]
+    }, {
+        title: '库存风险',
+        echartList: [{
+            title: '库存天数分布图',
+            widthRank: 12,
+            reqData: {
+                reqUrl: '/api/spo/deliveryStatus/stockDays',
+                searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRigh) {
+                    var searchData = searchDatafotmat_two(SearchData)
+                    searchData.type = topNowEnumRigh.Type;
+                    return searchData
+                },
+                reqType: 'GET',
+                reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                    echartData = JSON.parse(JSON.stringify(echartData))
+                    let stockList = [];
+                    if (reqData) {
+                        echartData.xAxis[0].data = [];
+                        reqData.forEach((item, index) => {
+                            echartData.xAxis[0].data.push(item.base);
+                            let dataList = [];
+                            item.stock.forEach((tt, num) => {
+                                $.each(tt, (key, val) => {
+                                    dataList.push(val);
+                                    if (index == 0) {
+                                        echartData.legend.data.push(key);
+                                    }
+                                    echartData.series[num]
+                                });
+                            })
+                            stockList.push(dataList);
+                        })
+                        var dataList = [];
+                        stockList[0].forEach((item, index) => {
+                            var list = [];
+                            stockList.forEach((ele, i) => {
+                                list.push(ele[index]);
+                            });
+                            dataList[index] = list;
+                        });
+                        echartData.legend.data.forEach((item, index) => {
+                            echartData.series.push({
+                                name: item,
+                                type: 'bar',
+                                symbol: 'circle',
+                                barWidth: 30,
+                                color: colorList[index],
+                                data: dataList[index],
+                            })
+                        })
+                    } else {
+                    }
+                    return {
+                        echartData: echartData,
+                        time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                    };
+                },
+
+            },
+            operationFlageLeft: false,
+            operationFlageRight: true,
+            operationEnumLeft: gysscyyEnum.topEnum,
+            operationEnumRight: gysscyyEnum.stackTypeEnum,
+            echartData: gysscyyEnum.echartMenu.HEAPUP,
+            tableOrEchart: 'echart'
+        },//供应商库存风险零件明细
+            {
+                title: '供应商库存风险零件明细',
+                widthRank: 12,
+                reqData: {
+                    reqUrl: '/api/spo/deliveryStatus/riskPartsList',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_two(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight) {
+                        return {
+                            tableData: reqData.data,
+                            time: reqData && reqData.message ? reqData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                hasExportUrl: true,
+                exportUrl: '/api/spo/deliveryStatusExport/dailyDelivery',
+                operationEnumLeft: gysscyyEnum.topEnum,
+                operationEnumRight: gysscyyEnum.topEnum,
+                tableSet: {
+                    set: [
+                        {
+                            title: '零件号',
+                            align: "center",
+                            field: 'partNumber',
+                            width: '10.66%',
+                            templet: null,
+                        },
+                        {
+                            title: '零件名称',
+                            align: "center",
+                            field: 'partName',
+                            width: '10.6%',
+                            templet: null,
+                        },
+                        {
+                            title: '车型',
+                            align: "center",
+                            field: 'applicableModel',
+                            width: '10.6%',
+                            templet: null,
+                        },
+                        {
+                            title: '基地',
+                            align: "center",
+                            field: 'base',
+                            width: '10.6%',
+                            templet: null,
+                        },
+                        {
+                            title: '供应商代码',
+                            align: "center",
+                            field: 'supplierCode',
+                            width: '10.6%',
+                            templet: null,
+                        },
+                        {
+                            title: '供应商名称',
+                            align: "center",
+                            field: 'supplierName',
+                            width: '10.6%',
+                            templet: null,
+                        },
+                        {
+                            title: '当日需求',
+                            align: "center",
+                            field: 'dailyDemand',
+                            width: '10.6%',
+                            templet: null,
+                        },
+                        {
+                            title: '当日库存',
+                            align: "center",
+                            field: 'dailyStock',
+                            width: '10.6%',
+                            templet: null,
+                        },
+                        {
+                            title: '缺口',
+                            align: "center",
+                            field: 'gap',
+                            width: '10.6%',
+                            templet: null,
+                        },
+                        {
+                            title: '缺口比例',
+                            align: "center",
+                            field: 'gapRate',
+                            width: '10.6%',
+                            templet: null,
+                        },
+                    ],
+                    tableData: [],
+                },
+                tableOrEchart: 'table'
+            },
+            {
+                title: '未来两周物料齐套率',
+                widthRank: 12,
+                reqData: {
+                    reqUrl: '/api/spo/deliveryStatus/nextTwoWeeks',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRigh) {
+                        var searchData = searchDatafotmat_two(SearchData)
+                        searchData.base = topNowEnumRigh.Type;
+                        return searchData
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        if (reqData) {
+                            var bardata = [];
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                            // echartData.xAxis[0].data = reqData.date;
+                            // echartData.legend.data = ['返修','报废','让使用'];
+                            echartData.tooltip.formatter = function (params) {
+                                return '基地：' + topNowEnumRight.Name + '，' + '齐套率：' + params[0].data.toFixed(2) + '%';
+                            }
+                            reqData.forEach(item => {
+                                echartData.xAxis[0].data.push(item.date);
+                                bardata.push(item.rate)
+
+                            })
+                            echartData.yAxis[0].axisLabel = {
+                                formatter: '{value} %',
+                                color: 'rgb(91,155,213)'
+                            }
+                            echartData.series.push({
+                                // name: element,
+                                type: 'bar',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#5B9BD5", // 线条颜色
+                                    },
+                                },
+                                symbol: 'circle',
+                                data: bardata
+                            })
+
+                        } else {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: true,
+                operationEnumLeft: gysscyyEnum.topEnum,
+                operationEnumRight: gysscyyEnum.baseEnum,
+                echartData: gysscyyEnum.echartMenu.PILLAR,
+                tableOrEchart: 'echart'
+
+            }]
+    }],
+    gysscyy_bhdzt: [{
+        title: '变化点分析',
+        echartList: [
+            {
+                title: '供应商变化点运行趋势图',
+                widthRank: 12,
+                reqData: {
+                    reqUrl: '/api/change/point/getChangePointFunction',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_five(SearchData);
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        if (reqData) {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                            echartData.xAxis[0].data = reqData.xaxis;
+                            echartData.series = [
+                                {
+                                    name: '问题数',
+                                    type: 'bar',
+                                    stack: '总量',
+                                    symbol: 'circle',
+                                    color: '#FFC101',
+                                    barWidth: 30,
+                                    data: reqData.data
+                                }
+                            ]
+                        } else {
+
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: null,
+                operationEnumRight: null,
+                echartData: gysscyyEnum.echartMenu.HEAPUP,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '5M1E变化点类型分布',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/change/point/getChangePoint51Me',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_five(SearchData);
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        if (reqData) {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                            reqData.forEach(item => {
+                                echartData.legend.data.push(item.pieName);
+                                echartData.series[0].data.push({
+                                    name: item.pieName,
+                                    value: item.count,
+                                    rate: item.proportion
+                                })
+                            })
+                        } else {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: null,
+                operationEnumRight: null,
+                echartData: gysscyyEnum.echartMenu.PAR,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '变化类型分布',
+                widthRank: 6,
+                reqData: {
+                    reqUrl: '/api/change/point/getChangePointTypes',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        return searchDatafotmat_five(SearchData);
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+                        if (reqData) {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                            reqData.forEach(item => {
+                                echartData.legend.data.push(item.pieName);
+                                echartData.series[0].data.push({
+                                    name: item.pieName,
+                                    value: item.count,
+                                    rate: item.proportion
+                                })
+                            })
+                        } else {
+                            echartData.series[0].data = [];
+                            echartData.legend.data = [];
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: null,
+                operationEnumRight: null,
+                echartData: gysscyyEnum.echartMenu.PAR,
+                tableOrEchart: 'echart'
+            },
+            {
+                title: '变化点TOP供应商分析',
+                widthRank: 12,
+                reqData: {
+                    reqUrl: '/api/change/point/getChangePointTop',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        var searchData = JSON.parse(JSON.stringify(searchDatafotmat_five(SearchData)));
+                        searchData.m1ECode = topNowEnumRight.Type;
+                        return searchData
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight, reqAllData) {
+                        echartData = JSON.parse(JSON.stringify(echartData));
+                        if (reqData) {
+                            echartData.series = [];
+                            echartData.legend.data = [];
+                            echartData.xAxis[0].data = reqData.xaxis;
+                            echartData.series = [
+                                {
+                                    name: '问题数',
+                                    type: 'bar',
+                                    stack: '总量',
+                                    symbol: 'circle',
+                                    color: '#FFC101',
+                                    barWidth: 30,
+                                    data: reqData.data
+                                }
+                            ]
+                        } else {
+
+                        }
+                        return {
+                            echartData: echartData,
+                            time: reqAllData && reqAllData.message ? reqAllData.message : ''
+                        };
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: true,
+                operationEnumLeft: null,
+                operationEnumRight: '/api/change/point/get5m1e',
+                echartData: gysscyyEnum.echartMenu.HEAPUP,
+                tableOrEchart: 'echart'
+            },]
+    },{
+        title: '变化点总览',
+        echartList: [
+            {
+                title: '变化点一览',
+                widthRank: 12,
+                reqData: {
+                    reqUrl: '/api/change/point/getFxscChangePointViews',
+                    searchDataFormat: function (SearchData, topNowEnumLeft, topNowEnumRight) {
+                        // time1---起止时间
+                        // time2---断点时间
+                        // time3---计划完成时间
+                        // time4---实际完成时间
+
+                        return searchDatafotmat_four(SearchData)
+                    },
+                    reqType: 'GET',
+                    reqDataFormat: function (reqData, echartData, topNowEnumLeft, topNowEnumRight) {
+                        echartData = JSON.parse(JSON.stringify(echartData))
+
+                        return {
+                            tableData: reqData.data.records,
+                            time: reqData && reqData.message ? reqData.message : ''
+                        }
+                    },
+                },
+                operationFlageLeft: false,
+                operationFlageRight: false,
+                operationEnumLeft: null,
+                operationEnumRight: null,
+                tableSet: {
+                    set: [{
+                        title: '日期',
+                        align: "center",
+                        field: 'changeDate',
+                        width: '8%',
+                        templet: null,
+                    },
+                        {
+                            title: '供应商代码',
+                            align: "center",
+                            field: 'supplierCode',
+                            width: '8%',
+                            templet: null,
+                        },
+
+                        {
+                            title: '供应商名称',
+                            align: "center",
+                            field: 'supplierName',
+                            width: '8%',
+                            templet: null,
+                        },
+                        {
+                            title: '工艺类型',
+                            align: "center",
+                            field: 'processName',
+                            width: '8%',
+                            templet: null,
+                        },
+                        {
+                            title: '生产区域',
+                            align: "center",
+                            field: 'workAreaName',
+                            width: '8%',
+                            templet: null,
+                        },
+                        {
+                            title: '生产线名称',
+                            align: "center",
+                            field: 'plineName',
+                            width: '8%',
+                            templet: null,
+                        },
+                        {
+                            title: '变化内容',
+                            align: "center",
+                            field: 'info',
+                            width: '8%',
+                            templet: null,
+                        },
+                        {
+                            title: '是否计划性变化',
+                            align: "center",
+                            field: 'isPlan',
+                            width: '8%',
+                            templet: null,
+                        },
+                        {
+                            title: '5M1E变化类别',
+                            align: "center",
+                            field: 'changeType',
+                            width: '8%',
+                            templet: null,
+                        },
+                        {
+                            title: '监控措施',
+                            align: "center",
+                            field: 'solution',
+                            width: '8%',
+                            templet: null,
+                        },
+                        {
+                            title: '跟踪验证期限',
+                            align: "center",
+                            field: 'endTime',
+                            width: '8%',
+                            templet: null,
+                        },
+                        {
+                            title: '断点批次号',
+                            align: "center",
+                            field: 'changeCode',
+                            width: '8%',
+                            templet: null,
+                        },
+                        {
+                            title: '断点时间',
+                            align: "center",
+                            field: 'breakTime',
+                            width: '8%',
+                            templet: null,
+                        },
+                        {
+                            title: '计划完成时间',
+                            align: "center",
+                            field: 'planTime',
+                            width: '8%',
+                            templet: null,
+                        },
+                        {
+                            title: '实际完成时间',
+                            align: "center",
+                            field: 'trueTime',
+                            width: '8%',
+                            templet: null,
+                        },
+                        {
+                            title: '状态',
+                            align: "center",
+                            field: 'state',
+                            width: '8%',
+                            templet: null,
+                        },
+                    ],
+                    tableData: [],
+                },
+                tableOrEchart: 'table'
+            },]
+    },]
+
+}
+
+function searchDatafotmat_one(SearchData) {
+    var searchdata = {}
+    if (!SearchData) {
+        searchdata = {dateType: "day"};
+    } else {
+        if (!SearchData || !SearchData.searchStartDate || SearchData.searchStartDate.length < 7) {
+            SearchData.searchStartDate = '';
+            SearchData.searchEndDate = '';
+        } else if (SearchData.searchStartDate[0] == '-') {
+            SearchData.searchStartDate = '';
+            SearchData.searchEndDate = '';
+        }
+        // if (SearchData.searchEndDate.split('-')[1] == '02' && SearchData.dateType.dateType !== 'month') {
+        //     SearchData.searchEndDate = SearchData.searchStartDate.substr(0, SearchData.searchStartDate.length - 2) + '28';
+        // }
+        var year = SearchData.searchEndDate.substring(0, 4); //获取当前4位数的年份
+        var mounth = SearchData.searchEndDate.substring(5)
+
+        var sameMonthLastDay = new Date(year, mounth, 0).getDate() //获取当前年的当前月的最后一天的日期
+        searchdata = {
+            startDate: SearchData.searchStartDate.length !== 3 && SearchData.searchStartDate.length < 10 && SearchData.searchStartDate !== '' ? SearchData.searchStartDate + '-01' : SearchData.searchStartDate,//开始时间
+            endDate: SearchData.searchEndDate.length !== 3 && SearchData.searchEndDate.length < 10 && SearchData.searchEndDate !== '' ? SearchData.searchEndDate + '-' + sameMonthLastDay : SearchData.searchEndDate,//结束时间
+            dateType: SearchData.dateType.dateType ? SearchData.dateType.dateType : SearchData.dateType,//时间类型
+            supplierCode: SearchData.supplierCode,//供应商代码
+            businessDepartment: SearchData.businessDepartment,//业务科室
+            carTypeCode: SearchData.model,//车型
+            baseCode: SearchData.productionBase,//基地
+            partCode: SearchData.partNumber,//零件号
+            gapStart: SearchData.gapStart,//起始缺口数值
+            gapEnd: SearchData.gapEnd,//结束缺口数值
+        }
+        if (SearchData.searchStartDate == '') {
+            searchdata.startDate = '';
+            searchdata.endDate = '';
+        }
+        if (SearchData.ctFunctionModuleChild) {
+            searchdata['childrenFunctionCode'] = SearchData.ctFunctionModuleChild;//tp父
+        } else {
+            searchdata['parentFunctionCode'] = SearchData.ctFunctionModule;//tp子
+        }
+    }
+    return searchdata
+}
+
+function searchDatafotmat_two(SearchData) {
+    var searchdata = {}
+    if (!SearchData) {
+        searchdata = {dateType: "day"};
+    } else {
+        if (!SearchData || !SearchData.searchStartDate || SearchData.searchStartDate.length < 7) {
+            SearchData.searchStartDate = '';
+            SearchData.searchEndDate = '';
+        } else if (SearchData.searchStartDate[0] == '-') {
+            SearchData.searchStartDate = '';
+            SearchData.searchEndDate = '';
+        }
+        if (SearchData.searchEndDate.split('-')[1] == '02' && SearchData.dateType.dateType !== 'month') {
+            SearchData.searchEndDate = SearchData.searchStartDate.substr(0, SearchData.searchStartDate.length - 2) + '28';
+        }
+        searchdata = {
+            releaseTimeStart: SearchData.searchStartDate.length !== 3 && SearchData.searchStartDate.length < 10 && SearchData.searchStartDate !== '' ? SearchData.searchStartDate + '-01' : SearchData.searchStartDate,//开始时间
+            releaseTimeEnd: SearchData.searchEndDate.length !== 3 && SearchData.searchEndDate.length < 10 && SearchData.searchEndDate !== '' ? SearchData.searchEndDate + '-01' : SearchData.searchEndDate,//结束时间
+            dateType: SearchData.dateType.dateType ? SearchData.dateType.dateType : SearchData.dateType,//时间类型
+            supplierCode: SearchData.supplierCode,//供应商代码
+            applicableModel: SearchData.model,//车型
+            base: SearchData.productionBase,//基地
+            partNumber: SearchData.partNumber,//零件号
+            gapStart: SearchData.gapStart,//起始缺口数值
+            gapEnd: SearchData.gapEnd,//结束缺口数值
+        }
+        if (SearchData.searchStartDate == '') {
+            searchdata.releaseTimeStart = '';
+            searchdata.releaseTimeEnd = '';
+        }
+        if (SearchData.ctFunctionModuleChild) {
+            searchdata['childrenFunctionCode'] = SearchData.ctFunctionModuleChild;//tp父
+        } else {
+            searchdata['parentFunctionCode'] = SearchData.ctFunctionModule;//tp子
+        }
+    }
+    return searchdata
+}
+
+function searchDatafotmat_three(SearchData) {
+    var searchdata = {}
+    if (!SearchData) {
+        searchdata = {dateType: "day"};
+    } else {
+        if (!SearchData || !SearchData.searchStartDate || SearchData.searchStartDate.length < 7) {
+            SearchData.searchStartDate = '';
+            SearchData.searchEndDate = '';
+        } else if (SearchData.searchStartDate[0] == '-') {
+            SearchData.searchStartDate = '';
+            SearchData.searchEndDate = '';
+        }
+        if (SearchData.searchEndDate.split('-')[1] == '02' && SearchData.dateType.dateType !== 'month') {
+            SearchData.searchEndDate = SearchData.searchStartDate.substr(0, SearchData.searchStartDate.length - 2) + '28';
+        }
+        searchdata = {
+            startTime: SearchData.searchStartDate.length !== 3 && SearchData.searchStartDate.length < 10 && SearchData.searchStartDate !== '' ? SearchData.searchStartDate + '-01' : SearchData.searchStartDate,//开始时间
+            endTime: SearchData.searchEndDate.length !== 3 && SearchData.searchEndDate.length < 10 && SearchData.searchEndDate !== '' ? SearchData.searchEndDate + '-01' : SearchData.searchEndDate,//结束时间
+            dataType: SearchData.dateType.dateType ? SearchData.dateType.dateType : SearchData.dateType,//时间类型
+            supplierCode: SearchData.supplierCode,//供应商代码
+            section: SearchData.businessDepartment,//业务科室
+        }
+        if (SearchData.searchStartDate == '') {
+            searchdata.startTime = '';
+            searchdata.endTime = '';
+        }
+        if (SearchData.ctFunctionModuleChild) {
+            searchdata['childrenFunctionCode'] = SearchData.ctFunctionModuleChild;//tp父
+        } else {
+            searchdata['parentFunctionCode'] = SearchData.ctFunctionModule;//tp子
+        }
+    }
+    return searchdata
+}
+
+function searchDatafotmat_four(SearchData) {
+    var searchdata = {}
+    if (!SearchData) {
+        searchdata = {dateType: "day"};
+    } else {
+        let typeList = ['changeTime', 'breakpointTime', 'planTime', 'trueTime']
+        for (let i = 0; i < 4; i++) {
+            SearchData[typeList[i] + 'Start'] =SearchData['time' + i]?SearchData['time' + i].split(' ~ ')[0]:'';
+            SearchData[typeList[i] + 'End'] = SearchData['time' + i]?SearchData['time' + i].split(' ~ ')[1]:'';
+        }
+        searchdata = {
+            supplierCode: SearchData.supplierCode,//供应商代码
+            section: SearchData.businessDepartment,//业务科室
+            processType: SearchData.processType,//工艺
+            state: SearchData.state,//状态
+            isPlan: SearchData.isPlan,//是否计划性变更
+            m1ECode: SearchData.m1ECode,//5m1e
+            changeTimeStart: SearchData.changeTimeStart,//变更时间开始
+            changeTimeEnd: SearchData.changeTimeEnd,//变更时间结束
+            breakpointTimeStart: SearchData.breakpointTimeStart,//断点时间开始
+            breakpointTimeEnd: SearchData.breakpointTimeEnd,//断点时间结束
+            planTimeStart: SearchData.planTimeStart,//计划完成时间开始
+            planTimeEnd: SearchData.planTimeEnd,//计划时间结束
+            trueTimeStart: SearchData.trueTimeStart,//实际完成日期开始
+            trueTimeEnd: SearchData.trueTimeEnd,//实际完成日期结束
+            size: 99999,
+            curent: 1
+        }
+    }
+
+    return searchdata
+}
+
+function searchDatafotmat_five(SearchData) {
+    var searchdata = {}
+    if (!SearchData) {
+        searchdata = {dateType: "day"};
+    } else {
+        if (!SearchData || !SearchData.searchStartDate || SearchData.searchStartDate.length < 7) {
+            SearchData.searchStartDate = '';
+            SearchData.searchEndDate = '';
+        } else if (SearchData.searchStartDate[0] == '-') {
+            SearchData.searchStartDate = '';
+            SearchData.searchEndDate = '';
+        }
+        if (SearchData.searchEndDate.split('-')[1] == '02' && SearchData.dateType.dateType !== 'month') {
+            SearchData.searchEndDate = SearchData.searchStartDate.substr(0, SearchData.searchStartDate.length - 2) + '28';
+        }
+        searchdata = {
+            changeTimeStart: SearchData.searchStartDate.length !== 3 && SearchData.searchStartDate.length < 10 && SearchData.searchStartDate !== '' ? SearchData.searchStartDate + '-01' : SearchData.searchStartDate,//开始时间
+            changeTimeEnd: SearchData.searchEndDate.length !== 3 && SearchData.searchEndDate.length < 10 && SearchData.searchEndDate !== '' ? SearchData.searchEndDate + '-01' : SearchData.searchEndDate,//结束时间
+            dateType: SearchData.dateType.dateType ? SearchData.dateType.dateType : SearchData.dateType,//时间类型
+            supplierCode: SearchData.supplierCode,//供应商代码
+            businessDepartment: SearchData.businessDepartment,//业务科室
+        }
+        if (SearchData.searchStartDate == '') {
+            searchdata.changeTimeStart = '';
+            searchdata.changeTimeEnd = '';
+        }
+    }
+    return searchdata
+}
+
+function earchDatafotmat_six(SearchData) {
+    var searchdata = {}
+    if (!SearchData) {
+        searchdata = {dateType: "day"};
+    } else {
+        if (!SearchData || !SearchData.searchStartDate || SearchData.searchStartDate.length < 7) {
+            SearchData.searchStartDate = '';
+            SearchData.searchEndDate = '';
+        } else if (SearchData.searchStartDate[0] == '-') {
+            SearchData.searchStartDate = '';
+            SearchData.searchEndDate = '';
+        }
+        if (SearchData.searchEndDate.split('-')[1] == '02' && SearchData.dateType.dateType !== 'month') {
+            SearchData.searchEndDate = SearchData.searchStartDate.substr(0, SearchData.searchStartDate.length - 2) + '28';
+        }
+        searchdata = {
+            releaseTimeStart: SearchData.searchStartDate.length !== 3 && SearchData.searchStartDate.length < 10 && SearchData.searchStartDate !== '' ? SearchData.searchStartDate + '-01' : SearchData.searchStartDate,//开始时间
+            releaseTimeEnd: SearchData.searchEndDate.length !== 3 && SearchData.searchEndDate.length < 10 && SearchData.searchEndDate !== '' ? SearchData.searchEndDate + '-01' : SearchData.searchEndDate,//结束时间
+            dateType: SearchData.dateType.dateType ? SearchData.dateType.dateType : SearchData.dateType,//时间类型
+            supplierCode: SearchData.supplierCode,//供应商代码
+            businessDepartment: SearchData.businessDepartment,//业务科室
+            applicableModel: SearchData.model,//车型
+            base: SearchData.productionBase,//基地
+            partNumber: SearchData.partNumber,//零件号
+            gapStart: SearchData.gapStart,//起始缺口数值
+            gapEnd: SearchData.gapEnd,//结束缺口数值
+        }
+        if (SearchData.searchStartDate == '') {
+            searchdata.releaseTimeStart = '';
+            searchdata.releaseTimeEnd = '';
+        }
+        if (SearchData.ctFunctionModuleChild) {
+            searchdata['childrenFunctionCode'] = SearchData.ctFunctionModuleChild;//tp父
+        } else {
+            searchdata['parentFunctionCode'] = SearchData.ctFunctionModule;//tp子
+        }
+    }
+    return searchdata
+}
+
+function earchDatafotmat_seven(SearchData) {
+    var searchdata = {}
+    if (!SearchData) {
+        searchdata = {dateType: "day"};
+    } else {
+        if (!SearchData || !SearchData.searchStartDate || SearchData.searchStartDate.length < 7) {
+            SearchData.searchStartDate = '';
+            SearchData.searchEndDate = '';
+        } else if (SearchData.searchStartDate[0] == '-') {
+            SearchData.searchStartDate = '';
+            SearchData.searchEndDate = '';
+        }
+        // if (SearchData.searchEndDate.split('-')[1] == '02' && SearchData.dateType.dateType !== 'month') {
+        //     SearchData.searchEndDate = SearchData.searchStartDate.substr(0, SearchData.searchStartDate.length - 2) + '28';
+        // }
+        var year = SearchData.searchEndDate.substring(0, 4); //获取当前4位数的年份
+        var mounth = SearchData.searchEndDate.substring(5)
+
+        var sameMonthLastDay = new Date(year, mounth, 0).getDate() //获取当前年的当前月的最后一天的日期
+        searchdata = {
+            startDate: SearchData.searchStartDate.length !== 3 && SearchData.searchStartDate.length < 10 && SearchData.searchStartDate !== '' ? SearchData.searchStartDate + '-01' : SearchData.searchStartDate,//开始时间
+            endDate: SearchData.searchEndDate.length !== 3 && SearchData.searchEndDate.length < 10 && SearchData.searchEndDate !== '' ? SearchData.searchEndDate + '-' + sameMonthLastDay : SearchData.searchEndDate,//结束时间
+            dateType: SearchData.dateType.dateType ? SearchData.dateType.dateType : SearchData.dateType,//时间类型
+            supplierCode: SearchData.supplierCode,//供应商代码
+            businessDepartment: SearchData.businessDepartment,//业务科室
+            carTypeCode: SearchData.model,//车型
+            baseCode: SearchData.productionBase,//基地
+            partCode: SearchData.partNumber,//零件号
+            gapStart: SearchData.gapStart,//起始缺口数值
+            gapEnd: SearchData.gapEnd,//结束缺口数值
+            id: SearchData.id,
+            size: 99999,
+            curent: 1
+        }
+        if (SearchData.searchStartDate == '') {
+            searchdata.startDate = '';
+            searchdata.endDate = '';
+        }
+        if (SearchData.ctFunctionModuleChild) {
+            searchdata['childrenFunctionCode'] = SearchData.ctFunctionModuleChild;//tp父
+        } else {
+            searchdata['parentFunctionCode'] = SearchData.ctFunctionModule;//tp子
+        }
+    }
+    return searchdata
+}
+
+
+var searchSelectData = {
+    gysscyy_scyy: [
+        {
+            "productionBase": {
+                url: '/api/interaction/prdrateanalysisspo/base',
+                name: 'baseName',
+                value: 'baseCode',
+                requestType: 'GET',
+                clearDomID: ["productionBase"],//是否清空子下拉如果是传入子下拉id
+                children: [//下拉联动嵌套
+                    {
+                        "partNumber": {
+                            url: '/api/interaction/prdrateanalysisspo/getPart',//数据接口
+                            name: 'partCode',//接口返回值字段名(显示)
+                            value: 'partCode',//接口返回值字段名(val)
+                            echoSelectId: 'partName',//回显元素domId
+                            fieldIdentifier: 'baseCode',//联级查询字段名（向后台传参）
+                            requestType: 'GET',//请求方式
+                        }
+                    },
+                    {
+                        "partName": {
+                            url: '/api/interaction/prdrateanalysisspo/getPart',//数据接口
+                            name: 'partName',//接口返回值字段名(显示)
+                            value: 'partCode',//接口返回值字段名(val)
+                            echoSelectId: 'partNumber',//回显元素domId
+                            fieldIdentifier: 'baseCode',//联级查询字段名（向后台传参）
+                            requestType: 'GET',//请求方式
+                        }
+                    }]
+            }
+        },
+        // 业务科室
+        {
+            "businessDepartment": {
+                url: '/api/stopAnalysis/getSectionList',
+                name: 'key',
+                value: 'value',
+                requestType: 'GET',
+                clearDomID: ["partNumber", 'supplierName', "supplierCode", 'partNumber'],//是否清空子下拉如果是传入子下拉id
+                children: [// 业务科室拉供应商
+                    {
+                        "supplierName": {
+                            url: '/api/interaction/prdrateanalysisspo/baseSupplier',
+                            name: 'supplierName',
+                            value: 'supplierCode',
+                            requestType: 'GET',//请求方式
+                            echoSelectId: 'supplierCode',//回显元素domId
+                            fieldIdentifier: 'businessDepartment',//联级查询字段名（向后台传参）
+                            clearDomID: ['partNumber'],//是否清空子下拉如果是传入子下拉id
+                            children: [//下拉联动嵌套
+                                {
+                                    "partNumber": {
+                                        url: '/api/interaction/prdrateanalysisspo/getPart',//数据接口
+                                        name: 'partCode',//接口返回值字段名(显示)
+                                        value: 'partCode',//接口返回值字段名(val)
+                                        echoSelectId: 'partName',//回显元素domId
+                                        fieldIdentifier: 'supplierCode',//联级查询字段名（向后台传参）
+                                        requestType: 'GET',//请求方式
+                                    }
+                                },
+                                {
+                                    "partName": {
+                                        url: '/api/interaction/prdrateanalysisspo/getPart',//数据接口
+                                        name: 'partName',//接口返回值字段名(显示)
+                                        value: 'partCode',//接口返回值字段名(val)
+                                        echoSelectId: 'partNumber',//回显元素domId
+                                        fieldIdentifier: 'supplierCode',//联级查询字段名（向后台传参）
+                                        requestType: 'GET',//请求方式
+                                    }
+                                }]
+                        }
+                    },
+                    {
+                        "supplierCode": {
+                            url: '/api/interaction/prdrateanalysisspo/baseSupplier',
+                            name: 'supplierCode',
+                            value: 'supplierCode',
+                            requestType: 'GET',//请求方式
+                            echoSelectId: 'supplierName',//回显元素domId
+                            fieldIdentifier: 'businessDepartment',//联级查询字段名（向后台传参）
+                            clearDomID: ['partNumber'],//是否清空子下拉如果是传入子下拉id
+                            children: [//下拉联动嵌套
+                                {
+                                    "partNumber": {
+                                        url: '/api/interaction/prdrateanalysisspo/getPart',//数据接口
+                                        name: 'partCode',//接口返回值字段名(显示)
+                                        value: 'partCode',//接口返回值字段名(val)
+                                        echoSelectId: 'partName',//回显元素domId
+                                        fieldIdentifier: 'supplierCode',//联级查询字段名（向后台传参）
+                                        requestType: 'GET',//请求方式
+                                    }
+                                },
+                                {
+                                    "partName": {
+                                        url: '/api/interaction/prdrateanalysisspo/getPart',//数据接口
+                                        name: 'partName',//接口返回值字段名(显示)
+                                        value: 'partCode',//接口返回值字段名(val)
+                                        echoSelectId: 'partNumber',//回显元素domId
+                                        fieldIdentifier: 'supplierCode',//联级查询字段名（向后台传参）
+                                        requestType: 'GET',//请求方式
+                                    }
+                                }]
+                        }
+                    },]
+            }
+        },
+        // 车型拉零件
+        {
+            "model": {
+                url: '/api/interaction/prdrateanalysisspo/getCarType',
+                name: 'carTypeName',
+                value: 'carTypeCode',
+                requestType: 'GET',//请求方式
+                children: [//下拉联动嵌套
+                    {
+                        "partNumber": {
+                            url: '/api/interaction/prdrateanalysisspo/getPart',//数据接口
+                            name: 'partCode',//接口返回值字段名(显示)
+                            value: 'partCode',//接口返回值字段名(val)
+                            echoSelectId: 'partName',//回显元素domId
+                            fieldIdentifier: 'carTypeCode',//联级查询字段名（向后台传参）
+                            requestType: 'GET',//请求方式
+                        }
+                    },
+                    {
+                        "partName": {
+                            url: '/api/interaction/prdrateanalysisspo/getPart',//数据接口
+                            name: 'partName',//接口返回值字段名(显示)
+                            value: 'partCode',//接口返回值字段名(val)
+                            echoSelectId: 'partNumber',//回显元素domId
+                            fieldIdentifier: 'carTypeCode',//联级查询字段名（向后台传参）
+                            requestType: 'GET',//请求方式
+                        }
+                    }]
+            }
+        },
+        {
+            "ctFunctionModule": {
+                url: '/api/interaction/prdrateanalysisspo/getFunctionParent',
+                name: 'functionName',
+                value: 'functionCode',
+                fieldIdentifier: 'supplierCode',//联级查询字段名（向后台传参）
+                requestType: 'GET',//请求方式
+                // clearDomID:['partNumber',"partName"],//是否清空子下拉如果是传入子下拉id
+                children: [//下拉联动嵌套
+                    {
+                        "ctFunctionModuleChild": {
+                            url: '/api/interaction/prdrateanalysisspo/getFunctionTree',//数据接口
+                            name: 'functionName',//接口返回值字段名(显示)
+                            value: 'functionCode',//接口返回值字段名(val)
+                            // echoSelectId:'partName',//回显元素domId
+                            // requestData:["supplierCode","supplierName"],
+                            fieldIdentifier: 'parentCode',//联级查询字段名（向后台传参）
+                            requestType: 'GET',//请求方式
+                        }
+                    }]
+            }
+        },
+    ],
+    gysscyy_jfzt: [
+        {
+            "productionBase": {
+                url: '/api/interaction/prdrateanalysisspo/base',
+                name: 'baseName',
+                value: 'baseCode',
+                requestType: 'GET',
+                clearDomID: ["productionBase"],//是否清空子下拉如果是传入子下拉id
+                children: [//下拉联动嵌套
+                    {
+                        "partNumber": {
+                            url: '/api/interaction/prdrateanalysisspo/getPart',//数据接口
+                            name: 'partCode',//接口返回值字段名(显示)
+                            value: 'partCode',//接口返回值字段名(val)
+                            echoSelectId: 'partName',//回显元素domId
+                            fieldIdentifier: 'baseCode',//联级查询字段名（向后台传参）
+                            requestType: 'GET',//请求方式
+                        }
+                    },
+                    {
+                        "partName": {
+                            url: '/api/interaction/prdrateanalysisspo/getPart',//数据接口
+                            name: 'partName',//接口返回值字段名(显示)
+                            value: 'partCode',//接口返回值字段名(val)
+                            echoSelectId: 'partNumber',//回显元素domId
+                            fieldIdentifier: 'baseCode',//联级查询字段名（向后台传参）
+                            requestType: 'GET',//请求方式
+                        }
+                    }]
+            }
+        },
+        //供应商
+        {
+            "supplierName": {
+                url: '/api/interaction/prdrateanalysisspo/baseSupplier',
+                name: 'supplierName',
+                value: 'supplierCode',
+                requestType: 'GET',//请求方式
+                echoSelectId: 'supplierCode',//回显元素domId
+                // fieldIdentifier:'carTypeCode;',//联级查询字段名（向后台传参）
+                clearDomID: ['partNumber'],//是否清空子下拉如果是传入子下拉id
+                children: [//下拉联动嵌套
+                    {
+                        "partNumber": {
+                            url: '/api/interaction/prdrateanalysisspo/getPart',//数据接口
+                            name: 'partCode',//接口返回值字段名(显示)
+                            value: 'partCode',//接口返回值字段名(val)
+                            echoSelectId: 'partName',//回显元素domId
+                            fieldIdentifier: 'supplierCode',//联级查询字段名（向后台传参）
+                            requestType: 'GET',//请求方式
+                        }
+                    },
+                    {
+                        "partName": {
+                            url: '/api/interaction/prdrateanalysisspo/getPart',//数据接口
+                            name: 'partName',//接口返回值字段名(显示)
+                            value: 'partCode',//接口返回值字段名(val)
+                            echoSelectId: 'partNumber',//回显元素domId
+                            fieldIdentifier: 'supplierCode',//联级查询字段名（向后台传参）
+                            requestType: 'GET',//请求方式
+                        }
+                    }]
+            }
+        },
+        {
+            "supplierCode": {
+                url: '/api/interaction/prdrateanalysisspo/baseSupplier',
+                name: 'supplierCode',
+                value: 'supplierCode',
+                requestType: 'GET',//请求方式
+                echoSelectId: 'supplierName',//回显元素domId
+                // fieldIdentifier:'carTypeCode;',//联级查询字段名（向后台传参）
+                clearDomID: ['partNumber'],//是否清空子下拉如果是传入子下拉id
+                children: [//下拉联动嵌套
+                    {
+                        "partNumber": {
+                            url: '/api/interaction/prdrateanalysisspo/getPart',//数据接口
+                            name: 'partCode',//接口返回值字段名(显示)
+                            value: 'partCode',//接口返回值字段名(val)
+                            echoSelectId: 'partName',//回显元素domId
+                            fieldIdentifier: 'supplierCode',//联级查询字段名（向后台传参）
+                            requestType: 'GET',//请求方式
+                        }
+                    },
+                    {
+                        "partName": {
+                            url: '/api/interaction/prdrateanalysisspo/getPart',//数据接口
+                            name: 'partName',//接口返回值字段名(显示)
+                            value: 'partCode',//接口返回值字段名(val)
+                            echoSelectId: 'partNumber',//回显元素domId
+                            fieldIdentifier: 'supplierCode',//联级查询字段名（向后台传参）
+                            requestType: 'GET',//请求方式
+                        }
+                    }]
+            }
+        },
+        // 车型拉零件
+        {
+            "model": {
+                url: '/api/interaction/prdrateanalysisspo/getCarType',
+                name: 'carTypeName',
+                value: 'carTypeCode',
+                requestType: 'GET',//请求方式
+                children: [//下拉联动嵌套
+                    {
+                        "partNumber": {
+                            url: '/api/interaction/prdrateanalysisspo/getPart',//数据接口
+                            name: 'partCode',//接口返回值字段名(显示)
+                            value: 'partCode',//接口返回值字段名(val)
+                            echoSelectId: 'partName',//回显元素domId
+                            fieldIdentifier: 'carTypeCode',//联级查询字段名（向后台传参）
+                            requestType: 'GET',//请求方式
+                        }
+                    },
+                    {
+                        "partName": {
+                            url: '/api/interaction/prdrateanalysisspo/getPart',//数据接口
+                            name: 'partName',//接口返回值字段名(显示)
+                            value: 'partCode',//接口返回值字段名(val)
+                            echoSelectId: 'partNumber',//回显元素domId
+                            fieldIdentifier: 'carTypeCode',//联级查询字段名（向后台传参）
+                            requestType: 'GET',//请求方式
+                        }
+                    }]
+            }
+        },
+        {
+            "ctFunctionModule": {
+                url: '/api/interaction/prdrateanalysisspo/getFunctionParent',
+                name: 'functionName',
+                value: 'functionCode',
+                fieldIdentifier: 'supplierCode',//联级查询字段名（向后台传参）
+                requestType: 'GET',//请求方式
+                // clearDomID:['partNumber',"partName"],//是否清空子下拉如果是传入子下拉id
+                children: [//下拉联动嵌套
+                    {
+                        "ctFunctionModuleChild": {
+                            url: '/api/interaction/prdrateanalysisspo/getFunctionTree',//数据接口
+                            name: 'functionName',//接口返回值字段名(显示)
+                            value: 'functionCode',//接口返回值字段名(val)
+                            // echoSelectId:'partName',//回显元素domId
+                            // requestData:["supplierCode","supplierName"],
+                            fieldIdentifier: 'parentCode',//联级查询字段名（向后台传参）
+                            requestType: 'GET',//请求方式
+                        }
+                    }]
+            }
+        },
+    ],
+    order_management: [
+        {
+            "form_supplierName": {
+                url: '/api/srms/orderControl/supplierInfo',
+                fieldIdentifier: 'supplierName',
+                name: 'supplierName',
+                value: 'supplierName',
+                echoSelectId: 'form_supplierCode',
+                requestType: 'GET',
+                children: [
+                    {
+                        "form_partName": {
+                            url: '/api/srms/orderControl/allParts',
+                            name: 'partName',
+                            value: 'partCode',
+                            echoSelectId: 'form_partId',
+                            // fieldIdentifier:'partName',
+                            fieldIdentifier: 'supplierCode',
+                            requestType: 'GET',
+                        },
+                        "form_partId": {
+                            url: '/api/srms/orderControl/allParts',
+                            name: 'partCode',
+                            value: 'partCode',
+                            echoSelectId: 'form_partName',
+                            // fieldIdentifier:'partName',
+                            // fieldIdentifier:'supplierCode',
+                            requestType: 'GET',
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "form_supplierCode": {
+                url: '/api/srms/orderControl/supplierInfo',
+                name: 'supplierCode',
+                value: 'supplierCode',
+                fieldIdentifier: 'supplierCode',
+                echoSelectId: 'form_supplierName',
+                requestType: 'GET',
+                children: [
+                    {
+                        "form_partName": {
+                            url: '/api/srms/orderControl/allParts',
+                            name: 'partName',
+                            value: 'partCode',
+                            echoSelectId: 'form_partId',
+                            fieldIdentifier: 'supplierCode',
+                            requestType: 'GET',
+                        },
+                        "form_partId": {
+                            url: '/api/srms/orderControl/allParts',
+                            name: 'partCode',
+                            value: 'partCode',
+                            echoSelectId: 'form_partName',
+                            // echoSelectId:'form_partName',
+                            // fieldIdentifier:'partName',
+                            requestType: 'GET',
+                        }
+                    }
+                ]
+            },
+        }
+
+    ],
+    risk_management: [
+        {
+            "form_supplierName": {
+                url: '/api/srms/orderControl/supplierInfo',
+                fieldIdentifier: 'supplierName',
+                name: 'supplierName',
+                value: 'supplierName',
+                echoSelectId: 'form_supplierCode',
+                requestType: 'GET',
+                children: [
+                    {
+                        "form_partName": {
+                            url: '/api/srms/orderControl/allParts',
+                            name: 'partName',
+                            value: 'partCode',
+                            echoSelectId: 'form_partId',
+                            // fieldIdentifier:'partName',
+                            fieldIdentifier: 'supplierCode',
+                            requestType: 'GET',
+                        },
+                        // "form_partId":{
+                        //     url:'/api/srms/orderControl/allParts',
+                        //     name:'partCode',
+                        //     value:'partCode',
+                        //     // fieldIdentifier:'partName',
+                        //     // fieldIdentifier:'supplierCode',
+                        //     requestType: 'GET',
+                        // }
+                    }
+                ]
+            }
+        },
+        {
+            "form_supplierCode": {
+                url: '/api/srms/orderControl/supplierInfo',
+                name: 'supplierCode',
+                value: 'supplierCode',
+                fieldIdentifier: 'supplierCode',
+                echoSelectId: 'form_supplierName',
+                requestType: 'GET',
+                children: [
+                    {
+                        "form_partName": {
+                            url: '/api/srms/orderControl/allParts',
+                            name: 'partName',
+                            value: 'partCode',
+                            echoSelectId: 'form_partId',
+                            fieldIdentifier: 'supplierCode',
+                            requestType: 'GET',
+                        },
+                        // "form_partId":{
+                        //     url:'/api/srms/orderControl/allParts',
+                        //     name:'partCode',
+                        //     value:'partCode',
+                        //     // echoSelectId:'form_partName',
+                        //     // fieldIdentifier:'partName',
+                        //     requestType: 'GET',
+                        // }
+                    }
+                ]
+            },
+        }
+
+    ],
+    gysscyy_bhdzt: [
+        // 业务科室
+        {
+            "businessDepartment": {
+                url: '/api/stopAnalysis/getSectionList',
+                name: 'key',
+                value: 'value',
+                requestType: 'GET',
+                clearDomID: ["partNumber", 'supplierName', "supplierCode", 'partNumber'],//是否清空子下拉如果是传入子下拉id
+                children: [// 业务科室拉供应商
+                    {
+                        "supplierName": {
+                            url: '/api/interaction/prdrateanalysisspo/baseSupplier',
+                            name: 'supplierName',
+                            value: 'supplierCode',
+                            requestType: 'GET',//请求方式
+                            echoSelectId: 'supplierCode',//回显元素domId
+                            fieldIdentifier: 'businessDepartment',//联级查询字段名（向后台传参）
+                            clearDomID: ['partNumber'],//是否清空子下拉如果是传入子下拉id
+                            children: []
+                        }
+                    },
+                    {
+                        "supplierCode": {
+                            url: '/api/interaction/prdrateanalysisspo/baseSupplier',
+                            name: 'supplierCode',
+                            value: 'supplierCode',
+                            requestType: 'GET',//请求方式
+                            echoSelectId: 'supplierName',//回显元素domId
+                            fieldIdentifier: 'businessDepartment',//联级查询字段名（向后台传参）
+                            clearDomID: ['partNumber'],//是否清空子下拉如果是传入子下拉id
+                            children: []
+                        }
+                    },]
+            }
+        },
+        // 工艺
+        {
+            "processType": {
+                url: '/api/change/point/getProcessType',
+                name: 'typeName',
+                value: 'typeId',
+                requestType: 'GET',//请求方式
+                children: []
+            }
+        },
+        // 5m1e
+        {
+            "m1ECode": {
+                url: '/api/change/point/get5m1e',
+                name: 'key',
+                value: 'value',
+                requestType: 'GET',//请求方式
+                children: []
+            }
+        },
+    ],
+
+}
+
+
+// {
+//     "count": null,
+//     "sum": null,
+//     "xh": "123",
+//     "supplierName": "122222222222222",
+//     "ljmc": "123",
+//     "cx": "2",
+//     "jyxm": "13",
+//     "syrq": "2020年10月16日",
+//     "wtdj": "A",
+//     "jyjg": "检验机构TP",
+//     "cjlb": "类别1 123",
+//     "bgqfrq": "2020年09月30日"
+// },
+// {
+//     "count": null,
+//     "sum": null,
+//     "xh": "322",
+//     "supplierName": "1",
+//     "ljmc": "3242",
+//     "cx": "342",
+//     "jyxm": "3423",
+//     "syrq": "2020年10月07日",
+//     "wtdj": "A",
+//     "jyjg": "检验机构 S",
+//     "cjlb": "类别234",
+//     "bgqfrq": "2020年09月30日"
+// },
+// {
+//     "count": null,
+//     "sum": null,
+//     "xh": "322",
+//     "supplierName": "1",
+//     "ljmc": "3242",
+//     "cx": "342",
+//     "jyxm": "3423",
+//     "syrq": "2020年10月07日",
+//     "wtdj": "A",
+//     "jyjg": "检验机构 S",
+//     "cjlb": "类别234",
+//     "bgqfrq": "2020年09月30日"
+// },
+// {
+//     "count": null,
+//     "sum": null,
+//     "xh": "322",
+//     "supplierName": "1",
+//     "ljmc": "3242",
+//     "cx": "342",
+//     "jyxm": "3423",
+//     "syrq": "2020年10月07日",
+//     "wtdj": "A",
+//     "jyjg": "检验机构 S",
+//     "cjlb": "类别234",
+//     "bgqfrq": "2020年09月30日"
+// },
+// {
+//     "count": null,
+//     "sum": null,
+//     "xh": "322",
+//     "supplierName": "1",
+//     "ljmc": "3242",
+//     "cx": "342",
+//     "jyxm": "3423",
+//     "syrq": "2020年10月07日",
+//     "wtdj": "A",
+//     "jyjg": "检验机构 S",
+//     "cjlb": "类别234",
+//     "bgqfrq": "2020年09月30日"
+// },
+// {
+//     "count": null,
+//     "sum": null,
+//     "xh": "322",
+//     "supplierName": "1",
+//     "ljmc": "3242",
+//     "cx": "342",
+//     "jyxm": "3423",
+//     "syrq": "2020年10月07日",
+//     "wtdj": "A",
+//     "jyjg": "检验机构 S",
+//     "cjlb": "类别234",
+//     "bgqfrq": "2020年09月30日"
+// }

@@ -25,10 +25,12 @@ document.addEventListener('DOMContentLoaded', init);
 function init() {
   bindEvents();
   initDragFunction(); // 初始化拖拽功能
+  initResizeFunction(); // 初始化调整大小功能
   loadExcelList();
   loadApiKeyStatus();
   loadPersistedBatchResults(); // 加载持久化的校验结果
   loadCheckLogs(); // 加载历史日志
+  checkAndRestoreBackgroundTask(); // 检查并恢复后台运行的任务
 }
 
 // ============ Drag Functionality ============
@@ -205,6 +207,118 @@ function initDragFunction() {
   });
 }
 
+// ============ Resize Functionality ============
+function initResizeFunction() {
+  var resizeHandle = document.getElementById('resizeHandle');
+  var container = document.querySelector('.popup-container');
+  var body = document.body;
+  
+  if (!resizeHandle || !container) {
+    console.log('[Resize] 未找到调整大小元素');
+    return;
+  }
+  
+  console.log('[Resize] 初始化调整大小功能');
+  
+  var isResizing = false;
+  var startX, startY, initialWidth, initialHeight;
+  
+  // 从存储中恢复大小
+  chrome.storage.local.get(['popupSize'], function(result) {
+    if (result.popupSize) {
+      var size = result.popupSize;
+      // 只限制最小尺寸，不限制最大尺寸
+      var width = Math.max(320, size.width);
+      var height = Math.max(300, size.height);
+      
+      container.style.width = width + 'px';
+      container.style.height = height + 'px';
+      body.style.width = width + 'px';
+      body.style.height = height + 'px';
+      console.log('[Resize] 恢复大小:', width, height);
+    }
+  });
+  
+  resizeHandle.addEventListener('mousedown', function(e) {
+    // 只有左键可以调整大小
+    if (e.button !== 0) return;
+    
+    isResizing = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    
+    // 获取当前大小
+    var rect = container.getBoundingClientRect();
+    initialWidth = rect.width;
+    initialHeight = rect.height;
+    
+    // 更改光标样式
+    resizeHandle.style.cursor = 'nwse-resize';
+    document.body.style.cursor = 'nwse-resize';
+    
+    // 防止选中文本
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  
+  document.addEventListener('mousemove', function(e) {
+    if (!isResizing) return;
+    
+    var dx = e.clientX - startX;
+    var dy = e.clientY - startY;
+    
+    var newWidth = initialWidth + dx;
+    var newHeight = initialHeight + dy;
+    
+    // 只限制最小尺寸，不限制最大尺寸
+    var minWidth = 320;
+    var minHeight = 300;
+    
+    newWidth = Math.max(minWidth, newWidth);
+    newHeight = Math.max(minHeight, newHeight);
+    
+    // 应用新尺寸
+    container.style.width = newWidth + 'px';
+    container.style.height = newHeight + 'px';
+    body.style.width = newWidth + 'px';
+    body.style.height = newHeight + 'px';
+  });
+  
+  document.addEventListener('mouseup', function() {
+    if (isResizing) {
+      isResizing = false;
+      resizeHandle.style.cursor = 'nwse-resize';
+      document.body.style.cursor = '';
+      
+      // 保存大小到存储
+      var rect = container.getBoundingClientRect();
+      chrome.storage.local.set({
+        popupSize: { width: rect.width, height: rect.height }
+      });
+      console.log('[Resize] 保存大小:', rect.width, rect.height);
+    }
+  });
+  
+  // 双击调整大小手柄重置为默认大小
+  resizeHandle.addEventListener('dblclick', function(e) {
+    e.stopPropagation();
+    
+    var defaultWidth = 400;
+    var defaultHeight = 520;
+    
+    container.style.width = defaultWidth + 'px';
+    container.style.height = defaultHeight + 'px';
+    body.style.width = defaultWidth + 'px';
+    body.style.height = defaultHeight + 'px';
+    
+    // 清除保存的大小
+    chrome.storage.local.remove('popupSize');
+    console.log('[Resize] 重置为默认大小');
+    
+    addLog('窗口大小已重置为默认', 'info');
+  });
+}
+
 // ============ Logging ============
 function addLog(msg, type) {
   var logArea = document.getElementById('logArea');
@@ -275,7 +389,6 @@ function bindEvents() {
 
   // Function buttons
   document.getElementById('btnExtractList').addEventListener('click', extractTaskListWithCarTypeFilter);
-  document.getElementById('btnAutoCheck').addEventListener('click', autoCheckDetail);
   document.getElementById('btnBatchCheck').addEventListener('click', batchCheckTasks);
   document.getElementById('btnAutoApprove').addEventListener('click', autoApprove);
 
@@ -291,7 +404,7 @@ function bindEvents() {
 
   // 批量结果列表的事件委托（用于详情区的人工审核按钮和查看结果按钮）
   document.getElementById('batchResultList').addEventListener('click', function(e) {
-    // 处理查看结果按钮（.batch-main-view）
+    // 处理查看结果按钮（.batch-main-view）- 现在显示校验项详情弹窗
     var viewBtn = e.target.closest('.batch-main-view');
     if (viewBtn) {
       var indexStr = viewBtn.getAttribute('data-index');
@@ -299,12 +412,12 @@ function bindEvents() {
       console.log('[EventDelegate] 查看结果按钮被点击, index:', index);
       if (!isNaN(index)) {
         e.stopPropagation();
-        showTaskDetailsModal(index);
+        showCheckItemDetailsModal(index);
         return;
       }
     }
     
-    // 处理详情区的查看完整详情按钮（.batch-view-details-btn）
+    // 处理详情区的查看完整详情按钮（.batch-view-details-btn）- 现在显示校验项详情弹窗
     var detailsBtn = e.target.closest('.batch-view-details-btn');
     if (detailsBtn) {
       var indexStr = detailsBtn.getAttribute('data-index');
@@ -312,7 +425,20 @@ function bindEvents() {
       console.log('[EventDelegate] 查看完整详情按钮被点击, index:', index);
       if (!isNaN(index)) {
         e.stopPropagation();
-        showTaskDetailsModal(index);
+        showCheckItemDetailsModal(index);
+        return;
+      }
+    }
+    
+    // 处理详情区的打开任务详情页按钮（.batch-open-detail-btn）
+    var openDetailBtn = e.target.closest('.batch-open-detail-btn');
+    if (openDetailBtn) {
+      var indexStr = openDetailBtn.getAttribute('data-index');
+      var index = parseInt(indexStr, 10);
+      console.log('[EventDelegate] 打开任务详情页按钮被点击, index:', index);
+      if (!isNaN(index)) {
+        e.stopPropagation();
+        openTaskDetailPage(index);
         return;
       }
     }
@@ -341,6 +467,9 @@ function bindEvents() {
       handleManualReject(index);
     }
   });
+
+  // Export results to Excel
+  document.getElementById('btnExportResults').addEventListener('click', exportResultsToExcel);
 
   // Clear persisted results
   document.getElementById('btnClearResults').addEventListener('click', function() {
@@ -877,6 +1006,175 @@ function clearAllPersistedData() {
   });
 }
 
+// 导出校验结果到Excel
+function exportResultsToExcel() {
+  if (!batchCheckResults || batchCheckResults.length === 0) {
+    addLog('暂无校验结果可导出', 'warn');
+    return;
+  }
+
+  try {
+    // 收集所有出现过的检验项名称（保证列完整）
+    var allItemNames = [];
+    batchCheckResults.forEach(function(r) {
+      if (r.results && r.results.length > 0) {
+        r.results.forEach(function(chk) {
+          if (chk.item && allItemNames.indexOf(chk.item) === -1) {
+            allItemNames.push(chk.item);
+          }
+        });
+      }
+    });
+
+    // 构建表头
+    var header = ['序号', '车型/机型', '零件名称', '供应商', '最新零件号'];
+    allItemNames.forEach(function(name) {
+      header.push(name);
+    });
+    header.push('最终结论', '人工审核', '备注');
+
+    // 构建数据行
+    var rows = [header];
+    batchCheckResults.forEach(function(item, idx) {
+      var row = [
+        idx + 1,
+        item.task.carType || '',
+        item.task.partsName || '',
+        item.task.supplierName || '',
+        item.task.latestPartsCode || ''
+      ];
+
+      // 各检验项结果
+      allItemNames.forEach(function(name) {
+        var chk = null;
+        if (item.results && item.results.length > 0) {
+          for (var i = 0; i < item.results.length; i++) {
+            if (item.results[i].item === name) {
+              chk = item.results[i];
+              break;
+            }
+          }
+        }
+        if (chk) {
+          if (chk.passed) {
+            row.push('符合');
+          } else if (chk.needManual) {
+            row.push('需人工确认');
+          } else {
+            row.push('不符合');
+          }
+        } else {
+          row.push('-');
+        }
+      });
+
+      // 最终结论
+      var conclusion = '';
+      if (item.manualStatus === 'confirmed') {
+        conclusion = '通过（人工确认）';
+      } else if (item.manualStatus === 'rejected') {
+        conclusion = '不通过（人工确认）';
+      } else if (item.status === 'pass') {
+        conclusion = '通过';
+      } else if (item.status === 'fail') {
+        conclusion = '不通过';
+      } else if (item.status === 'warn') {
+        conclusion = '待人工确认';
+      } else if (item.status === 'checking') {
+        conclusion = '校验中';
+      } else {
+        conclusion = '待处理';
+      }
+      row.push(conclusion);
+
+      // 人工审核状态
+      var manualText = '';
+      if (item.manualStatus === 'confirmed') {
+        manualText = '人工确认通过';
+      } else if (item.manualStatus === 'rejected') {
+        manualText = '人工确认不通过';
+      }
+      row.push(manualText);
+
+      // 备注（人工审核备注）
+      row.push(item.manualNote || '');
+
+      rows.push(row);
+    });
+
+    // 使用XLSX生成工作簿
+    var wb = XLSX.utils.book_new();
+    var ws = XLSX.utils.aoa_to_sheet(rows);
+
+    // 设置列宽
+    var colWidths = [{ wch: 6 }, { wch: 14 }, { wch: 20 }, { wch: 18 }, { wch: 18 }];
+    allItemNames.forEach(function() { colWidths.push({ wch: 14 }); });
+    colWidths.push({ wch: 16 }, { wch: 14 }, { wch: 20 });
+    ws['!cols'] = colWidths;
+
+    XLSX.utils.book_append_sheet(wb, ws, '校验结果');
+
+    // 构建检验项详细信息工作表
+    var detailHeader = ['序号', '车型/机型', '零件名称', '供应商', '最新零件号', '检验项', '结果状态', '详细信息'];
+    var detailRows = [detailHeader];
+    
+    batchCheckResults.forEach(function(item, idx) {
+      if (item.results && item.results.length > 0) {
+        item.results.forEach(function(chk) {
+          var statusText = '';
+          if (chk.passed) {
+            statusText = '符合';
+          } else if (chk.needManual) {
+            statusText = '需人工确认';
+          } else {
+            statusText = '不符合';
+          }
+          
+          var detailRow = [
+            idx + 1,
+            item.task.carType || '',
+            item.task.partsName || '',
+            item.task.supplierName || '',
+            item.task.latestPartsCode || '',
+            chk.item || '',
+            statusText,
+            chk.result || ''
+          ];
+          detailRows.push(detailRow);
+        });
+      }
+    });
+    
+    // 创建检验项详细信息工作表
+    var detailWs = XLSX.utils.aoa_to_sheet(detailRows);
+    
+    // 设置列宽
+    var detailColWidths = [
+      { wch: 6 },   // 序号
+      { wch: 14 },  // 车型/机型
+      { wch: 20 },  // 零件名称
+      { wch: 18 },  // 供应商
+      { wch: 18 },  // 最新零件号
+      { wch: 20 },  // 检验项
+      { wch: 12 },  // 结果状态
+      { wch: 60 }   // 详细信息
+    ];
+    detailWs['!cols'] = detailColWidths;
+    
+    XLSX.utils.book_append_sheet(wb, detailWs, '检验项详情');
+
+    // 生成文件名
+    var dateStr = new Date().toISOString().slice(0, 10);
+    var fileName = '一致性校验结果_' + dateStr + '.xlsx';
+
+    // 触发下载
+    XLSX.writeFile(wb, fileName);
+    addLog('校验结果已导出: ' + fileName, 'success');
+  } catch (err) {
+    addLog('导出失败: ' + err.message, 'error');
+  }
+}
+
 // 导出日志到文件
 function exportLogsToFile() {
   chrome.runtime.sendMessage({ type: 'EXPORT_CHECK_LOGS' }, function(response) {
@@ -908,7 +1206,7 @@ function updateTaskManualStatus(taskIndex, status, note) {
   }, function(response) {
     if (response && response.success) {
       batchCheckResults = response.results;
-      renderBatchResults();
+      renderBatchResultsWithFilter();
       addLog('任务 ' + (taskIndex + 1) + ' 已标记为' + (status === 'confirmed' ? '人工确认通过' : '人工确认不通过'), 'success');
     }
   });
@@ -920,7 +1218,7 @@ function batchCheckTasks() {
     return;
   }
   
-  if (!confirm('开始批量校验任务清单？\n\n注意：这将自动打开每个任务的详情页进行校验，可能需要较长时间。')) {
+  if (!confirm('开始批量校验任务清单？\n\n注意：这将自动打开每个任务的详情页进行校验，可能需要较长时间。校验任务将在后台运行，您可以关闭此弹窗。')) {
     return;
   }
   
@@ -954,13 +1252,13 @@ function batchCheckTasks() {
     populateCarTypeSelect();
     renderCarTypeStats();
     
-    addLog('提取到 ' + tasks.length + ' 条任务，开始批量校验...', 'success');
+    addLog('提取到 ' + tasks.length + ' 条任务，开始后台批量校验...', 'success');
     
     // 初始化结果数组
     batchCheckResults = tasks.map(function(task) {
       return {
         task: task,
-        status: 'pending', // pending, checking, pass, fail, warn
+        status: 'pending',
         results: [],
         error: null
       };
@@ -968,8 +1266,21 @@ function batchCheckTasks() {
     
     renderBatchResults();
     
-    // 开始逐个校验
-    processNextBatchTask(0);
+    // 启动后台批量校验（在background脚本中运行）
+    chrome.runtime.sendMessage({
+      type: 'START_BACKGROUND_BATCH_CHECK',
+      tasks: tasks,
+      filterLabel: ''
+    }, function(startResponse) {
+      if (startResponse && startResponse.success) {
+        addLog('后台批量校验已启动，共 ' + tasks.length + ' 条任务', 'success');
+        // 开始轮询任务状态
+        startStatusPolling();
+      } else {
+        addLog('启动后台校验失败: ' + (startResponse ? startResponse.error : '未知错误'), 'error');
+        isBatchChecking = false;
+      }
+    });
   });
 }
 
@@ -993,7 +1304,7 @@ function startBatchCheckWithTasks(tasks, filterLabel) {
   batchCheckResults = tasks.map(function(task) {
     return {
       task: task,
-      status: 'pending', // pending, checking, pass, fail, warn
+      status: 'pending',
       results: [],
       error: null
     };
@@ -1001,8 +1312,21 @@ function startBatchCheckWithTasks(tasks, filterLabel) {
   
   renderBatchResults();
   
-  // 开始逐个校验
-  processNextBatchTask(0);
+  // 启动后台批量校验（在background脚本中运行）
+  chrome.runtime.sendMessage({
+    type: 'START_BACKGROUND_BATCH_CHECK',
+    tasks: tasks,
+    filterLabel: filterLabel
+  }, function(startResponse) {
+    if (startResponse && startResponse.success) {
+      addLog('后台批量校验已启动，共 ' + tasks.length + ' 条任务', 'success');
+      // 开始轮询任务状态
+      startStatusPolling();
+    } else {
+      addLog('启动后台校验失败: ' + (startResponse ? startResponse.error : '未知错误'), 'error');
+      isBatchChecking = false;
+    }
+  });
 }
 
 function processNextBatchTask(index) {
@@ -1042,7 +1366,8 @@ function processNextBatchTask(index) {
       addLog('  校验失败: ' + currentTask.error, 'error');
     }
     
-    renderBatchResults();
+    // 根据当前筛选状态调用正确的渲染函数
+    renderBatchResultsWithFilter();
     
     // 保存到持久化存储
     console.log('[processNextBatchTask] 保存到存储, batchCheckResults:', batchCheckResults);
@@ -1052,6 +1377,113 @@ function processNextBatchTask(index) {
     setTimeout(function() {
       processNextBatchTask(index + 1);
     }, 500);
+  });
+}
+
+// ============ Background Batch Check Status Polling ============
+var statusPollingInterval = null;
+var lastPolledIndex = 0;
+
+// 开始轮询后台任务状态
+function startStatusPolling() {
+  // 清除之前的轮询
+  if (statusPollingInterval) {
+    clearInterval(statusPollingInterval);
+  }
+  
+  lastPolledIndex = 0;
+  
+  // 每2秒轮询一次状态
+  statusPollingInterval = setInterval(function() {
+    pollBackgroundBatchStatus();
+  }, 2000);
+  
+  // 立即执行一次
+  pollBackgroundBatchStatus();
+}
+
+// 停止状态轮询
+function stopStatusPolling() {
+  if (statusPollingInterval) {
+    clearInterval(statusPollingInterval);
+    statusPollingInterval = null;
+  }
+}
+
+// 轮询后台批量校验状态
+function pollBackgroundBatchStatus() {
+  // 获取后台任务状态
+  chrome.runtime.sendMessage({ type: 'GET_BACKGROUND_BATCH_STATUS' }, function(status) {
+    if (!status) return;
+    
+    // 获取最新的结果数据
+    chrome.runtime.sendMessage({ type: 'GET_BATCH_RESULTS' }, function(response) {
+      if (response && response.results) {
+        var newResults = response.results;
+        
+        // 检查是否有新的进度
+        var hasNewProgress = false;
+        for (var i = lastPolledIndex; i < newResults.length && i < status.currentIndex; i++) {
+          if (newResults[i].status !== 'pending' && newResults[i].status !== 'checking') {
+            hasNewProgress = true;
+            // 更新本地结果
+            if (batchCheckResults[i]) {
+              var oldStatus = batchCheckResults[i].status;
+              batchCheckResults[i] = newResults[i];
+              
+              // 如果状态变化了，记录日志
+              if (oldStatus !== newResults[i].status) {
+                var taskName = '[' + newResults[i].task.carType + '] ' + newResults[i].task.partsName;
+                var statusText = {
+                  'pass': '通过',
+                  'fail': '不通过',
+                  'warn': '需人工确认'
+                }[newResults[i].status] || newResults[i].status;
+                var logType = newResults[i].status === 'pass' ? 'success' : (newResults[i].status === 'warn' ? 'warn' : 'error');
+                addLog('第 ' + (i + 1) + ' 条完成: ' + statusText + ' - ' + taskName, logType);
+              }
+            }
+          }
+        }
+        
+        lastPolledIndex = status.currentIndex;
+        
+        // 更新显示
+        if (hasNewProgress || status.isRunning) {
+          renderBatchResultsWithFilter();
+        }
+        
+        // 如果任务完成，停止轮询
+        if (!status.isRunning && status.currentIndex >= status.totalTasks && status.totalTasks > 0) {
+          stopStatusPolling();
+          isBatchChecking = false;
+          addLog('批量校验完成！共 ' + status.totalTasks + ' 条任务', 'success');
+          renderBatchResultsWithFilter();
+        }
+      }
+    });
+  });
+}
+
+// 检查并恢复后台运行的任务
+function checkAndRestoreBackgroundTask() {
+  chrome.runtime.sendMessage({ type: 'GET_BACKGROUND_BATCH_STATUS' }, function(status) {
+    if (status && status.isRunning) {
+      // 有正在运行的后台任务，恢复显示
+      isBatchChecking = true;
+      addLog('检测到正在运行的后台批量校验任务（' + status.currentIndex + '/' + status.totalTasks + '），正在恢复...', 'info');
+      
+      // 加载已有结果
+      chrome.runtime.sendMessage({ type: 'GET_BATCH_RESULTS' }, function(response) {
+        if (response && response.results && response.results.length > 0) {
+          batchCheckResults = response.results;
+          document.getElementById('batchResultSection').style.display = 'block';
+          renderBatchResults();
+          // 开始轮询
+          startStatusPolling();
+        }
+      });
+    }
   });
 }
 
@@ -1070,20 +1502,47 @@ function renderBatchResults() {
   var manualConfirmed = batchCheckResults.filter(function(r) { return r.manualStatus === 'confirmed'; }).length;
   var manualRejected = batchCheckResults.filter(function(r) { return r.manualStatus === 'rejected'; }).length;
   
-  // 渲染汇总
+  // 对结果进行排序：需人工审核的置顶，然后是未处理的，最后是已处理的
+  var sortedResults = batchCheckResults.map(function(item, index) {
+    return { item: item, originalIndex: index };
+  }).sort(function(a, b) {
+    // 需人工审核的置顶（且未人工确认）
+    var aIsWarn = a.item.status === 'warn' && !a.item.manualStatus;
+    var bIsWarn = b.item.status === 'warn' && !b.item.manualStatus;
+    if (aIsWarn && !bIsWarn) return -1;
+    if (!aIsWarn && bIsWarn) return 1;
+    
+    // 然后是校验中的
+    var aIsChecking = a.item.status === 'checking';
+    var bIsChecking = b.item.status === 'checking';
+    if (aIsChecking && !bIsChecking) return -1;
+    if (!aIsChecking && bIsChecking) return 1;
+    
+    // 然后是待处理的
+    var aIsPending = a.item.status === 'pending';
+    var bIsPending = b.item.status === 'pending';
+    if (aIsPending && !bIsPending) return -1;
+    if (!aIsPending && bIsPending) return 1;
+    
+    // 保持原始顺序
+    return a.originalIndex - b.originalIndex;
+  });
+  
+  // 渲染汇总 - 添加点击筛选功能
   var summaryHtml = 
     '<div class="batch-summary-item"><span>总任务数:</span><span><b>' + total + '</b></span></div>' +
-    '<div class="batch-summary-item"><span>已通过:</span><span class="batch-status-pass"><b>' + passed + '</b></span></div>' +
-    '<div class="batch-summary-item"><span>不通过:</span><span class="batch-status-fail"><b>' + failed + '</b></span></div>' +
-    '<div class="batch-summary-item"><span>需人工:</span><span class="batch-status-warn"><b>' + warning + '</b></span></div>';
+    '<div class="batch-summary-item batch-summary-clickable" data-filter="pass" onclick="filterBatchResults(\'pass\')"><span>已通过:</span><span class="batch-status-pass"><b>' + passed + '</b></span></div>' +
+    '<div class="batch-summary-item batch-summary-clickable" data-filter="fail" onclick="filterBatchResults(\'fail\')"><span>不通过:</span><span class="batch-status-fail"><b>' + failed + '</b></span></div>' +
+    '<div class="batch-summary-item batch-summary-clickable" data-filter="warn" onclick="filterBatchResults(\'warn\')"><span>需人工:</span><span class="batch-status-warn"><b>' + warning + '</b></span></div>';
   
   // 显示人工审核统计
   if (manualConfirmed > 0 || manualRejected > 0) {
-    summaryHtml += '<div class="batch-summary-item"><span>人工确认:</span><span style="color:#4caf50;"><b>' + manualConfirmed + '</b></span></div>';
-    summaryHtml += '<div class="batch-summary-item"><span>人工拒绝:</span><span style="color:#f44336;"><b>' + manualRejected + '</b></span></div>';
+    summaryHtml += '<div class="batch-summary-item batch-summary-clickable" data-filter="confirmed" onclick="filterBatchResults(\'confirmed\')"><span>人工确认:</span><span style="color:#4caf50;"><b>' + manualConfirmed + '</b></span></div>';
+    summaryHtml += '<div class="batch-summary-item batch-summary-clickable" data-filter="rejected" onclick="filterBatchResults(\'rejected\')"><span>人工拒绝:</span><span style="color:#f44336;"><b>' + manualRejected + '</b></span></div>';
   }
   
-  summaryHtml += '<div class="batch-summary-item"><span>待处理:</span><span class="batch-status-pending"><b>' + pending + '</b></span></div>';
+  summaryHtml += '<div class="batch-summary-item batch-summary-clickable" data-filter="pending" onclick="filterBatchResults(\'pending\')"><span>待处理:</span><span class="batch-status-pending"><b>' + pending + '</b></span></div>';
+  summaryHtml += '<div class="batch-summary-item batch-summary-clickable batch-summary-reset" onclick="filterBatchResults(\'all\')"><span style="color:#006bb3;">显示全部</span></div>';
   summaryEl.innerHTML = summaryHtml;
   
   // 显示/隐藏批量审核按钮（只有当有通过的任务且不在校验中时显示）
@@ -1102,7 +1561,9 @@ function renderBatchResults() {
     return;
   }
   
-  listEl.innerHTML = batchCheckResults.map(function(item, idx) {
+  listEl.innerHTML = sortedResults.map(function(sortedItem, displayIdx) {
+    var item = sortedItem.item;
+    var idx = sortedItem.originalIndex;
     var statusClass = 'batch-status-' + item.status;
     var statusText = {
       'pending': '待处理',
@@ -1127,13 +1588,7 @@ function renderBatchResults() {
     var title = '[' + item.task.carType + '] ' + item.task.partsName;
     var subtitle = item.task.supplierName + ' | ' + item.task.latestPartsCode;
     
-    // 数据来源标记
-    var sourceBadge = '';
-    if (item.source === 'api') {
-      sourceBadge = '<span style="font-size:9px;color:#4caf50;background:#e8f5e9;padding:1px 4px;border-radius:2px;margin-left:5px;">API</span>';
-    } else if (item.source === 'popup') {
-      sourceBadge = '<span style="font-size:9px;color:#ff9800;background:#fff3e0;padding:1px 4px;border-radius:2px;margin-left:5px;">弹窗</span>';
-    }
+    // 数据来源标记已移除
     
     // 构建详情HTML
     var detailsHtml = '';
@@ -1186,6 +1641,13 @@ function renderBatchResults() {
             '<input type="text" id="manual-note-' + idx + '" placeholder="审核备注（可选）" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:4px;font-size:12px;box-sizing:border-box;">' +
           '</div>' +
         '</div>';
+        
+        // 为需人工审核的任务添加"打开任务详情页"按钮
+        detailsHtml += '<div style="border-top:1px solid #e0e0e0;margin-top:8px;padding-top:8px;text-align:center;">' +
+          '<button class="batch-manual-btn batch-open-detail-btn" style="background:#ff9800;color:#fff;" data-index="' + idx + '">' +
+            '<span class="btn-icon">🔗</span> 打开任务详情页' +
+          '</button>' +
+        '</div>';
       }
       
       // 显示人工审核结果
@@ -1234,27 +1696,17 @@ function renderBatchResults() {
     // 构建主操作区的按钮
     var mainActionHtml = '';
     
-    // 所有任务都显示"查看结果"按钮（如果已校验完成且有实际结果数据）
+    // 所有任务都显示"查看结果"按钮（如果有实际结果数据或错误信息）
     var hasResults = item.results && item.results.length > 0;
     var hasError = item.error && item.error.length > 0;
-    var isCompleted = item.status !== 'pending' && item.status !== 'checking';
-    if (isCompleted && (hasResults || hasError)) {
+    // 只要有结果数据或错误信息，就显示查看按钮（包括待处理状态）
+    if (hasResults || hasError) {
       mainActionHtml += '<button class="batch-main-btn batch-main-view" title="查看校验结果" data-index="' + idx + '" style="background:#004375;color:#fff;margin-right:4px;">' +
           '<span class="btn-icon">🔍</span>' +
         '</button>';
     }
     
-    // 需人工审核的任务显示人工确认按钮
-    if (item.status === 'warn' && !item.manualStatus && !item.approved) {
-      mainActionHtml += '<div class="batch-main-actions" onclick="event.stopPropagation();" style="display:inline-flex;">' +
-        '<button class="batch-main-btn batch-main-confirm" title="人工确认通过" onclick="event.stopPropagation(); handleManualConfirm(' + idx + ');">' +
-          '<span class="btn-icon">✓</span>' +
-        '</button>' +
-        '<button class="batch-main-btn batch-main-reject" title="人工确认不通过" onclick="event.stopPropagation(); handleManualReject(' + idx + ');">' +
-          '<span class="btn-icon">✗</span>' +
-        '</button>' +
-      '</div>';
-    }
+    // 主操作界面的通过/不通过按钮已移除，改为在校验项详情界面操作
     
     // 显示人工审核结果（在主区域）
     var manualStatusHtml = '';
@@ -1280,7 +1732,7 @@ function renderBatchResults() {
         '</div>' +
         '<div class="batch-task-status" style="display:flex;align-items:center;gap:6px;">' +
           mainActionHtml +
-          '<span class="batch-status-badge ' + statusClass + '">' + statusText + '</span>' + manualStatusHtml + sourceBadge +
+          '<span class="batch-status-badge ' + statusClass + '">' + statusText + '</span>' + manualStatusHtml +
           '<span class="batch-toggle-icon" id="batch-toggle-' + idx + '">▼</span>' +
         '</div>' +
       '</div>' +
@@ -1321,11 +1773,9 @@ function toggleBatchDetails(index, event) {
   }
 }
 
-// 显示指定任务的详情弹窗（用于"需人工"任务的一致性检验结果展示）
+// 显示指定任务的详情弹窗（改为直接打开任务单详情网页）
 function showTaskDetailsModal(index) {
   console.log('[showTaskDetailsModal] 被调用, index:', index);
-  console.log('[showTaskDetailsModal] batchCheckResults:', batchCheckResults);
-  console.log('[showTaskDetailsModal] batchCheckResults.length:', batchCheckResults.length);
   
   var item = batchCheckResults[index];
   if (!item) {
@@ -1335,142 +1785,114 @@ function showTaskDetailsModal(index) {
   }
   
   console.log('[showTaskDetailsModal] 找到任务:', item);
-  console.log('[showTaskDetailsModal] item.results:', item.results);
-  console.log('[showTaskDetailsModal] item.error:', item.error);
-  console.log('[showTaskDetailsModal] item.status:', item.status);
   
-  // 构建详情内容
-  var detailsHtml = '';
-  if (item.results && item.results.length > 0) {
-    console.log('[showTaskDetailsModal] 使用 results 数据, 条数:', item.results.length);
-    detailsHtml = item.results.map(function(r) {
-      var iconClass = r.passed ? 'pass' : (r.needManual ? 'warn' : 'fail');
-      var icon = r.passed ? '✓' : (r.needManual ? '!' : '✗');
-      var bgColor = r.passed ? '#e8f5e9' : (r.needManual ? '#fff3e0' : '#ffebee');
-      return '<div class="batch-check-item" style="background:' + bgColor + ';padding:8px;border-radius:4px;margin-bottom:6px;">' +
-        '<div class="batch-check-icon ' + iconClass + '">' + icon + '</div>' +
-        '<div class="batch-check-content">' +
-          '<div class="batch-check-name" style="font-size:13px;font-weight:bold;">' + r.item + '</div>' +
-          '<div class="batch-check-result" style="font-size:12px;color:#333;margin-top:4px;">' + r.result + '</div>' +
-        '</div>' +
-      '</div>';
-    }).join('');
-  } else if (item.error) {
-    console.log('[showTaskDetailsModal] 使用 error 数据:', item.error);
-    detailsHtml = '<div class="batch-check-item" style="background:#ffebee;padding:8px;border-radius:4px;">' +
-      '<div class="batch-check-icon fail">✗</div>' +
-      '<div class="batch-check-content">' +
-        '<div class="batch-check-name">错误</div>' +
-        '<div class="batch-check-result">' + item.error + '</div>' +
-      '</div>' +
-    '</div>';
-  } else {
-    console.log('[showTaskDetailsModal] 无数据可显示');
-    detailsHtml = '<div style="text-align:center;color:#999;padding:20px;">暂无检验结果详情</div>';
+  // 获取任务ID
+  var taskId = item.task.id;
+  if (!taskId) {
+    alert('该任务没有有效的任务ID，无法打开详情页');
+    return;
   }
   
-  // 创建弹窗
-  var modal = document.createElement('div');
-  modal.id = 'task-details-modal';
-  modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
+  // 根据任务来源确定详情页类型
+  // source: 2 = 日常监控任务, 其他 = PPAP或自增任务
+  var source = item.task.source;
+  var viewPage = (source == '2' || source == 2) 
+    ? 'uniformityFinishedMonitoring.html' 
+    : 'uniformityFinished.html';
   
-  var title = '[' + item.task.carType + '] ' + item.task.partsName;
-  var subtitle = item.task.supplierName + ' | ' + item.task.latestPartsCode;
+  // 构建详情页URL
+  var detailPath = 'components/uniformity/' + viewPage;
   
-  // 根据状态确定显示文本和样式
-  var statusText = '待处理';
-  var statusColor = '#1565c0';
-  var statusBg = '#e3f2fd';
-  var showActionButtons = false;
+  console.log('[showTaskDetailsModal] 打开任务详情页:', detailPath, '任务ID:', taskId);
   
-  if (item.manualStatus === 'confirmed') {
-    statusText = '人工确认通过';
-    statusColor = '#2e7d32';
-    statusBg = '#e8f5e9';
-  } else if (item.manualStatus === 'rejected') {
-    statusText = '人工确认不通过';
-    statusColor = '#c62828';
-    statusBg = '#ffebee';
-  } else if (item.approved) {
-    statusText = '已审核';
-    statusColor = '#1565c0';
-    statusBg = '#e3f2fd';
-  } else if (item.status === 'pass') {
-    statusText = '校验通过';
-    statusColor = '#2e7d32';
-    statusBg = '#e8f5e9';
-  } else if (item.status === 'fail') {
-    statusText = '校验不通过';
-    statusColor = '#c62828';
-    statusBg = '#ffebee';
-  } else if (item.status === 'warn') {
-    statusText = '需人工审核';
-    statusColor = '#e65100';
-    statusBg = '#fff3e0';
-    showActionButtons = true;
-  }
-  
-  modal.innerHTML = 
-    '<div style="background:#fff;border-radius:8px;width:90%;max-width:500px;max-height:80%;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.3);">' +
-      '<div style="background:linear-gradient(135deg, #004375, #006bb3);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">' +
-        '<div>' +
-          '<div style="font-size:14px;font-weight:bold;">' + escapeHtml(title) + '</div>' +
-          '<div style="font-size:11px;opacity:0.8;margin-top:2px;">' + escapeHtml(subtitle) + '</div>' +
-        '</div>' +
-        '<button id="close-modal-btn" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:0;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:4px;">&times;</button>' +
-      '</div>' +
-      '<div style="padding:16px;max-height:400px;overflow-y:auto;">' +
-        '<div style="font-size:12px;color:#666;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #eee;">' +
-          '<span style="font-weight:bold;">状态：</span>' +
-          '<span style="color:' + statusColor + ';background:' + statusBg + ';padding:2px 8px;border-radius:3px;font-size:11px;">' + statusText + '</span>' +
-        '</div>' +
-        '<div style="font-size:12px;font-weight:bold;color:#333;margin-bottom:10px;">一致性检验结果：</div>' +
-        detailsHtml +
-      '</div>' +
-      '<div style="padding:12px 16px;border-top:1px solid #eee;background:#f5f5f5;display:flex;justify-content:flex-end;gap:8px;">' +
-        (showActionButtons ? 
-          '<button id="modal-confirm-btn" style="background:#4caf50;color:#fff;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px;">' +
-            '<span>✓</span> 确认通过' +
-          '</button>' +
-          '<button id="modal-reject-btn" style="background:#f44336;color:#fff;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px;">' +
-            '<span>✗</span> 确认不通过' +
-          '</button>' : '') +
-        '<button id="modal-close-btn" style="background:#fff;color:#666;border:1px solid #ddd;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:12px;">关闭</button>' +
-      '</div>' +
-    '</div>';
-  
-  document.body.appendChild(modal);
-  
-  // 绑定关闭事件
-  document.getElementById('close-modal-btn').addEventListener('click', function() {
-    document.body.removeChild(modal);
-  });
-  document.getElementById('modal-close-btn').addEventListener('click', function() {
-    document.body.removeChild(modal);
-  });
-  modal.addEventListener('click', function(e) {
-    if (e.target === modal) {
-      document.body.removeChild(modal);
-    }
-  });
-  
-  // 绑定审核按钮事件（仅在需要时）
-  if (showActionButtons) {
-    var confirmBtn = document.getElementById('modal-confirm-btn');
-    var rejectBtn = document.getElementById('modal-reject-btn');
-    if (confirmBtn) {
-      confirmBtn.addEventListener('click', function() {
-        document.body.removeChild(modal);
-        handleManualConfirm(index);
+  // 发送消息到内容脚本，在当前页面打开任务详情
+  chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+    if (tabs[0]) {
+      chrome.tabs.sendMessage(tabs[0].id, {
+        action: 'OPEN_TASK_DETAIL',
+        taskId: taskId,
+        detailPath: detailPath,
+        taskData: item.task
+      }, function(response) {
+        if (chrome.runtime.lastError) {
+          console.error('[showTaskDetailsModal] 发送消息失败:', chrome.runtime.lastError);
+          alert('无法打开任务详情页，请确保在正确的页面');
+          return;
+        }
+        
+        if (response && response.success) {
+          console.log('[showTaskDetailsModal] 任务详情页已打开');
+        } else {
+          var errorMsg = (response && response.error) ? response.error : '未知错误';
+          console.error('[showTaskDetailsModal] 打开详情页失败:', errorMsg);
+          alert('打开任务详情页失败: ' + errorMsg);
+        }
       });
+    } else {
+      alert('未找到活动标签页');
     }
-    if (rejectBtn) {
-      rejectBtn.addEventListener('click', function() {
-        document.body.removeChild(modal);
-        handleManualReject(index);
-      });
-    }
+  });
+}
+
+// 打开任务详情页（用于需人工审核任务的跳转按钮）
+function openTaskDetailPage(index) {
+  console.log('[openTaskDetailPage] 被调用, index:', index);
+  
+  var item = batchCheckResults[index];
+  if (!item) {
+    console.error('[openTaskDetailPage] 未找到对应任务, index:', index);
+    alert('未找到任务数据，请刷新页面重试');
+    return;
   }
+  
+  console.log('[openTaskDetailPage] 找到任务:', item);
+  
+  // 获取任务ID
+  var taskId = item.task.id;
+  if (!taskId) {
+    alert('该任务没有有效的任务ID，无法打开详情页');
+    return;
+  }
+  
+  // 根据任务来源确定详情页类型
+  // source: 2 = 日常监控任务, 其他 = PPAP或自增任务
+  var source = item.task.source;
+  var viewPage = (source == '2' || source == 2) 
+    ? 'uniformityFinishedMonitoring.html' 
+    : 'uniformityFinished.html';
+  
+  // 构建详情页URL
+  var detailPath = 'components/uniformity/' + viewPage;
+  
+  console.log('[openTaskDetailPage] 打开任务详情页:', detailPath, '任务ID:', taskId);
+  
+  // 发送消息到内容脚本，在当前页面打开任务详情
+  chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+    if (tabs[0]) {
+      chrome.tabs.sendMessage(tabs[0].id, {
+        action: 'OPEN_TASK_DETAIL',
+        taskId: taskId,
+        detailPath: detailPath,
+        taskData: item.task
+      }, function(response) {
+        if (chrome.runtime.lastError) {
+          console.error('[openTaskDetailPage] 发送消息失败:', chrome.runtime.lastError);
+          alert('无法打开任务详情页，请确保在正确的页面');
+          return;
+        }
+        
+        if (response && response.success) {
+          console.log('[openTaskDetailPage] 任务详情页已打开');
+        } else {
+          var errorMsg = (response && response.error) ? response.error : '未知错误';
+          console.error('[openTaskDetailPage] 打开详情页失败:', errorMsg);
+          alert('打开任务详情页失败: ' + errorMsg);
+        }
+      });
+    } else {
+      alert('未找到活动标签页');
+    }
+  });
 }
 
 // 人工确认通过
@@ -1604,4 +2026,431 @@ function sendToContentScript(message, callback) {
 
 function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ============ Check Item Details Modal ============
+// 显示校验项详情弹窗
+function showCheckItemDetailsModal(index) {
+  console.log('[showCheckItemDetailsModal] 被调用, index:', index);
+  
+  var item = batchCheckResults[index];
+  if (!item) {
+    console.error('[showCheckItemDetailsModal] 未找到对应任务, index:', index);
+    alert('未找到任务数据，请刷新页面重试');
+    return;
+  }
+  
+  console.log('[showCheckItemDetailsModal] 找到任务:', item);
+  
+  // 移除已存在的弹窗
+  var existingModal = document.getElementById('checkItemDetailsModal');
+  if (existingModal) {
+    existingModal.remove();
+  }
+  
+  // 创建弹窗
+  var modal = document.createElement('div');
+  modal.id = 'checkItemDetailsModal';
+  modal.className = 'check-item-modal';
+  
+  // 构建校验项列表HTML
+  var checkItemsHtml = '';
+  if (item.results && item.results.length > 0) {
+    checkItemsHtml = item.results.map(function(r, rIdx) {
+      var iconClass = r.passed ? 'pass' : (r.needManual ? 'warn' : 'fail');
+      var icon = r.passed ? '✓' : (r.needManual ? '!' : '✗');
+      var itemStatus = r.passed ? '通过' : (r.needManual ? '需人工' : '不通过');
+      
+      return '<div class="check-item-detail-row" data-idx="' + rIdx + '">' +
+        '<div class="check-item-detail-icon ' + iconClass + '">' + icon + '</div>' +
+        '<div class="check-item-detail-content">' +
+          '<div class="check-item-detail-name">' + escapeHtml(r.item) + '</div>' +
+          '<div class="check-item-detail-result">' + escapeHtml(r.result) + '</div>' +
+          '<div class="check-item-detail-status">状态: <span class="status-' + iconClass + '">' + itemStatus + '</span></div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  } else {
+    checkItemsHtml = '<div class="check-item-empty">暂无校验项数据</div>';
+  }
+  
+  // 构建人工审核操作区HTML
+  var manualActionHtml = '';
+  if (item.status === 'warn' && !item.manualStatus && !item.approved) {
+    manualActionHtml = '<div class="check-item-manual-actions">' +
+      '<div class="check-item-manual-title">人工审核操作</div>' +
+      '<div class="check-item-manual-buttons">' +
+        '<button class="check-item-btn check-item-btn-pass" onclick="handleDetailManualConfirm(' + index + ')">' +
+          '<span class="btn-icon">✓</span> 确认通过' +
+        '</button>' +
+        '<button class="check-item-btn check-item-btn-fail" onclick="handleDetailManualReject(' + index + ')">' +
+          '<span class="btn-icon">✗</span> 确认不通过' +
+        '</button>' +
+      '</div>' +
+      '<div class="check-item-manual-note">' +
+        '<input type="text" id="detail-manual-note-' + index + '" placeholder="审核备注（不通过时必填）" class="check-item-note-input">' +
+      '</div>' +
+    '</div>';
+  } else if (item.manualStatus) {
+    var manualClass = item.manualStatus === 'confirmed' ? 'pass' : 'fail';
+    var manualText = item.manualStatus === 'confirmed' ? '人工确认通过' : '人工确认不通过';
+    manualActionHtml = '<div class="check-item-manual-result ' + manualClass + '">' +
+      '<div class="check-item-manual-result-title">' + manualText + '</div>' +
+      '<div class="check-item-manual-result-note">' + (item.manualNote || '无备注') + '</div>' +
+      '<div class="check-item-manual-result-time">' + new Date(item.manualTime).toLocaleString('zh-CN') + '</div>' +
+    '</div>';
+  }
+  
+  // 构建弹窗HTML
+  var title = '[' + item.task.carType + '] ' + item.task.partsName;
+  var subtitle = '供应商: ' + item.task.supplierName + ' | 零件号: ' + item.task.latestPartsCode;
+  
+  modal.innerHTML = 
+    '<div class="check-item-modal-overlay" onclick="closeCheckItemDetailsModal()"></div>' +
+    '<div class="check-item-modal-content">' +
+      '<div class="check-item-modal-header">' +
+        '<div class="check-item-modal-title">' + escapeHtml(title) + '</div>' +
+        '<div class="check-item-modal-subtitle">' + escapeHtml(subtitle) + '</div>' +
+        '<button class="check-item-modal-close" onclick="closeCheckItemDetailsModal()">&times;</button>' +
+      '</div>' +
+      '<div class="check-item-modal-body">' +
+        '<div class="check-item-summary">' +
+          '<div class="check-item-summary-title">校验结果摘要</div>' +
+          '<div class="check-item-summary-content">' +
+            '<span class="check-item-summary-status ' + (item.status === 'pass' ? 'pass' : (item.status === 'warn' ? 'warn' : (item.status === 'fail' ? 'fail' : 'pending'))) + '">' +
+              (item.status === 'pass' ? '✓ 通过' : (item.status === 'warn' ? '! 需人工' : (item.status === 'fail' ? '✗ 不通过' : '○ 待处理'))) +
+            '</span>' +
+            (item.results ? '<span class="check-item-summary-count">共 ' + item.results.length + ' 项校验</span>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div class="check-item-list">' + checkItemsHtml + '</div>' +
+        manualActionHtml +
+      '</div>' +
+      '<div class="check-item-modal-footer">' +
+        '<button class="check-item-modal-btn check-item-modal-btn-primary" onclick="openTaskDetailPage(' + index + ')">' +
+          '<span class="btn-icon">🔗</span> 打开任务详情页' +
+        '</button>' +
+        '<button class="check-item-modal-btn" onclick="closeCheckItemDetailsModal()">关闭</button>' +
+      '</div>' +
+    '</div>';
+  
+  document.body.appendChild(modal);
+  
+  // 显示动画
+  setTimeout(function() {
+    modal.classList.add('show');
+  }, 10);
+}
+
+// 关闭校验项详情弹窗
+function closeCheckItemDetailsModal() {
+  var modal = document.getElementById('checkItemDetailsModal');
+  if (modal) {
+    modal.classList.remove('show');
+    setTimeout(function() {
+      modal.remove();
+    }, 300);
+  }
+}
+
+// 当前筛选状态
+var currentFilter = 'all';
+
+// 统一渲染函数 - 根据当前筛选状态自动选择正确的渲染方式
+function renderBatchResultsWithFilter() {
+  if (currentFilter && currentFilter !== 'all') {
+    renderFilteredBatchResults();
+  } else {
+    renderBatchResults();
+  }
+}
+
+// 筛选批量校验结果
+function filterBatchResults(filter) {
+  currentFilter = filter;
+  
+  // 更新汇总区域的选中状态
+  var summaryItems = document.querySelectorAll('.batch-summary-clickable');
+  summaryItems.forEach(function(item) {
+    item.classList.remove('active');
+    if (item.getAttribute('data-filter') === filter) {
+      item.classList.add('active');
+    }
+  });
+  
+  // 重新渲染列表
+  renderFilteredBatchResults();
+  
+  addLog('已筛选: ' + (filter === 'all' ? '显示全部' : filter === 'pass' ? '已通过' : filter === 'fail' ? '不通过' : filter === 'warn' ? '需人工' : filter === 'confirmed' ? '人工确认' : filter === 'rejected' ? '人工拒绝' : '待处理'), 'info');
+}
+
+// 渲染筛选后的批量校验结果
+function renderFilteredBatchResults() {
+  var listEl = document.getElementById('batchResultList');
+  
+  if (batchCheckResults.length === 0) {
+    listEl.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">暂无数据</div>';
+    return;
+  }
+  
+  // 对结果进行排序并筛选
+  var filteredSortedResults = batchCheckResults.map(function(item, index) {
+    return { item: item, originalIndex: index };
+  }).filter(function(sortedItem) {
+    if (currentFilter === 'all') return true;
+    if (currentFilter === 'pass') return sortedItem.item.status === 'pass';
+    if (currentFilter === 'fail') return sortedItem.item.status === 'fail';
+    if (currentFilter === 'warn') return sortedItem.item.status === 'warn';
+    if (currentFilter === 'confirmed') return sortedItem.item.manualStatus === 'confirmed';
+    if (currentFilter === 'rejected') return sortedItem.item.manualStatus === 'rejected';
+    if (currentFilter === 'pending') return sortedItem.item.status === 'pending' || sortedItem.item.status === 'checking';
+    return true;
+  }).sort(function(a, b) {
+    // 需人工审核的置顶（且未人工确认）
+    var aIsWarn = a.item.status === 'warn' && !a.item.manualStatus;
+    var bIsWarn = b.item.status === 'warn' && !b.item.manualStatus;
+    if (aIsWarn && !bIsWarn) return -1;
+    if (!aIsWarn && bIsWarn) return 1;
+    
+    // 然后是校验中的
+    var aIsChecking = a.item.status === 'checking';
+    var bIsChecking = b.item.status === 'checking';
+    if (aIsChecking && !bIsChecking) return -1;
+    if (!aIsChecking && bIsChecking) return 1;
+    
+    // 然后是待处理的
+    var aIsPending = a.item.status === 'pending';
+    var bIsPending = b.item.status === 'pending';
+    if (aIsPending && !bIsPending) return -1;
+    if (!aIsPending && bIsPending) return 1;
+    
+    // 保持原始顺序
+    return a.originalIndex - b.originalIndex;
+  });
+  
+  if (filteredSortedResults.length === 0) {
+    listEl.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">该筛选条件下暂无数据</div>';
+    return;
+  }
+  
+  // 使用原始renderBatchResults中的渲染逻辑，但使用筛选后的数据
+  listEl.innerHTML = filteredSortedResults.map(function(sortedItem, displayIdx) {
+    var item = sortedItem.item;
+    var idx = sortedItem.originalIndex;
+    var statusClass = 'batch-status-' + item.status;
+    var statusText = {
+      'pending': '待处理',
+      'checking': '校验中...',
+      'pass': '通过',
+      'fail': '不通过',
+      'warn': '需人工'
+    }[item.status] || item.status;
+    
+    // 如果已人工审核，优先显示人工审核状态
+    if (item.manualStatus === 'confirmed') {
+      statusClass = 'batch-status-pass';
+      statusText = '人工确认通过';
+    } else if (item.manualStatus === 'rejected') {
+      statusClass = 'batch-status-fail';
+      statusText = '人工确认不通过';
+    } else if (item.approved) {
+      statusClass = 'batch-status-approved';
+      statusText = '已审核';
+    }
+    
+    var title = '[' + item.task.carType + '] ' + item.task.partsName;
+    var subtitle = item.task.supplierName + ' | ' + item.task.latestPartsCode;
+    
+    // 构建主操作区的按钮
+    var mainActionHtml = '';
+    
+    // 所有任务都显示"查看结果"按钮（如果有实际结果数据或错误信息）
+    var hasResults = item.results && item.results.length > 0;
+    var hasError = item.error && item.error.length > 0;
+    if (hasResults || hasError) {
+      mainActionHtml += '<button class="batch-main-btn batch-main-view" title="查看校验结果" data-index="' + idx + '" style="background:#004375;color:#fff;margin-right:4px;">' +
+          '<span class="btn-icon">🔍</span>' +
+        '</button>';
+    }
+    
+    // 主操作界面的通过/不通过按钮已移除，改为在校验项详情界面操作
+    
+    // 显示人工审核结果（在主区域）
+    var manualStatusHtml = '';
+    if (item.manualStatus) {
+      var manualClass = item.manualStatus === 'confirmed' ? 'batch-status-pass' : 'batch-status-fail';
+      var manualText = item.manualStatus === 'confirmed' ? '人工通过' : '人工不通过';
+      manualStatusHtml = '<span class="batch-status-badge ' + manualClass + '" style="margin-left:5px;">' + manualText + '</span>';
+    }
+    
+    // 根据任务状态决定点击行为：所有任务点击时都可以展开/收起详情
+    var clickHandler = 'onclick="toggleBatchDetails(' + idx + ', event)"';
+    var dataStatusAttr = '';
+    if (item.status === 'warn' && !item.manualStatus && !item.approved) {
+      dataStatusAttr = 'data-status="warn"';
+    }
+    
+    // 构建详情HTML
+    var detailsHtml = '';
+    if (item.results && item.results.length > 0) {
+      detailsHtml = '<div class="batch-task-details" id="batch-details-' + idx + '" style="display:none;">' +
+        item.results.map(function(r) {
+          var iconClass = r.passed ? 'pass' : (r.needManual ? 'warn' : 'fail');
+          var icon = r.passed ? '✓' : (r.needManual ? '!' : '✗');
+          return '<div class="batch-check-item">' +
+            '<div class="batch-check-icon ' + iconClass + '">' + icon + '</div>' +
+            '<div class="batch-check-content">' +
+              '<div class="batch-check-name">' + r.item + '</div>' +
+              '<div class="batch-check-result">' + r.result + '</div>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      
+      // 添加审核结果信息
+      if (item.approved) {
+        detailsHtml += '<div class="batch-check-item" style="border-top:1px solid #c8e6c9;margin-top:4px;padding-top:8px;">' +
+          '<div class="batch-check-icon pass">✓</div>' +
+          '<div class="batch-check-content">' +
+            '<div class="batch-check-name">审核结果</div>' +
+            '<div class="batch-check-result">' + item.approveResult + '</div>' +
+          '</div>' +
+        '</div>';
+      } else if (item.approveError) {
+        detailsHtml += '<div class="batch-check-item" style="border-top:1px solid #ffcdd2;margin-top:4px;padding-top:8px;">' +
+          '<div class="batch-check-icon fail">✗</div>' +
+          '<div class="batch-check-content">' +
+            '<div class="batch-check-name">审核失败</div>' +
+            '<div class="batch-check-result">' + item.approveError + '</div>' +
+          '</div>' +
+        '</div>';
+      }
+      
+      // 添加人工审核按钮（仅对需人工审核的任务显示）
+      if (item.status === 'warn' && !item.manualStatus && !item.approved) {
+        detailsHtml += '<div class="batch-manual-actions" style="border-top:1px solid #ffe0b2;margin-top:8px;padding-top:12px;">' +
+          '<div style="font-size:12px;color:#666;margin-bottom:8px;">人工审核操作：</div>' +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+            '<button class="batch-manual-btn batch-manual-confirm" data-action="manual-confirm" data-index="' + idx + '">' +
+              '<span class="btn-icon">✓</span> 确认通过' +
+            '</button>' +
+            '<button class="batch-manual-btn batch-manual-reject" data-action="manual-reject" data-index="' + idx + '">' +
+              '<span class="btn-icon">✗</span> 确认不通过' +
+            '</button>' +
+          '</div>' +
+          '<div style="margin-top:8px;">' +
+            '<input type="text" id="manual-note-' + idx + '" placeholder="审核备注（可选）" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:4px;font-size:12px;box-sizing:border-box;">' +
+          '</div>' +
+        '</div>';
+        
+        // 为需人工审核的任务添加"打开任务详情页"按钮
+        detailsHtml += '<div style="border-top:1px solid #e0e0e0;margin-top:8px;padding-top:8px;text-align:center;">' +
+          '<button class="batch-manual-btn batch-open-detail-btn" style="background:#ff9800;color:#fff;" data-index="' + idx + '">' +
+            '<span class="btn-icon">🔗</span> 打开任务详情页' +
+          '</button>' +
+        '</div>';
+      }
+      
+      // 显示人工审核结果
+      if (item.manualStatus) {
+        var manualClass = item.manualStatus === 'confirmed' ? 'pass' : 'fail';
+        var manualIcon = item.manualStatus === 'confirmed' ? '✓' : '✗';
+        var manualText = item.manualStatus === 'confirmed' ? '人工确认通过' : '人工确认不通过';
+        detailsHtml += '<div class="batch-check-item" style="border-top:1px solid #e0e0e0;margin-top:4px;padding-top:8px;">' +
+          '<div class="batch-check-icon ' + manualClass + '">' + manualIcon + '</div>' +
+          '<div class="batch-check-content">' +
+            '<div class="batch-check-name">' + manualText + '</div>' +
+            '<div class="batch-check-result">' + (item.manualNote || '无备注') + ' <span style="color:#999;font-size:11px;">(' + new Date(item.manualTime).toLocaleString('zh-CN') + ')</span></div>' +
+          '</div>' +
+        '</div>';
+      }
+      
+      // 添加查看完整详情按钮
+      detailsHtml += '<div style="border-top:1px solid #e0e0e0;margin-top:8px;padding-top:8px;text-align:center;">' +
+        '<button class="batch-manual-btn batch-view-details-btn" style="background:#004375;color:#fff;" data-index="' + idx + '">' +
+          '<span class="btn-icon">🔍</span> 查看完整详情' +
+        '</button>' +
+      '</div>';
+      
+      detailsHtml += '</div>';
+    } else if (item.error) {
+      detailsHtml = '<div class="batch-task-details" id="batch-details-' + idx + '" style="display:none;">' +
+        '<div class="batch-check-item">' +
+          '<div class="batch-check-icon fail">✗</div>' +
+          '<div class="batch-check-content">' +
+            '<div class="batch-check-name">错误</div>' +
+            '<div class="batch-check-result">' + item.error + '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }
+    
+    var headerClass = 'batch-task-header';
+    if (item.approved) {
+      headerClass += ' approved';
+    }
+    if (item.status === 'warn' && !item.manualStatus && !item.approved) {
+      headerClass += ' batch-status-warn-clickable';
+    }
+    
+    return '<div class="batch-task-item">' +
+      '<div class="' + headerClass + '" ' + clickHandler + ' ' + dataStatusAttr + '>' +
+        '<div>' +
+          '<div class="batch-task-title">' + (displayIdx + 1) + '. ' + escapeHtml(title) + '</div>' +
+          '<div style="font-size:10px;color:#999;margin-top:2px;">' + escapeHtml(subtitle) + '</div>' +
+        '</div>' +
+        '<div class="batch-task-status" style="display:flex;align-items:center;gap:6px;">' +
+          mainActionHtml +
+          '<span class="batch-status-badge ' + statusClass + '">' + statusText + '</span>' + manualStatusHtml +
+          '<span class="batch-toggle-icon" id="batch-toggle-' + idx + '">▼</span>' +
+        '</div>' +
+      '</div>' +
+      detailsHtml +
+    '</div>';
+  }).join('');
+}
+
+// 在校验项详情弹窗中处理人工确认通过
+function handleDetailManualConfirm(index) {
+  console.log('[handleDetailManualConfirm] 被调用, index:', index);
+  
+  var noteInput = document.getElementById('detail-manual-note-' + index);
+  var note = noteInput ? noteInput.value.trim() : '';
+  
+  if (!confirm('确认将该任务标记为"人工审核通过"？')) {
+    return;
+  }
+  
+  updateTaskManualStatus(index, 'confirmed', note);
+  closeCheckItemDetailsModal();
+  
+  // 重新打开弹窗以更新状态
+  setTimeout(function() {
+    showCheckItemDetailsModal(index);
+  }, 300);
+}
+
+// 在校验项详情弹窗中处理人工确认不通过
+function handleDetailManualReject(index) {
+  console.log('[handleDetailManualReject] 被调用, index:', index);
+  
+  var noteInput = document.getElementById('detail-manual-note-' + index);
+  var note = noteInput ? noteInput.value.trim() : '';
+  
+  if (!note) {
+    alert('请填写审核备注说明不通过原因');
+    if (noteInput) noteInput.focus();
+    return;
+  }
+  
+  if (!confirm('确认将该任务标记为"人工审核不通过"？')) {
+    return;
+  }
+  
+  updateTaskManualStatus(index, 'rejected', note);
+  closeCheckItemDetailsModal();
+  
+  // 重新打开弹窗以更新状态
+  setTimeout(function() {
+    showCheckItemDetailsModal(index);
+  }, 300);
 }

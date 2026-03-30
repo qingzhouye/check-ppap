@@ -1,0 +1,88 @@
+.layui-body {
+    background-color: #fff;
+}
+.layui-layout-admin .layui-body .layui-tab .layui-tab-title {
+    padding-left: 0px;
+    margin-left: 10px;
+    height: 32px;
+    line-height: 32px;
+    background-color: #EEF1F5;
+}
+.layui-layout-admin .layui-body .layui-tab .layui-tab-title li {
+    line-height: 32px;
+    color: #004375;
+}
+.btn-menu {
+    background-color: #fff;
+    color: #C3C3C3;
+    border: 1px solid #C3C3C3;
+}
+.layui-btn-group .layui-btn:first-child {
+    border: 1px solid;
+}
+.layui-btn:hover {
+    opacity: 1;
+    color: #C3C3C3;
+}
+.layui-btn.active {
+    color: #004375;
+    border: 1px solid #004375;
+    background-color: #fff;
+}
+.btn-function {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+.g-btn-purple{
+    font-size: 14px;
+    line-height: 28px;
+    height: 30px;
+    width: 50px;
+    padding: 0px 5px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    border: none;
+    border-radius: 0px;
+    cursor: pointer;
+    background-color: #004375;
+}
+.xm-select-parent .xm-select {
+    min-height: 30px;
+    height: 30px;
+}
+.xm-input.xm-select{
+    height: 30px!important;
+}
+.xm-select-dl.xm-select-radio {
+    width: 410px;
+}
+.g-search .xm-select-parent {
+    width: 297px;
+}
+#tablePager button{
+    color: #215B87!important;
+    border-color: #6C92AF!important;
+    background-color: #E5ECF1!important;
+    border-radius: 3px;
+}
+#tablePager .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#pager .layui-laypage .layui-laypage-curr .layui-laypage-em{
+    background-color: #E5ECF1!important;
+}
+#tablePager .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#pager .layui-laypage .layui-laypage-curr .layui-laypage-em{
+    background-color: #E5ECF1!important;
+    border: none;
+    color: #46779B;
+}
+.layui-laypage input:focus, .layui-laypage select:focus{
+    border-color: #7FA1BA!important;
+}
+.layui-layer-btn0{
+    border:1px solid #004375!important;
+    background-color: #004375!important;
+}
+

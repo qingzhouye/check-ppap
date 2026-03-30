@@ -1,0 +1,267 @@
+var bigScreenApi = {
+    // 新品质量接口
+    newProductQuality:{
+        getAllTableDataUrl:"/api/bigScreen/bcNewProductQuality/page",
+        addOrEditTableDataUrl:"/api/bigScreen/bcNewProductQuality/saveOrUpdate",
+        deleteTableDataUrl:"/api/bigScreen/bcNewProductQuality/delete",
+        uploadFileUrl:"/api/bigScreen/bcNewProductQuality/importExcelDailyRisk",
+        downloadTemplateUrl: "/api/bigScreen/bcNewProductQuality/download",
+        exportDataUrl: "/api/bigScreen/bcNewProductQuality/exportExcel",
+    },
+
+    // 新品质量线上录入接口
+    newProductQualityImportOline:{
+        getAllTableDataUrl:"/api/bigScreen/bcNewProduceQualityEntry/page",
+        addOrEditTableDataUrl:"/api/bigScreen/bcNewProduceQualityEntry/saveOrUpdate",
+        deleteTableDataUrl:"/api/bigScreen/bcNewProduceQualityEntry/delete"
+    },
+
+    // 政府一致性
+    goverConsistencyQuality:{
+        getAllTableDataUrl:"/api/uniformity/bcUniformityGovernment/page",
+        addOrEditTableDataUrl:"/api/uniformity/bcUniformityGovernment/saveOrUpdate",
+        deleteTableDataUrl:"/api/uniformity/bcUniformityGovernment/delete",
+        uploadFileUrl:"/api/uniformity/bcUniformityGovernment/importExcel",
+        downloadTemplateUrl: "/api/uniformity/bcUniformityGovernment/download",
+        exportDataUrl: "/api/uniformity/bcUniformityGovernment/exportExcel",
+    },
+
+    // 政府一致性线上录入接口
+    goverConsistencyQualityImportOline:{
+        getAllTableDataUrl:"/api/uniformity/bcUniformityGovernmrntEntry/page",
+        addOrEditTableDataUrl:"/api/uniformity/bcUniformityGovernmrntEntry/saveOrUpdate",
+        deleteTableDataUrl:"/api/uniformity/bcUniformityGovernmrntEntry/delete"
+    },
+
+    // 整车公告一致性
+    uniformityCar:{
+        getAllTableDataUrl:"/api/uniformity/bcUniformityCarloadNotice/page",
+        addOrEditTableDataUrl:"/api/uniformity/bcUniformityCarloadNotice/saveOrUpdate",
+        deleteTableDataUrl:"/api/uniformity/bcUniformityCarloadNotice/delete",
+        uploadFileUrl:"/api/uniformity/bcUniformityCarloadNotice/importExcel",
+        downloadTemplateUrl: "/api/uniformity/bcUniformityCarloadNotice/download",
+        exportDataUrl: "/api/uniformity/bcUniformityCarloadNotice/exportExcel",
+    },
+
+    // 整车公告线上录入
+    uniformityCarImportOline:{
+        getAllTableDataUrl:"/api/uniformity/bcUniformityCarloadNoticeEntry/page",
+        addOrEditTableDataUrl:"/api/uniformity/bcUniformityCarloadNoticeEntry/saveOrUpdate",
+        deleteTableDataUrl:"/api/uniformity/bcUniformityCarloadNoticeEntry/delete"
+    },
+
+    // 整车气味一致性
+    uniformitySmell:{
+        getAllTableDataUrl:"/api/uniformity/bcUniformityCarloadSmell/page",
+        addOrEditTableDataUrl:"/api/uniformity/bcUniformityCarloadSmell/saveOrUpdate",
+        deleteTableDataUrl:"/api/uniformity/bcUniformityCarloadSmell/delete",
+        uploadFileUrl:"/api/uniformity/bcUniformityCarloadSmell/importExcel",
+        downloadTemplateUrl: "/api/uniformity/bcUniformityCarloadSmell/download",
+        exportDataUrl: "/api/uniformity/bcUniformityCarloadSmell/exportExcel",
+    },
+    uniformitySmellImportOline:{
+        getAllTableDataUrl:"/api/uniformity/bcUniformityCarloadSmellEntry/page",
+        addOrEditTableDataUrl:"/api/uniformity/bcUniformityCarloadSmellEntry/saveOrUpdate",
+        deleteTableDataUrl:"/api/uniformity/bcUniformityCarloadSmellEntry/delete"
+    },
+    // 零件接口
+    uniformityParts:{
+        getAllTableDataUrl:"/api/uniformity/bcUniformityParts/page",
+        addOrEditTableDataUrl:"/api/uniformity/bcUniformityParts/saveOrUpdate",
+        deleteTableDataUrl:"/api/uniformity/bcUniformityParts/delete",
+        uploadFileUrl:"/api/uniformity/bcUniformityParts/importExcel",
+        downloadTemplateUrl: "/api/uniformity/bcUniformityParts/download",
+        exportDataUrl: "/api/uniformity/bcUniformityParts/exportExcel",
+    },
+
+    // 零件线上录入
+    uniformityPartsImportOline:{
+        getAllTableDataUrl:"/api/uniformity/bcUniformityPartsEntry/page",
+        addOrEditTableDataUrl:"/api/uniformity/bcUniformityPartsEntry/saveOrUpdate",
+        deleteTableDataUrl:"/api/uniformity/bcUniformityPartsEntry/delete"
+    },
+    // Q图数据管理接口
+    Qgraph:{
+        getAllTableDataUrl:"/api/qpicture/bcQpicture/page",
+        addOrEditTableDataUrl:"/api/qpicture/bcQpicture/saveOrUpdate",
+        deleteTableDataUrl:"/api/qpicture/bcQpicture/delete",
+        uploadFileUrl:"/api/qpicture/bcQpicture/importExcel",
+        downloadTemplateUrl: "/api/qpicture/bcQpicture/download",
+        exportDataUrl: "/api/qpicture/bcQpicture/exportExcel",
+    },
+
+    // 三包库房接口
+    SanBaoKuFang:{
+        getAllTableDataUrl:"/api/salesafter/bcSalesafter3packets/page",
+        addOrEditTableDataUrl:"/api/salesafter/bcSalesafter3packets/saveOrUpdate",
+        deleteTableDataUrl:"/api/salesafter/bcSalesafter3packets/delete"
+    },
+    // 出库分析接口
+    ChuKuFenXi:{
+        getAllTableDataUrl:"/api/salesafter/bcSalesafterOut/page",
+        addOrEditTableDataUrl:"/api/salesafter/bcSalesafterOut/saveOrUpdate",
+        deleteTableDataUrl:"/api/salesafter/bcSalesafterOut/delete"
+    },
+    // 供应商退件接口
+    TuiJianFuYi:{
+        getAllTableDataUrl:"/api/salesafter/bcSalesafterSupplier/page",
+        addOrEditTableDataUrl:"/api/salesafter/bcSalesafterSupplier/saveOrUpdate",
+        deleteTableDataUrl:"/api/salesafter/bcSalesafterSupplier/delete"
+    },
+
+    // 三包件审核拒赔接口
+    SanBaoJian:{
+        getAllTableDataUrl:"/api/salesafter/bcSalesafter3packetsAudit/page",
+        addOrEditTableDataUrl:"/api/salesafter/bcSalesafter3packetsAudit/saveOrUpdate",
+        deleteTableDataUrl:"/api/salesafter/bcSalesafter3packetsAudit/delete"
+    },
+  /********数据模块市场管理数据模块接口*********/
+  markeMaintain:{
+    // 新品质量接口
+    newQualityUrl:{
+      getTableDataUrl: '/api/market/bcMarketNew/page',//新品质量主表获取数据接口
+      addOrEditTableDataUrl:'/api/market/bcMarketNew/saveOrUpdate',// 新品质量新增或编辑数据接口
+      deleteTableDataUrl:'/api/market/bcMarketNew/delete',// 新品质量删除一个或者多个数据接口
+      downloadTemplateUrl:'/api/market/bcMarketNew/download',// 新品质量下载模板数口
+      uploadFileUrl:'/api/market/bcMarketNew/importExcel',// 新品质量导入数据接口
+      exportDataUrl:'/api/market/bcMarketNew/exportExcel'// 新品质量导出数据接口
+    },
+    // CPIP问题清单接口
+    cpipQuestionUrl:{
+      getTableDataUrl: '/api/market/bcMarketCpip/page',//CPIP问题清单接口表格获取数据接口
+      addOrEditTableDataUrl:'/api/market/bcMarketCpip/saveOrUpdate',// CPIP问题清单接口新增或编辑数据接口
+      deleteTableDataUrl:'/api/market/bcMarketCpip/delete',// CPIP问题清单接口删除一个或者多个数据接口
+      downloadTemplateUrl:'/api/market/bcMarketCpip/download',// CPIP问题清单接口下载模板数口
+      uploadFileUrl:'/api/market/bcMarketCpip/importExcel',// CPIP问题清单接口导入数据接口
+      exportDataUrl:'/api/market/bcMarketCpip/exportExcel'// CPIP问题清单接口导出数据接口
+    },
+    // 特殊事件问题清单接口
+    specialQuestionUrl:{
+      getTableDataUrl: '/api/market/bcMarketSpecialEvent/page',//特殊事件问题清单接口表格获取数据接口
+      addOrEditTableDataUrl:'/api/market/bcMarketSpecialEvent/saveOrUpdate',// 特殊事件问题清单接口新增或编辑数据接口
+      deleteTableDataUrl:'/api/market/bcMarketSpecialEvent/delete',// 特殊事件问题清单接口删除一个或者多个数据接口
+      downloadTemplateUrl:'/api/market/bcMarketSpecialEvent/download',// 特殊事件问题清单接口下载模板数口
+      uploadFileUrl:'/api/market/bcMarketSpecialEvent/importExcel',// 特殊事件问题清单接口导入数据接口
+      exportDataUrl:'/api/market/bcMarketSpecialEvent/exportExcel'// 特殊事件问题清单接口导出数据接口
+    },
+    // 线上录入IPTV接口
+    onlineIpivUrl:{
+      getTableDataUrl: '/api/market/bcMarketIptvEntry/page',//线上录入IPTV表格获取数据接口
+      addTableDataUrl:'/api/market/bcMarketIptvEntry/saveOrUpdate',// 线上录入IPTV新增数据接口
+      editTableDataUrl:'/api/market/bcMarketIptvEntry/saveOrUpdate',// 线上录入IPTV编辑数据接口
+      deleteTableDataUrl:'/api/market/bcMarketIptvEntry/delete',//线上录入IPTV删除一个或者多个数据接口
+    },
+    // 线上录入CPV接口
+    onlineCpvUrl:{
+      getTableDataUrl: '/api/market/bcMarketCpvEntry/page',//线上录入CPV接口表格获取数据接口
+      addTableDataUrl:'/api/market/bcMarketCpvEntry/saveOrUpdate',// 线上录入CPV接口新增数据接口
+      editTableDataUrl:'/api/market/bcMarketCpvEntry/saveOrUpdate',// 线上录入CPV接口编辑数据接口
+      deleteTableDataUrl:'/api/market/bcMarketCpvEntry/delete',//线上录入CPV接口删除一个或者多个数据接口
+    },
+  },
+  /********数据模块服务质量管理数据模块接口*********/
+  serveQualityMaintain:{
+    // 服务质量管理接口
+    serveQualityMaintain:{
+      getTableDataUrl: '/mc-api/hpm/sysHpmuser/page',//服务质量管理主表获取数据接口
+      addOrEditTableDataUrl:'/mc-api/hpm/sysHpmuser/add',// 服务质量新增或编辑数据接口
+      deleteTableDataUrl:'/mc-api/hpm/sysHpmuser/delete',// 服务质量删除一个或者多个数据接口
+      downloadTemplateUrl:'/mc-api/hpm/sysHpmuser/download',// 服务质量下载模板数口
+      uploadFileUrl:'/mc-api/doc/document/regionexport',// 服务质量导入数据接口
+      exportDataUrl:''// 服务质量导出数据接口
+    },
+    // 线上录入服务保障类接口
+    onlineTabOneUrl:{
+      getTableDataUrl: '/api/serviceQuality/bcSupportServices/page?type=SUPPORT',//线上录入服务保障类获取数据接口
+      addTableDataUrl:'/api/serviceQuality/bcSupportServices/saveOrUpdate',// 线上录入服务保障类新增数据接口
+      editTableDataUrl:'/api/serviceQuality/bcSupportServices/saveOrUpdate',// 线上录入服务保障类编辑数据接口
+      deleteTableDataUrl:'/api/serviceQuality/bcSupportServices/delete',//线上录入服务保障类删除一个或者多个数据接口
+    },
+    //线上录入服务保障类
+    onlineTabTwoUrl:{
+      getTableDataUrl: '/api/serviceQuality/bcSupportServices/page?type=WARM_HEART',//线上录入服务保障类表格获取数据接口
+      addTableDataUrl:'/api/serviceQuality/bcSupportServices/saveOrUpdate',// 线上录入服务保障类新增数据接口
+      editTableDataUrl:'/api/serviceQuality/bcSupportServices/saveOrUpdate',//线上录入服务保障类编辑数据接口
+      deleteTableDataUrl:'/api/serviceQuality/bcSupportServices/delete',//线上录入服务保障类删除一个或者多个数据接口
+    },
+    // 线上录入定制化服务接口
+    onlineTabThreeUrl:{
+      getTableDataUrl: '/api/serviceQuality/bcCustomizedServices/page',//线上录入定制化服务接口表格获取数据接口
+      addTableDataUrl:'/api/serviceQuality/bcCustomizedServices/saveOrUpdate',// 线上录入定制化服务接口新增数据接口
+      editTableDataUrl:'/api/serviceQuality/bcCustomizedServices/saveOrUpdate',// 线上录入定制化服务接口编辑数据接口
+      deleteTableDataUrl:'/api/serviceQuality/bcCustomizedServices/delete',//线上录入定制化服务接口删除一个或者多个数据接口
+    },
+    // 线上录入大数据报警准确率与覆盖率接口
+    onlineTabFourUrl:{
+      getTableDataUrl: '/api/serviceQuality/bcBigDataWarning/page',//线上录入大数据报警准确率与覆盖率表格获取数据接口
+      addTableDataUrl:'/api/serviceQuality/bcBigDataWarning/saveOrUpdate',// 线上录入大数据报警准确率与覆盖率新增数据接口
+      editTableDataUrl:'/api/serviceQuality/bcBigDataWarning/saveOrUpdate',// 线上录入大数据报警准确率与覆盖率编辑数据接口
+      deleteTableDataUrl:'/api/serviceQuality/bcBigDataWarning/delete',//线上录入大数据报警准确率与覆盖率删除一个或者多个数据接口
+    },
+    // 线上录入终端十分钟响应率接口
+    onlineTabFiveUrl:{
+      getTableDataUrl: '/api/serviceQuality/bcResponseRate/page',//线上录入终端十分钟响应率表格获取数据接口
+      addTableDataUrl:'/api/serviceQuality/bcResponseRate/saveOrUpdate',// 线上录入终端十分钟响应率新增数据接口
+      editTableDataUrl:'/api/serviceQuality/bcResponseRate/saveOrUpdate',// 线上录入终端十分钟响应率编辑数据接口
+      deleteTableDataUrl:'/api/serviceQuality/bcResponseRate/delete',//线上录入终端十分钟响应率删除一个或者多个数据接口
+    },
+    // 线上录入前置服务运行状态接口
+    onlineTabSixUrl:{
+      getTableDataUrl: '/api/serviceQuality/bcPreService/page',//线上录入前置服务表格获取数据接口
+      addTableDataUrl:'/api/serviceQuality/bcPreService/saveOrUpdate',// 线上录入前置服务新增数据接口
+      editTableDataUrl:'/api/serviceQuality/bcPreService/saveOrUpdate',// 线上录入前置服务编辑数据接口
+      deleteTableDataUrl:'/api/serviceQuality/bcPreService/delete',//线上录入前置服务删除一个或者多个数据接口
+    },
+  },
+    /**********数据维护 用户之声**********/
+    userVoice: {
+        userVoiceAll: {
+            getAllTableDataUrl: '/api/voice/bcVoiceAll/page', // 列表分页查询 get
+            addOrEditTableDataUrl: '/api/voice/bcVoiceAll/saveOrUpdate', // 单条数据增加修改 post
+            downloadTemplateUrl: '/api/voice/bcVoiceAll/download', // 下载模板
+            deleteTableDataUrl: '/api/voice/bcVoiceAll/delete', // 删除或批量删除
+            importDataUrl: '/api/voice/bcVoiceAll/importExcel', // 导入 POST
+            exportDataUrl: '/api/voice/bcVoiceAll/exportExcel' // 导出
+        },
+        typeManager: {
+            getAllTableDataUrl: '/api/voice/bcVoiceProblemsModels/page',
+            addOrEditTableDataUrl:'/api/voice/bcVoiceProblemsModels/saveOrUpdate',
+            downloadTemplateUrl: '/api/voice/bcVoiceProblemsModels/downloadTemplate',
+            deleteTableDataUrl:'/api/voice/bcVoiceProblemsModels/delete',
+            importDataUrl:'/api/voice/bcVoiceProblemsModels/importExcel',
+            exportDataUrl:'/api/voice/bcVoiceProblemsModels/exportExcel'
+        },
+        problemsManager: {
+            getAllTableDataUrl: '/api/voice/bcVoiceProblems/page',
+            addOrEditTableDataUrl: '/api/voice/bcVoiceProblems/saveOrUpdate',
+            downloadTemplateUrl: '/api/voice/bcVoiceProblems/downloadTemplate',
+            deleteTableDataUrl: '/api/voice/bcVoiceProblems/delete',
+            importDataUrl: '/api/voice/bcVoiceProblems/importExcel',
+            exportDataUrl: '/api/voice/bcVoiceProblems/exportExcel'
+        },
+        simplify: {
+            getAllTableDataUrl: '/api/voice/bcVoiceSimplify/page',
+            addOrEditTableDataUrl: '/api/voice/bcVoiceSimplify/saveOrUpdate',
+            downloadTemplateUrl: '/api/voice/bcVoiceSimplify/downloadTemplate',
+            deleteTableDataUrl: '/api/voice/bcVoiceSimplify/delete',
+            importDataUrl: '/api/voice/bcVoiceSimplify/importExcel',
+            exportDataUrl: '/api/voice/bcVoiceSimplify/exportExcel'
+        },
+        // 质量风险管控总表
+        qualityRisk: {
+            getAllTableDataUrl: '/api/voice/bcQualityRiskControl/page',
+            addOrEditTableDataUrl: '/api/voice/bcQualityRiskControl/saveOrUpdate',
+            downloadTemplateUrl: '/api/voice/bcQualityRiskControl/download',
+            deleteTableDataUrl: '/api/voice/bcQualityRiskControl/delete',
+            importDataUrl: '/api/voice/bcQualityRiskControl/importExcel',
+            exportDataUrl: '/api/voice/bcQualityRiskControl/exportExcel'
+        },
+        // 当月重点问题
+        cuttentQuestionUrl: {
+            getAllTableDataUrl: '/api/voice/bcKeyIssuesOfTheMonth/page',
+            addOrEditTableDataUrl: '/api/voice/bcKeyIssuesOfTheMonth/saveOrUpdate',
+            deleteTableDataUrl: '/api/voice/bcKeyIssuesOfTheMonth/delete',
+        }
+
+    }
+}

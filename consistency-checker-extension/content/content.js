@@ -48,7 +48,8 @@
         extractTaskList().then(sendResponse);
         return true; // async
       case 'AUTO_CHECK_DETAIL':
-        autoCheckDetail().then(sendResponse);
+        // 强制使用API模式，从页面获取任务ID后调用API校验
+        autoCheckDetailByAPIFromPage().then(sendResponse);
         return true; // async
       case 'BATCH_CHECK_TASK':
         batchCheckTask(message.taskData).then(sendResponse);
@@ -58,6 +59,9 @@
         return true; // async
       case 'AUTO_APPROVE':
         autoApprove().then(sendResponse);
+        return true;
+      case 'OPEN_TASK_DETAIL':
+        openTaskDetailPage(message.taskId, message.detailPath, message.taskData).then(sendResponse);
         return true;
       default:
         sendResponse({ success: false, error: '未知操作' });
@@ -126,6 +130,10 @@
               updateDate: item.previousNodeAuditTime || '',
               sqeName: item.sqeName || '',
               applicantName: item.applicantName || '',
+              // 列表API中独有的型号标识字段
+              models: item.models || '',
+              modelMarkPositions: item.modelMarkPositions || '',
+              modelMarkApplicateMethods: item.modelMarkApplicateMethods || '',
             }));
             
             return { success: true, tasks, source: 'api', total: result.data?.total || tasks.length };
@@ -225,6 +233,10 @@
             updateDate: cacheData.previousNodeAuditTime || '',
             sqeName: cacheData.sqeName || '',
             applicantName: cacheData.applicantName || '',
+            // 列表API中独有的型号标识字段
+            models: cacheData.models || '',
+            modelMarkPositions: cacheData.modelMarkPositions || '',
+            modelMarkApplicateMethods: cacheData.modelMarkApplicateMethods || '',
           };
           
           if (task.partsName || task.latestPartsCode) {
@@ -356,7 +368,71 @@
   }
 
   // ============ 2. Auto Check Detail Page ============
-  async function autoCheckDetail() {
+  
+  // 从页面获取任务ID（用于详情页一键检验）
+  function extractTaskIdFromPage() {
+    // 尝试从URL中获取
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlTaskId = urlParams.get('taskId') || urlParams.get('id');
+    if (urlTaskId) return urlTaskId;
+    
+    // 尝试从layui table cache中获取当前选中的任务
+    try {
+      if (window.layui && window.layui.table && window.layui.table.cache) {
+        const knownTableIds = ['table-task-finish', 'tableTaskFinish', 'task-finish'];
+        for (const tableId of knownTableIds) {
+          const cache = window.layui.table.cache[tableId];
+          if (cache && cache.length > 0) {
+            // 返回第一个有ID的任务（通常是当前选中的）
+            const taskWithId = cache.find(t => t.id);
+            if (taskWithId) return taskWithId.id;
+          }
+        }
+      }
+    } catch (e) {
+      console.log('[ExtractTaskId] 从cache获取失败:', e.message);
+    }
+    
+    // 尝试从当前高亮/选中的行获取
+    try {
+      const highlightedRow = document.querySelector('.layui-table-click, .layui-table-selected');
+      if (highlightedRow) {
+        const checkbox = highlightedRow.querySelector('input[type="checkbox"], input.layui-checkbox');
+        if (checkbox) {
+          const id = checkbox.getAttribute('data-id') || checkbox.value;
+          if (id && id.length === 40) return id;
+        }
+      }
+    } catch (e) {
+      console.log('[ExtractTaskId] 从选中行获取失败:', e.message);
+    }
+    
+    return null;
+  }
+  
+  // 使用API从页面进行校验（强制API模式）
+  async function autoCheckDetailByAPIFromPage() {
+    console.log('[AutoCheckAPI] 强制API模式，从页面获取任务ID...');
+    
+    // 获取任务ID
+    const taskId = extractTaskIdFromPage();
+    if (!taskId) {
+      return { 
+        success: false, 
+        error: '无法从页面获取任务ID，请确保已选择任务。如果问题持续，请使用批量校验功能。' 
+      };
+    }
+    
+    console.log('[AutoCheckAPI] 获取到任务ID:', taskId.substring(0, 16) + '...');
+    
+    // 构建taskData
+    const taskData = { id: taskId };
+    
+    // 调用批量校验的API方式（复用逻辑）
+    return await batchCheckTask(taskData);
+  }
+  
+  async function autoCheckDetail(apiAttachmentData = null) {
     try {
       // 更宽松的弹窗检测
       const detailPopup = document.querySelector('.layui-layer.layui-layer-page')
@@ -370,6 +446,9 @@
       }
       
       console.log('[AutoCheck] 检测到详情弹窗，开始校验...');
+      if (apiAttachmentData) {
+        console.log('[AutoCheck] 使用API附件数据:', apiAttachmentData);
+      }
 
       const results = [];
 
@@ -391,7 +470,7 @@
 
       if (manufacturerNames.length > 0) {
         const manufacturerMatch = manufacturerNames.some(
-          (name) => name === supplierName || supplierName.includes(name) || name.includes(supplierName)
+          (name) => isNormalizedEqual(name, supplierName) || isNormalizedIncludes(supplierName, name) || isNormalizedIncludes(name, supplierName)
         );
         results.push({
           item: '生产企业名称一致性',
@@ -439,7 +518,7 @@
           expectedModel = excelModels[0]; // Use Excel model as expected
           if (pageModels.length > 0) {
             const modelMatch = excelModels.some((em) =>
-              pageModels.some((pm) => pm.includes(em) || em.includes(pm))
+              pageModels.some((pm) => isNormalizedIncludes(pm, em) || isNormalizedIncludes(em, pm))
             );
             results.push({
               item: '型号信息(与Excel)',
@@ -467,7 +546,7 @@
         const excelManufacturers = parseMultiValue(excelRow.manufacturer);
         if (excelManufacturers.length > 0 && excelManufacturers[0] !== 'N/A') {
           const mfMatch = excelManufacturers.some((em) =>
-            manufacturerNames.some((mn) => mn.includes(em) || em.includes(mn))
+            manufacturerNames.some((mn) => isNormalizedIncludes(mn, em) || isNormalizedIncludes(em, mn))
           );
           results.push({
             item: '生产企业(与Excel)',
@@ -486,17 +565,29 @@
       }
 
       // --- 2.6 AI Image Recognition ---
+      console.log('[AutoCheck] 开始附件识别，apiAttachmentData:', apiAttachmentData ? '有数据' : '无数据');
+      if (apiAttachmentData) {
+        console.log('[AutoCheck] CCC附件:', apiAttachmentData.cccAttachment ? apiAttachmentData.cccAttachment.fileName : '无');
+        console.log('[AutoCheck] 型号附件:', apiAttachmentData.modelAttachment ? apiAttachmentData.modelAttachment.fileName : '无');
+      }
+      
       // CCC attachment
       if (isCccOnPage) {
+        const cccAttachment = apiAttachmentData && apiAttachmentData.cccAttachment ? apiAttachmentData.cccAttachment : null;
+        console.log('[AutoCheck] 传递CCC附件:', cccAttachment ? cccAttachment.fileName : '无');
         const cccResult = await recognizeAttachmentImage(
-          detailPopup, '#cccFile', 'ccc', expectedModel, latestPartsCode
+          detailPopup, '#cccFile', 'ccc', expectedModel, latestPartsCode,
+          cccAttachment
         );
         results.push(cccResult);
       }
 
       // Model attachment
+      const modelAttachment = apiAttachmentData && apiAttachmentData.modelAttachment ? apiAttachmentData.modelAttachment : null;
+      console.log('[AutoCheck] 传递型号附件:', modelAttachment ? modelAttachment.fileName : '无');
       const modelResult = await recognizeAttachmentImage(
-        detailPopup, '#modelFile', 'model', expectedModel, latestPartsCode
+        detailPopup, '#modelFile', 'model', expectedModel, latestPartsCode,
+        modelAttachment
       );
       results.push(modelResult);
 
@@ -513,9 +604,28 @@
 
   /**
    * Extract image from attachment area and call AI recognition
+   * @param {HTMLElement} detailPopup - 详情弹窗DOM元素
+   * @param {string} containerSelector - 附件容器选择器
+   * @param {string} recognitionType - 识别类型 ('ccc' 或 'model')
+   * @param {string} expectedModel - 期望的型号
+   * @param {string} expectedPartNumber - 期望的零件号
+   * @param {Object} apiAttachment - API获取的附件数据 (可选)
    */
-  async function recognizeAttachmentImage(detailPopup, containerSelector, recognitionType, expectedModel, expectedPartNumber) {
+  async function recognizeAttachmentImage(detailPopup, containerSelector, recognitionType, expectedModel, expectedPartNumber, apiAttachment = null) {
     const itemLabel = recognitionType === 'ccc' ? 'CCC标识(AI识别)' : '型号标识(AI识别)';
+    
+    console.log(`[recognizeAttachmentImage] 开始识别 - 类型: ${recognitionType}, API附件:`, apiAttachment ? '有' : '无');
+    if (apiAttachment) {
+      console.log(`[recognizeAttachmentImage] API附件数据:`, JSON.stringify(apiAttachment));
+    }
+    
+    // 如果提供了API附件数据，优先使用API数据
+    if (apiAttachment && apiAttachment.fileId) {
+      console.log(`[recognizeAttachmentImage] 使用API附件数据:`, apiAttachment.fileName);
+      return await recognizeAttachmentFromAPI(apiAttachment, recognitionType, expectedModel, expectedPartNumber);
+    }
+    console.log(`[recognizeAttachmentImage] API附件数据无效，回退到DOM查询`);
+    
     const container = detailPopup.querySelector(containerSelector);
 
     if (!container) {
@@ -618,7 +728,7 @@
    * Download file by ID and convert to base64
    */
   async function fetchFileAsBase64(fileId) {
-    const response = await fetch(`/api/unifomity/file/download?id=${fileId}`);
+    const response = await fetch(`/api/unifomity/uniformityFileManagemant/fileDownload?fileId=${fileId}`);
     if (!response.ok) throw new Error('下载失败');
     const blob = await response.blob();
     return new Promise((resolve, reject) => {
@@ -719,18 +829,19 @@
     }
 
     // Check if expected model appears anywhere in recognized content
+    // 使用规范化比对，将φ/Φ视为相同字符
     let modelFound = false;
     if (expectedModel) {
-      modelFound = allText.includes(expectedModel)
-        || recognizedModel.includes(expectedModel)
-        || expectedModel.includes(recognizedModel);
+      modelFound = isNormalizedIncludes(allText, expectedModel)
+        || isNormalizedIncludes(recognizedModel, expectedModel)
+        || isNormalizedIncludes(expectedModel, recognizedModel);
     }
 
     // Check part number
     let partNumFound = false;
     if (expectedPartNumber) {
-      partNumFound = allText.includes(expectedPartNumber)
-        || recognizedPartNum.includes(expectedPartNumber);
+      partNumFound = isNormalizedIncludes(allText, expectedPartNumber)
+        || isNormalizedIncludes(recognizedPartNum, expectedPartNumber);
     }
 
     if (confidence === 'high') {
@@ -760,22 +871,30 @@
 
   // ============ 3. Batch Check Task ============
   // 配置：是否强制使用API模式（设为true则API失败时不会降级到弹窗）
-  // 当前设为false，让API失败时可以降级到弹窗模式
-  const FORCE_API_MODE = false;
+  // 当前设为false，让API失败时可以降级到弹窗模式以正确获取CCC状态
+  const FORCE_API_MODE = false; // 禁用强制API模式，允许降级到弹窗方式获取CCC信息
   
   async function batchCheckTask(taskData) {
     console.log(`[BatchCheck] ===============================`);
-    console.log(`[BatchCheck] 开始校验任务: ${taskData.partsName || '未知零件'}`);
+    console.log(`[BatchCheck] 开始校验任务: ${taskData ? (taskData.partsName || '未知零件') : 'taskData为空!'}`);
+    
+    // 检查 taskData 是否有效
+    if (!taskData) {
+      console.error(`[BatchCheck] ❌ taskData 为 null/undefined!`);
+      return { success: false, error: 'taskData为空' };
+    }
+    
     console.log(`[BatchCheck] 任务ID: ${taskData.id || '无ID'}`);
     console.log(`[BatchCheck] 任务ID长度: ${taskData.id ? taskData.id.length : 0}`);
+    console.log(`[BatchCheck] taskData 完整内容:`, JSON.stringify(taskData, null, 2));
     console.log(`[BatchCheck] 强制API模式: ${FORCE_API_MODE}`);
     console.log(`[BatchCheck] ===============================`);
     
     try {
-      // 验证任务ID格式（应该是40位的十六进制字符串）
-      if (!taskData.id || taskData.id.length !== 40) {
-        console.log(`[BatchCheck] ⚠️ 任务ID格式不正确，使用弹窗方式`);
-        return await batchCheckTaskByPopup(taskData);
+      // 验证任务ID是否存在
+      if (!taskData.id) {
+        console.error(`[BatchCheck] ❌ 任务ID为空`);
+        return { success: false, error: '任务ID为空' };
       }
       
       // 使用API直接获取任务详情数据
@@ -784,8 +903,18 @@
       
       if (detailData.success) {
         console.log('[BatchCheck] API获取成功，使用API数据进行校验');
+        console.log('[BatchCheck] 调用前 taskData 类型:', typeof taskData);
+        console.log('[BatchCheck] 调用前 taskData 值:', taskData);
+        console.log('[BatchCheck] 调用前 taskData.id:', taskData ? taskData.id : 'taskData为空');
+        
         // 执行校验（使用API返回的数据）
-        const checkResult = await autoCheckDetailByAPI(detailData.data, taskData);
+        // autoCheckDetailByAPI会在内部处理CCC状态获取：
+        // - 优先从API数据中获取CCC字段
+        // - 如果API没有CCC字段，会自动打开弹窗仅获取CCC状态
+        // - 其他信息（供应商、零件名称等）始终使用API数据
+        const currentTaskData = taskData;
+        console.log('[BatchCheck] currentTaskData 赋值后:', currentTaskData ? currentTaskData.id : 'null');
+        const checkResult = await autoCheckDetailByAPI(detailData.data, currentTaskData);
         
         if (!checkResult.success) {
           return { success: false, error: checkResult.error };
@@ -793,56 +922,43 @@
         
         // 分析结果
         const allPassed = checkResult.results.every(r => r.passed);
-        const hasWarning = checkResult.results.some(r => r.needManual);
+        // 修改：当所有检验项中有一项不满足（passed为false）时，需要人工确认
+        const hasWarning = !allPassed;
         
         return {
           success: true,
           allPassed: allPassed,
           hasWarning: hasWarning,
           results: checkResult.results,
-          source: 'api' // 标记数据来源
+          source: 'api' // 标记数据来源（即使CCC从弹窗获取，其他数据仍来自API）
         };
       }
       
-      // API获取失败
+      // API获取失败 - 强制API模式下直接返回错误
       console.log(`[BatchCheck] ❌ API获取失败: ${detailData.error}`);
-      
-      // 显示错误通知
       showNotification(`API获取失败: ${detailData.error}`, 'error');
-      
-      if (FORCE_API_MODE) {
-        // 强制API模式：不降级，直接返回错误
-        console.log('[BatchCheck] ⚠️ 强制API模式开启，不使用弹窗降级');
-        return { 
-          success: false, 
-          error: `API获取失败: ${detailData.error}`,
-          apiError: detailData.error,
-          rawResponse: detailData.rawResponse
-        };
-      }
-      
-      // 非强制模式：降级到弹窗方式
-      console.log('[BatchCheck] 降级到弹窗方式');
-      return await batchCheckTaskByPopup(taskData);
+      return { 
+        success: false, 
+        error: `API获取失败: ${detailData.error}`,
+        apiError: detailData.error,
+        rawResponse: detailData.rawResponse
+      };
       
     } catch (err) {
       console.log(`[BatchCheck] API方式异常: ${err.message}`);
-      
-      if (FORCE_API_MODE) {
-        return { 
-          success: false, 
-          error: `API异常: ${err.message}`
-        };
-      }
-      
-      return await batchCheckTaskByPopup(taskData);
+      return { 
+        success: false, 
+        error: `API异常: ${err.message}`
+      };
     }
   }
   
   // 使用弹窗方式获取任务详情并校验（备用方案）- 全自动流程
-  async function batchCheckTaskByPopup(taskData) {
+  // silentMode: 静默模式，隐藏弹窗界面，用户看不到操作过程
+  async function batchCheckTaskByPopup(taskData, silentMode = true) {
     console.log(`[PopupMode] ====== 开始弹窗模式校验 ======`);
     console.log(`[PopupMode] 任务: ${taskData.partsName || taskData.latestPartsCode}`);
+    console.log(`[PopupMode] 静默模式: ${silentMode ? '开启' : '关闭'}`);
     
     try {
       // 第一步：在任务列表中找到并点击该任务
@@ -856,7 +972,7 @@
       
       // 第二步：等待详情页加载
       console.log('[PopupMode] 步骤2: 等待详情页加载...');
-      const popupResult = await waitForDetailPopup({ timeout: 10000, checkContent: false });
+      const popupResult = await waitForDetailPopup({ timeout: 15000, checkContent: false });
       if (!popupResult.success) {
         console.log(`[PopupMode] ❌ 等待弹窗失败: ${popupResult.error}`);
         return { success: false, error: popupResult.error };
@@ -866,13 +982,78 @@
         console.log(`[PopupMode] ⚠️ ${popupResult.warning}`);
       }
       
+      // 静默模式：隐藏弹窗，用户看不到操作过程
+      let popupElement = popupResult.element;
+      if (silentMode && popupElement) {
+        console.log('[PopupMode] 静默模式：隐藏弹窗界面');
+        popupElement.style.visibility = 'hidden';
+        popupElement.style.opacity = '0';
+        // 同时隐藏遮罩层
+        const shade = document.querySelector('.layui-layer-shade');
+        if (shade) {
+          shade.style.visibility = 'hidden';
+          shade.style.opacity = '0';
+        }
+      }
+      
       // 额外等待确保内容渲染完成
       console.log('[PopupMode] 等待内容渲染...');
       await new Promise(r => setTimeout(r, 1500));
       
-      // 第三步：执行校验
-      console.log('[PopupMode] 步骤3: 执行一致性校验...');
-      const checkResult = await autoCheckDetail();
+      // 第三步：通过API获取附件数据（解决DOM查询可能找不到附件的问题）
+      console.log('[PopupMode] 步骤3: 通过API获取附件数据...');
+      let apiAttachmentData = null;
+      try {
+        const taskId = taskData.id;
+        if (taskId) {
+          const attachApiUrl = `${window.location.origin}/api/unifomity/uniformityCheckSWTaskWaitFile/getUniformityCheckFile?uniformityCheckTaskId=${taskId}`;
+          console.log('[PopupMode] 附件API URL:', attachApiUrl);
+          
+          const attachResponse = await fetch(attachApiUrl, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' }
+          });
+          
+          if (attachResponse.ok) {
+            const attachResult = await attachResponse.json();
+            if (attachResult.ok && attachResult.data && attachResult.data.length > 0) {
+              const attachmentList = attachResult.data;
+              console.log('[PopupMode] 获取到附件列表:', attachmentList.length, '个');
+              
+              // 筛选CCC标识和型号标识附件
+              // type: 0=CCC标识, 1=型号标识
+              const cccAttachment = attachmentList.find(a => a.type === '0' || a.type === 0);
+              const modelAttachment = attachmentList.find(a => a.type === '1' || a.type === 1);
+              
+              apiAttachmentData = {
+                cccAttachment: cccAttachment,
+                modelAttachment: modelAttachment
+              };
+              
+              console.log('[PopupMode] CCC附件:', cccAttachment ? cccAttachment.fileName : '无', 'fileId:', cccAttachment ? cccAttachment.fileId : '无');
+              console.log('[PopupMode] 型号附件:', modelAttachment ? modelAttachment.fileName : '无', 'fileId:', modelAttachment ? modelAttachment.fileId : '无');
+              console.log('[PopupMode] apiAttachmentData 结构:', JSON.stringify({
+                hasCcc: !!apiAttachmentData.cccAttachment,
+                hasModel: !!apiAttachmentData.modelAttachment,
+                cccFileId: apiAttachmentData.cccAttachment?.fileId,
+                modelFileId: apiAttachmentData.modelAttachment?.fileId
+              }));
+            } else {
+              console.log('[PopupMode] 附件API返回无数据');
+            }
+          } else {
+            console.log('[PopupMode] 附件API请求失败，状态码:', attachResponse.status);
+          }
+        }
+      } catch (err) {
+        console.log('[PopupMode] 获取附件信息失败:', err.message);
+        // 继续执行，不阻断主流程
+      }
+      
+      // 第四步：执行校验（传入API附件数据）
+      console.log('[PopupMode] 步骤4: 执行一致性校验...');
+      const checkResult = await autoCheckDetail(apiAttachmentData);
       
       if (!checkResult.success) {
         console.log(`[PopupMode] ❌ 校验失败: ${checkResult.error}`);
@@ -882,14 +1063,15 @@
       }
       console.log('[PopupMode] ✓ 校验完成');
       
-      // 第四步：关闭详情页，返回列表
-      console.log('[PopupMode] 步骤4: 关闭详情页...');
+      // 第五步：关闭详情页，返回列表
+      console.log('[PopupMode] 步骤5: 关闭详情页...');
       await closeDetailPopup();
       console.log('[PopupMode] ✓ 详情页已关闭');
       
       // 分析结果
       const allPassed = checkResult.results.every(r => r.passed);
-      const hasWarning = checkResult.results.some(r => r.needManual);
+      // 修改：当所有检验项中有一项不满足（passed为false）时，需要人工确认
+      const hasWarning = !allPassed;
       
       console.log(`[PopupMode] ====== 弹窗模式完成 ======`);
       console.log(`[PopupMode] 结果: ${allPassed ? '通过' : (hasWarning ? '需人工' : '不通过')}`);
@@ -952,6 +1134,213 @@
   
   // 定期清理缓存
   setInterval(cleanExpiredCache, 60000);
+
+  // ============ 附件获取辅助函数 ============
+  
+  /**
+   * 从主任务详情API响应中提取附件信息
+   * 有些任务状态下，附件信息可能直接包含在主API响应中
+   * @param {Object} apiData - 主任务详情API响应数据
+   * @returns {Array} 附件列表
+   */
+  function extractAttachmentsFromApiData(apiData) {
+    const attachments = [];
+    
+    if (!apiData) return attachments;
+    
+    // 检查可能的附件字段
+    const possibleAttachmentFields = [
+      'attachmentList', 'attachments', 'fileList', 'files', 
+      'cccFile', 'modelFile', 'cccAttachment', 'modelAttachment',
+      'uniformityCheckFileList', 'checkFiles', 'fileData'
+    ];
+    
+    console.log('[API] 检查主API响应中的附件字段...');
+    
+    for (const field of possibleAttachmentFields) {
+      if (apiData[field]) {
+        console.log(`[API] 发现可能的附件字段: ${field}`, apiData[field]);
+        
+        const data = apiData[field];
+        if (Array.isArray(data) && data.length > 0) {
+          // 如果是数组，直接添加到附件列表
+          for (const item of data) {
+            if (item.fileId || item.fileName) {
+              attachments.push({
+                fileId: item.fileId || item.id,
+                fileName: item.fileName || item.name,
+                fileType: item.fileType || item.type,
+                type: item.type || determineAttachmentType(item.fileName || item.name)
+              });
+            }
+          }
+        } else if (typeof data === 'object' && data !== null) {
+          // 如果是单个对象
+          if (data.fileId || data.fileName) {
+            attachments.push({
+              fileId: data.fileId || data.id,
+              fileName: data.fileName || data.name,
+              fileType: data.fileType || data.type,
+              type: data.type || determineAttachmentType(data.fileName || data.name)
+            });
+          }
+        }
+      }
+    }
+    
+    // 检查嵌套结构
+    if (attachments.length === 0) {
+      // 检查data内部是否有附件相关字段
+      const allKeys = Object.keys(apiData);
+      const attachmentKeys = allKeys.filter(k => 
+        k.toLowerCase().includes('file') || 
+        k.toLowerCase().includes('attachment') ||
+        k.toLowerCase().includes('ccc') ||
+        k.toLowerCase().includes('model')
+      );
+      
+      if (attachmentKeys.length > 0) {
+        console.log('[API] 可能的附件相关字段:', attachmentKeys);
+        
+        for (const key of attachmentKeys) {
+          const val = apiData[key];
+          if (Array.isArray(val) && val.length > 0) {
+            console.log(`[API] 从字段 ${key} 获取数据:`, val);
+            for (const item of val) {
+              if (item && (item.fileId || item.fileName || item.id)) {
+                attachments.push({
+                  fileId: item.fileId || item.id,
+                  fileName: item.fileName || item.name || `${key}_file`,
+                  fileType: item.fileType || item.fileSuffix,
+                  type: item.type || determineAttachmentType(item.fileName || item.name)
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    return attachments;
+  }
+  
+  /**
+   * 根据文件名判断附件类型
+   * @param {string} fileName - 文件名
+   * @returns {string} 附件类型 ('0'=CCC标识, '1'=型号标识)
+   */
+  function determineAttachmentType(fileName) {
+    if (!fileName) return '1'; // 默认型号标识
+    
+    const lowerName = fileName.toLowerCase();
+    if (lowerName.includes('ccc') || lowerName.includes('3c')) {
+      return '0'; // CCC标识
+    }
+    return '1'; // 型号标识
+  }
+  
+  /**
+   * 尝试备用附件API端点
+   * 当主要附件API失败时，尝试其他可能的端点
+   * @param {string} taskId - 任务ID
+   * @returns {Array} 附件列表
+   */
+  async function tryAlternativeAttachmentApis(taskId) {
+    const attachments = [];
+    
+    // 备用API端点列表
+    const alternativeApis = [
+      // 原始端点（可能不同参数格式）
+      { 
+        url: `${window.location.origin}/api/unifomity/uniformityCheckSWTaskWaitFile/getUniformityCheckFile`,
+        method: 'POST',
+        body: JSON.stringify({ uniformityCheckTaskId: taskId })
+      },
+      // 可能的变体端点
+      { 
+        url: `${window.location.origin}/api/unifomity/uniformityCheckFile/getUniformityCheckFile?uniformityCheckTaskId=${taskId}`,
+        method: 'GET'
+      },
+      { 
+        url: `${window.location.origin}/api/unifomity/uniformityCheckSWTaskFile/getUniformityCheckFile?uniformityCheckTaskId=${taskId}`,
+        method: 'GET'
+      },
+      { 
+        url: `${window.location.origin}/api/unifomity/uniformityFile/getUniformityCheckFile?uniformityCheckTaskId=${taskId}`,
+        method: 'GET'
+      },
+      // 使用任务详情端点获取附件
+      { 
+        url: `${window.location.origin}/api/unifomity/uniformityCheckSWTaskSearch/getUniCheckTaskInfo`,
+        method: 'POST',
+        body: JSON.stringify({ id: taskId }),
+        extractField: 'attachmentList'
+      }
+    ];
+    
+    for (let i = 0; i < alternativeApis.length; i++) {
+      const api = alternativeApis[i];
+      console.log(`[API] 尝试备用端点 ${i + 1}:`, api.url);
+      
+      try {
+        const options = {
+          method: api.method,
+          credentials: 'same-origin',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        };
+        
+        if (api.body) {
+          options.body = api.body;
+        }
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超时
+        options.signal = controller.signal;
+        
+        const response = await fetch(api.url, options);
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log(`[API] 备用端点 ${i + 1} 响应:`, result);
+          
+          if (result.ok && result.data) {
+            let data = result.data;
+            
+            // 如果需要从特定字段提取
+            if (api.extractField && data[api.extractField]) {
+              data = data[api.extractField];
+            }
+            
+            if (Array.isArray(data) && data.length > 0) {
+              for (const item of data) {
+                if (item.fileId || item.fileName) {
+                  attachments.push({
+                    fileId: item.fileId || item.id,
+                    fileName: item.fileName || item.name,
+                    fileType: item.fileType || item.type,
+                    type: item.type || determineAttachmentType(item.fileName || item.name)
+                  });
+                }
+              }
+              
+              if (attachments.length > 0) {
+                console.log(`[API] 备用端点 ${i + 1} 成功获取 ${attachments.length} 个附件`);
+                break; // 成功获取，跳出循环
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.log(`[API] 备用端点 ${i + 1} 失败:`, err.message);
+      }
+    }
+    
+    return attachments;
+  }
 
   // 通过API获取任务详情 - 优化版本，支持缓存和重试
   async function fetchTaskDetailByAPI(taskId, options = {}) {
@@ -1031,6 +1420,28 @@
           }
           
           if (data) {
+            // 打印数据结构以便调试
+            console.log('[API] 返回数据字段:', Object.keys(data));
+            // 查找可能包含生产企业和型号的字段
+            const allKeys = Object.keys(data);
+            const manufacturerKeys = allKeys.filter(k => 
+              k.toLowerCase().includes('manufacturer') || 
+              k.toLowerCase().includes('product') ||
+              k.toLowerCase().includes('enterprise')
+            );
+            const modelKeys = allKeys.filter(k => 
+              k.toLowerCase().includes('model') || 
+              k.toLowerCase().includes('type')
+            );
+            if (manufacturerKeys.length > 0) {
+              console.log('[API] 生产企业相关字段:', manufacturerKeys);
+              manufacturerKeys.forEach(k => console.log(`[API] ${k}:`, data[k]));
+            }
+            if (modelKeys.length > 0) {
+              console.log('[API] 型号相关字段:', modelKeys);
+              modelKeys.forEach(k => console.log(`[API] ${k}:`, data[k]));
+            }
+            
             // 缓存数据
             if (useCache) {
               setCachedData(taskId, data);
@@ -1063,6 +1474,266 @@
     }
   }
   
+  // 备选方案：通过零件号直接查找并点击任务
+  async function clickTaskByPartsCode(partsCode) {
+    console.log(`[ClickByCode] 尝试通过零件号查找: ${partsCode}`);
+    
+    return new Promise(async (resolve) => {
+      // 查找所有包含该零件号的单元格
+      const allCells = document.querySelectorAll('td[data-field="latestPartsCode"]');
+      console.log(`[ClickByCode] 找到 ${allCells.length} 个零件号单元格`);
+      
+      let targetCell = null;
+      for (const cell of allCells) {
+        const cellText = cell.textContent.trim();
+        if (cellText === partsCode || cellText.includes(partsCode)) {
+          targetCell = cell;
+          console.log(`[ClickByCode] 找到匹配的单元格: ${cellText}`);
+          break;
+        }
+      }
+      
+      if (!targetCell) {
+        console.log('[ClickByCode] ❌ 未找到匹配的零件号单元格');
+        resolve({ success: false, error: '未找到匹配的零件号' });
+        return;
+      }
+      
+      // 获取所在行
+      const row = targetCell.closest('tr');
+      if (!row) {
+        console.log('[ClickByCode] ❌ 无法获取所在行');
+        resolve({ success: false, error: '无法获取所在行' });
+        return;
+      }
+      
+      // 高亮显示
+      row.style.backgroundColor = '#e3f2fd';
+      row.style.transition = 'background-color 0.3s';
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // 处理复选框（确保只勾选一条）
+      console.log('[ClickByCode] 0.1 取消所有已勾选的复选框...');
+      
+      // 查找页面上所有可能的复选框
+      const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+      let uncheckedCount = 0;
+      
+      allCheckboxes.forEach(cb => {
+        if (cb.checked) {
+          cb.checked = false;
+          uncheckedCount++;
+          cb.dispatchEvent(new Event('change', { bubbles: true }));
+          
+          // 如果是layui复选框，移除选中样式
+          const wrapper = cb.closest('.layui-form-checkbox');
+          if (wrapper && wrapper.classList.contains('layui-form-checked')) {
+            wrapper.classList.remove('layui-form-checked');
+          }
+        }
+      });
+      
+      console.log(`[ClickByCode] 已取消 ${uncheckedCount} 个复选框的勾选状态`);
+      
+      // 尝试触发layui的form.render来更新UI
+      if (typeof layui !== 'undefined' && layui.form) {
+        layui.form.render('checkbox');
+      }
+      
+      // 等待UI更新
+      await new Promise(r => setTimeout(r, 300));
+      
+      // 0.2 勾选当前行的复选框
+      console.log('[ClickByCode] 0.2 勾选当前行复选框...');
+      const rowCheckbox = row.querySelector('input[type="checkbox"]');
+      const checkboxWrapper = row.querySelector('.layui-form-checkbox');
+      
+      if (checkboxWrapper) {
+        // 优先点击layui的复选框包装元素
+        checkboxWrapper.click();
+        console.log('[ClickByCode] ✓ 已点击layui复选框包装元素');
+      } else if (rowCheckbox) {
+        rowCheckbox.checked = true;
+        rowCheckbox.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        rowCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+        console.log('[ClickByCode] ✓ 已勾选复选框');
+      }
+      
+      // 等待layui更新UI状态
+      await new Promise(r => setTimeout(r, 800));
+      
+      // 尝试点击"查看详情"按钮
+      console.log('[ClickByCode] 尝试点击"查看详情"按钮...');
+      const detailBtn = document.querySelector('button');
+      if (detailBtn && detailBtn.textContent.includes('查看')) {
+        setTimeout(() => {
+          detailBtn.click();
+          console.log('[ClickByCode] ✓ 已点击"查看详情"按钮');
+          resolve({ success: true, method: '零件号直接查找' });
+        }, 800);
+      } else {
+        // 如果没有找到按钮，尝试双击行
+        console.log('[ClickByCode] 未找到按钮，尝试双击行...');
+        setTimeout(() => {
+          const dblclickEvent = new MouseEvent('dblclick', { bubbles: true, cancelable: true, view: window });
+          row.dispatchEvent(dblclickEvent);
+          console.log('[ClickByCode] ✓ 已双击行');
+          resolve({ success: true, method: '零件号-双击行' });
+        }, 800);
+      }
+      
+      // 恢复行背景色
+      setTimeout(() => {
+        row.style.backgroundColor = '';
+      }, 1000);
+    });
+  }
+  
+  // 通过滚动查找任务（适用于表格需要滚动加载的情况）
+  async function findTaskByScrolling(taskData) {
+    console.log(`[ScrollFind] 开始滚动查找任务: ${taskData.partsName || taskData.latestPartsCode}`);
+    
+    return new Promise(async (resolve) => {
+      const tableBody = document.querySelector('.layui-table-body.layui-table-main');
+      if (!tableBody) {
+        console.log('[ScrollFind] ❌ 未找到表格主体');
+        resolve({ success: false, error: '未找到表格主体' });
+        return;
+      }
+      
+      const maxScrollAttempts = 10;
+      let scrollAttempts = 0;
+      let found = false;
+      
+      // 先滚动到顶部
+      tableBody.scrollTop = 0;
+      await new Promise(r => setTimeout(r, 500));
+      
+      while (scrollAttempts < maxScrollAttempts && !found) {
+        // 获取当前可见的行
+        const rows = tableBody.querySelectorAll('tbody tr');
+        console.log(`[ScrollFind] 第${scrollAttempts + 1}次滚动，当前可见行数: ${rows.length}`);
+        
+        // 在当前可见行中查找
+        for (const tr of rows) {
+          const partsNameTd = tr.querySelector('td[data-field="partsName"]');
+          const latestPartsCodeTd = tr.querySelector('td[data-field="latestPartsCode"]');
+          
+          const partsName = partsNameTd ? partsNameTd.textContent.trim() : '';
+          const latestPartsCode = latestPartsCodeTd ? latestPartsCodeTd.textContent.trim() : '';
+          
+          // 检查是否匹配
+          const nameMatch = taskData.partsName && (
+            partsName === taskData.partsName ||
+            partsName.includes(taskData.partsName) ||
+            taskData.partsName.includes(partsName)
+          );
+          
+          const codeMatch = taskData.latestPartsCode && (
+            latestPartsCode === taskData.latestPartsCode ||
+            latestPartsCode.includes(taskData.latestPartsCode) ||
+            taskData.latestPartsCode.includes(latestPartsCode)
+          );
+          
+          if (nameMatch || codeMatch) {
+            console.log(`[ScrollFind] ✓ 找到匹配的行`);
+            console.log(`[ScrollFind] 零件名称: ${partsName}`);
+            console.log(`[ScrollFind] 零件号: ${latestPartsCode}`);
+            
+            // 高亮显示
+            tr.style.backgroundColor = '#e3f2fd';
+            tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // 处理复选框
+            await handleCheckboxForRow(tr);
+            
+            // 点击"查看详情"按钮
+            const detailBtn = document.querySelector('button');
+            if (detailBtn && detailBtn.textContent.includes('查看')) {
+              setTimeout(() => {
+                detailBtn.click();
+                console.log('[ScrollFind] ✓ 已点击"查看详情"按钮');
+                resolve({ success: true });
+              }, 800);
+            } else {
+              setTimeout(() => {
+                const dblclickEvent = new MouseEvent('dblclick', { bubbles: true, cancelable: true, view: window });
+                tr.dispatchEvent(dblclickEvent);
+                console.log('[ScrollFind] ✓ 已双击行');
+                resolve({ success: true });
+              }, 800);
+            }
+            
+            found = true;
+            return;
+          }
+        }
+        
+        // 如果没有找到，继续滚动
+        const scrollHeight = tableBody.scrollHeight;
+        const clientHeight = tableBody.clientHeight;
+        const currentScroll = tableBody.scrollTop;
+        
+        if (currentScroll + clientHeight >= scrollHeight) {
+          console.log('[ScrollFind] 已滚动到底部，未找到任务');
+          break;
+        }
+        
+        // 向下滚动一屏
+        tableBody.scrollTop += clientHeight * 0.8;
+        scrollAttempts++;
+        
+        // 等待内容加载
+        await new Promise(r => setTimeout(r, 800));
+      }
+      
+      if (!found) {
+        console.log('[ScrollFind] ❌ 滚动查找失败，未找到任务');
+        resolve({ success: false, error: '滚动查找未找到任务' });
+      }
+    });
+  }
+  
+  // 辅助函数：处理行的复选框
+  async function handleCheckboxForRow(row) {
+    console.log('[HandleCheckbox] 处理复选框...');
+    
+    // 1. 取消所有复选框
+    const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+    allCheckboxes.forEach(cb => {
+      if (cb.checked) {
+        cb.checked = false;
+        cb.dispatchEvent(new Event('change', { bubbles: true }));
+        const wrapper = cb.closest('.layui-form-checkbox');
+        if (wrapper && wrapper.classList.contains('layui-form-checked')) {
+          wrapper.classList.remove('layui-form-checked');
+        }
+      }
+    });
+    
+    if (typeof layui !== 'undefined' && layui.form) {
+      layui.form.render('checkbox');
+    }
+    
+    await new Promise(r => setTimeout(r, 300));
+    
+    // 2. 勾选当前行
+    const checkboxWrapper = row.querySelector('.layui-form-checkbox');
+    const rowCheckbox = row.querySelector('input[type="checkbox"]');
+    
+    if (checkboxWrapper) {
+      checkboxWrapper.click();
+      console.log('[HandleCheckbox] ✓ 已点击layui复选框包装元素');
+    } else if (rowCheckbox) {
+      rowCheckbox.checked = true;
+      rowCheckbox.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      rowCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+      console.log('[HandleCheckbox] ✓ 已勾选复选框');
+    }
+    
+    await new Promise(r => setTimeout(r, 800));
+  }
+  
   // 在任务列表中点击指定任务 - 增强版，支持多种匹配方式和点击策略
   async function clickTaskInList(taskData) {
     console.log(`[AutoClick] 开始查找任务: ${taskData.partsName || taskData.latestPartsCode}`);
@@ -1082,23 +1753,50 @@
       let matchMethod = '';
       
       // 第一轮：精确匹配（通过任务ID）
+      console.log('[AutoClick] 任务数据:', {
+        id: taskData.id,
+        partsName: taskData.partsName,
+        latestPartsCode: taskData.latestPartsCode
+      });
+      
       if (taskData.id) {
+        console.log(`[AutoClick] 尝试ID匹配，目标ID: ${taskData.id.substring(0, 16)}...`);
+        
         for (const tr of rows) {
+          // 尝试多种可能的ID存储位置
           const rowId = tr.getAttribute('data-id') || '';
           const checkbox = tr.querySelector('input[type="checkbox"]');
           const checkboxId = checkbox ? checkbox.getAttribute('data-id') || '' : '';
+          const checkboxValue = checkbox ? checkbox.value || '' : '';
           
-          if (rowId === taskData.id || checkboxId === taskData.id) {
+          // 调试：输出第一行的ID信息
+          if (rows.length > 0 && tr === rows[0]) {
+            console.log('[AutoClick] 第1行rowId:', rowId ? rowId.substring(0, 16) + '...' : '无');
+            console.log('[AutoClick] 第1行checkboxId:', checkboxId ? checkboxId.substring(0, 16) + '...' : '无');
+            console.log('[AutoClick] 第1行checkboxValue:', checkboxValue ? checkboxValue.substring(0, 16) + '...' : '无');
+          }
+          
+          if (rowId === taskData.id || checkboxId === taskData.id || checkboxValue === taskData.id) {
             foundRow = tr;
             matchMethod = 'ID匹配';
             console.log(`[AutoClick] ✓ 通过ID匹配到任务`);
             break;
           }
         }
+        
+        if (!foundRow) {
+          console.log('[AutoClick] ID匹配失败，尝试其他匹配方式...');
+        }
+      } else {
+        console.log('[AutoClick] 任务数据中没有ID，跳过ID匹配');
       }
       
       // 第二轮：精确匹配（零件名称+零件号）
       if (!foundRow) {
+        console.log('[AutoClick] 尝试双字段匹配...');
+        console.log('[AutoClick] 目标零件名称:', JSON.stringify(taskData.partsName));
+        console.log('[AutoClick] 目标零件号:', JSON.stringify(taskData.latestPartsCode));
+        
         for (const tr of rows) {
           const partsNameTd = tr.querySelector('td[data-field="partsName"]');
           const latestPartsCodeTd = tr.querySelector('td[data-field="latestPartsCode"]');
@@ -1106,38 +1804,105 @@
           const partsName = partsNameTd ? partsNameTd.textContent.trim() : '';
           const latestPartsCode = latestPartsCodeTd ? latestPartsCodeTd.textContent.trim() : '';
           
-          // 优先同时匹配两个字段
-          if (partsName && latestPartsCode && 
-              partsName === taskData.partsName && 
-              latestPartsCode === taskData.latestPartsCode) {
-            foundRow = tr;
-            matchMethod = '双字段匹配';
-            console.log(`[AutoClick] ✓ 通过零件名称+零件号匹配到任务`);
-            break;
+          // 调试：输出前3行的内容
+          if (rows.length > 0 && tr === rows[0]) {
+            console.log('[AutoClick] 第1行零件名称:', JSON.stringify(partsName));
+            console.log('[AutoClick] 第1行零件号:', JSON.stringify(latestPartsCode));
+          }
+          
+          // 优先同时匹配两个字段（使用包含匹配，更灵活）
+          if (partsName && latestPartsCode) {
+            const nameMatch = partsName === taskData.partsName || 
+                             partsName.includes(taskData.partsName) || 
+                             taskData.partsName.includes(partsName);
+            const codeMatch = latestPartsCode === taskData.latestPartsCode ||
+                             latestPartsCode.includes(taskData.latestPartsCode) ||
+                             taskData.latestPartsCode.includes(latestPartsCode);
+            
+            if (nameMatch && codeMatch) {
+              foundRow = tr;
+              matchMethod = '双字段匹配';
+              console.log(`[AutoClick] ✓ 通过零件名称+零件号匹配到任务`);
+              console.log(`[AutoClick] 匹配到的零件名称:`, JSON.stringify(partsName));
+              console.log(`[AutoClick] 匹配到的零件号:`, JSON.stringify(latestPartsCode));
+              break;
+            }
           }
         }
       }
       
-      // 第三轮：单字段匹配
+      // 第三轮：单字段匹配（零件号优先）
       if (!foundRow) {
+        console.log('[AutoClick] 尝试单字段匹配（零件号优先）...');
+        
         for (const tr of rows) {
-          const partsNameTd = tr.querySelector('td[data-field="partsName"]');
           const latestPartsCodeTd = tr.querySelector('td[data-field="latestPartsCode"]');
-          
-          const partsName = partsNameTd ? partsNameTd.textContent.trim() : '';
           const latestPartsCode = latestPartsCodeTd ? latestPartsCodeTd.textContent.trim() : '';
           
-          if (partsName === taskData.partsName || latestPartsCode === taskData.latestPartsCode) {
-            foundRow = tr;
-            matchMethod = '单字段匹配';
-            console.log(`[AutoClick] ✓ 通过单字段匹配到任务`);
-            break;
+          // 优先匹配零件号（更精确）
+          if (latestPartsCode && taskData.latestPartsCode) {
+            const codeMatch = latestPartsCode === taskData.latestPartsCode ||
+                             latestPartsCode.includes(taskData.latestPartsCode) ||
+                             taskData.latestPartsCode.includes(latestPartsCode);
+            
+            if (codeMatch) {
+              foundRow = tr;
+              matchMethod = '零件号匹配';
+              console.log(`[AutoClick] ✓ 通过零件号匹配到任务:`, JSON.stringify(latestPartsCode));
+              break;
+            }
+          }
+        }
+      }
+      
+      // 第四轮：单字段匹配（零件名称）
+      if (!foundRow) {
+        console.log('[AutoClick] 尝试单字段匹配（零件名称）...');
+        
+        for (const tr of rows) {
+          const partsNameTd = tr.querySelector('td[data-field="partsName"]');
+          const partsName = partsNameTd ? partsNameTd.textContent.trim() : '';
+          
+          if (partsName && taskData.partsName) {
+            const nameMatch = partsName === taskData.partsName || 
+                             partsName.includes(taskData.partsName) || 
+                             taskData.partsName.includes(partsName);
+            
+            if (nameMatch) {
+              foundRow = tr;
+              matchMethod = '零件名称匹配';
+              console.log(`[AutoClick] ✓ 通过零件名称匹配到任务`);
+              break;
+            }
           }
         }
       }
       
       if (!foundRow) {
-        console.log(`[AutoClick] ❌ 未找到匹配的任务: ${taskData.partsName || taskData.latestPartsCode}`);
+        console.log(`[AutoClick] ❌ 在当前表格中未找到匹配的任务`);
+        console.log(`[AutoClick] 目标零件名称:`, JSON.stringify(taskData.partsName));
+        console.log(`[AutoClick] 目标零件号:`, JSON.stringify(taskData.latestPartsCode));
+        
+        // 备选方案1：尝试通过零件号在页面上直接查找并点击
+        if (taskData.latestPartsCode) {
+          console.log('[AutoClick] 尝试备选方案1：通过零件号直接查找并点击...');
+          const altResult = await clickTaskByPartsCode(taskData.latestPartsCode);
+          if (altResult.success) {
+            console.log('[AutoClick] ✓ 备选方案1成功');
+            resolve({ success: true, method: '备选方案1-' + altResult.method });
+            return;
+          }
+        }
+        
+        // 备选方案2：尝试滚动查找（如果表格支持滚动加载）
+        console.log('[AutoClick] 尝试备选方案2：滚动查找...');
+        const scrollResult = await findTaskByScrolling(taskData);
+        if (scrollResult.success) {
+          console.log('[AutoClick] ✓ 备选方案2成功');
+          resolve({ success: true, method: '滚动查找' });
+          return;
+        }
+        
         resolve({ success: false, error: '未找到匹配的任务: ' + (taskData.partsName || taskData.latestPartsCode) });
         return;
       }
@@ -1148,28 +1913,192 @@
       foundRow.style.backgroundColor = '#e3f2fd';
       foundRow.style.transition = 'background-color 0.3s';
       
+      // 步骤0：先处理复选框勾选（系统要求必须先勾选才能查看详情，且只能勾选一条）
+      console.log('[AutoClick] 步骤0: 处理复选框勾选（确保只勾选当前行）...');
+      
+      // 0.1 先取消所有行的勾选（包括表格内和页面上的所有复选框）
+      console.log('[AutoClick] 0.1 取消所有已勾选的复选框...');
+      
+      // 查找页面上所有可能的复选框
+      const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+      let uncheckedCount = 0;
+      
+      allCheckboxes.forEach((cb) => {
+        if (cb.checked) {
+          cb.checked = false;
+          uncheckedCount++;
+          
+          // 触发change事件以通知layui更新UI状态
+          const changeEvent = new Event('change', { bubbles: true });
+          cb.dispatchEvent(changeEvent);
+          
+          // 如果是layui复选框，尝试点击其包装元素来取消
+          const wrapper = cb.closest('.layui-form-checkbox');
+          if (wrapper && wrapper.classList.contains('layui-form-checked')) {
+            wrapper.classList.remove('layui-form-checked');
+          }
+        }
+      });
+      
+      console.log(`[AutoClick] 已取消 ${uncheckedCount} 个复选框的勾选状态`);
+      
+      // 尝试触发layui的form.render来更新UI
+      if (typeof layui !== 'undefined' && layui.form) {
+        layui.form.render('checkbox');
+        console.log('[AutoClick] 已触发layui.form.render("checkbox")');
+      }
+      
+      // 等待UI更新
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // 0.2 勾选当前行的复选框
+      // 复选框可能在行的第一个单元格中（根据截图，在最左侧列）
+      const firstCell = foundRow.querySelector('td:first-child, td.layui-table-col-special');
+      let rowCheckbox = null;
+      let checkboxWrapper = null;
+      
+      if (firstCell) {
+        rowCheckbox = firstCell.querySelector('input[type="checkbox"], input.layui-checkbox, input.layui-form-checkbox');
+        // 查找layui的复选框包装元素
+        checkboxWrapper = firstCell.querySelector('.layui-form-checkbox, .layui-checkbox');
+      }
+      
+      // 如果没找到，尝试在整个行中查找
+      if (!rowCheckbox) {
+        rowCheckbox = foundRow.querySelector('input[type="checkbox"], input.layui-checkbox, input.layui-form-checkbox');
+      }
+      
+      if (rowCheckbox || checkboxWrapper) {
+        console.log('[AutoClick] 找到复选框，准备勾选...');
+        
+        // 方法1：直接点击复选框元素（触发layui的点击事件）
+        if (checkboxWrapper) {
+          console.log('[AutoClick] 点击layui复选框包装元素');
+          checkboxWrapper.click();
+        } else if (rowCheckbox) {
+          // 方法2：设置checked属性并触发事件
+          rowCheckbox.checked = true;
+          
+          // 触发多种事件以确保layui识别
+          const clickEvent = new MouseEvent('click', { bubbles: true });
+          rowCheckbox.dispatchEvent(clickEvent);
+          
+          const changeEvent = new Event('change', { bubbles: true });
+          rowCheckbox.dispatchEvent(changeEvent);
+          
+          // 尝试触发layui特定事件
+          if (typeof layui !== 'undefined' && layui.form) {
+            layui.form.render('checkbox');
+          }
+        }
+        
+        console.log('[AutoClick] ✓ 已勾选当前行复选框');
+        
+        // 等待layui更新UI状态（增加等待时间确保系统识别）
+        await new Promise(resolve => setTimeout(resolve, 800));
+      } else {
+        console.log('[AutoClick] ⚠️ 当前行没有复选框，继续执行点击操作');
+      }
+      
       // 尝试多种点击策略
       let clicked = false;
       let clickPromise = null;
       
-      // 策略1：点击操作列按钮
-      const operationTd = foundRow.querySelector('td[data-field="8"]');
-      if (operationTd) {
-        const handleBtn = operationTd.querySelector('button');
-        if (handleBtn) {
-          console.log('[AutoClick] 点击操作列按钮');
-          foundRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          clickPromise = new Promise((resolve) => {
-            setTimeout(() => {
-              handleBtn.click();
-              clicked = true;
-              resolve();
-            }, 300);
-          });
+      // 策略1：点击页面工具栏上的"查看详情"按钮（主要策略）
+      // 根据截图，按钮在表格左上方的工具栏区域
+      console.log('[AutoClick] 策略1: 查找页面工具栏的"查看详情"按钮...');
+      
+      // 方法1：通过按钮文本查找
+      const allButtons = document.querySelectorAll('button');
+      let detailButton = null;
+      for (const btn of allButtons) {
+        const text = btn.textContent.trim();
+        // 精确匹配"查看详情"或包含"查看"和"详情"
+        if (text === '查看详情' || (text.includes('查看') && text.includes('详情'))) {
+          detailButton = btn;
+          console.log('[AutoClick] 找到"查看详情"按钮:', text);
+          break;
         }
       }
       
-      // 策略2：如果没有操作按钮，尝试双击行
+      // 方法2：如果没找到，尝试查找包含"查看"文本的按钮
+      if (!detailButton) {
+        for (const btn of allButtons) {
+          const text = btn.textContent.trim();
+          if (text === '查看' || text === '详情') {
+            detailButton = btn;
+            console.log('[AutoClick] 找到按钮:', text);
+            break;
+          }
+        }
+      }
+      
+      // 方法3：尝试通过layui的样式类查找工具栏按钮
+      if (!detailButton) {
+        const toolbarBtns = document.querySelectorAll('.layui-btn, .layui-btn-sm, .layui-btn-normal');
+        for (const btn of toolbarBtns) {
+          const text = btn.textContent.trim();
+          if (text.includes('查看')) {
+            detailButton = btn;
+            console.log('[AutoClick] 通过样式类找到按钮:', text);
+            break;
+          }
+        }
+      }
+      
+      if (detailButton) {
+        console.log('[AutoClick] 点击工具栏的"查看详情"按钮');
+        clickPromise = new Promise((resolve) => {
+          setTimeout(() => {
+            detailButton.click();
+            clicked = true;
+            resolve();
+          }, 1000); // 增加延迟确保复选框状态已生效并被系统识别
+        });
+      } else {
+        console.log('[AutoClick] ⚠️ 未找到"查看详情"按钮');
+      }
+      
+      // 策略2：查找行内的"查看详情"按钮（备用策略）
+      if (!clicked && !clickPromise) {
+        const viewDetailBtn = foundRow.querySelector('button');
+        if (viewDetailBtn) {
+          const btnText = viewDetailBtn.textContent.trim();
+          console.log('[AutoClick] 策略2: 找到行内按钮，文本:', btnText);
+          if (btnText.includes('查看') || btnText.includes('详情') || btnText.includes('处理')) {
+            console.log('[AutoClick] 点击行内"查看详情"按钮');
+            foundRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            clickPromise = new Promise((resolve) => {
+              setTimeout(() => {
+                viewDetailBtn.click();
+                clicked = true;
+                resolve();
+              }, 500);
+            });
+          }
+        }
+      }
+      
+      // 策略3：点击操作列按钮（通用方式）
+      if (!clicked && !clickPromise) {
+        const operationTd = foundRow.querySelector('td[data-field="8"]');
+        if (operationTd) {
+          const handleBtn = operationTd.querySelector('button');
+          if (handleBtn) {
+            console.log('[AutoClick] 点击操作列按钮');
+            foundRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            clickPromise = new Promise((resolve) => {
+              setTimeout(() => {
+                handleBtn.click();
+                clicked = true;
+                resolve();
+              }, 500);
+            });
+          }
+        }
+      }
+      
+      // 策略3：如果没有操作按钮，尝试双击行
       if (!clicked && !clickPromise) {
         console.log('[AutoClick] 双击行打开详情');
         foundRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1184,11 +2113,11 @@
             foundRow.dispatchEvent(dblclickEvent);
             clicked = true;
             resolve();
-          }, 300);
+          }, 500);
         });
       }
       
-      // 策略3：尝试查找行内的链接或点击区域
+      // 策略4：尝试查找行内的链接或点击区域
       if (!clicked && !clickPromise) {
         const clickable = foundRow.querySelector('a, .layui-table-cell, td');
         if (clickable) {
@@ -1199,7 +2128,7 @@
               clickable.click();
               clicked = true;
               resolve();
-            }, 300);
+            }, 500);
           });
         }
       }
@@ -1240,9 +2169,12 @@
         // 查找弹窗元素 - 更精确的选择器
         const detailPopup = document.querySelector('.layui-layer.layui-layer-page')
           || document.querySelector('#layui-layer2')
+          || document.querySelector('#layui-layer1')
           || document.querySelector('#handleTaskPopup')
           || document.querySelector('.layui-layer-dialog')
-          || document.querySelector('[class*="layui-layer"]');
+          || document.querySelector('.layui-layer-iframe')
+          || document.querySelector('[class*="layui-layer"]')
+          || document.querySelector('.layui-layer');
         
         if (detailPopup && !found) {
           found = true;
@@ -1341,10 +2273,101 @@
     });
   }
 
+  // 从弹窗获取CCC状态（仅用于获取CCC信息，不获取其他数据）
+  async function getCccStatusFromPopup(taskData) {
+    console.log('[GetCCCFromPopup] ====== 开始从弹窗获取CCC状态 ======');
+    console.log(`[GetCCCFromPopup] 任务: ${taskData.partsName || taskData.latestPartsCode}`);
+    
+    try {
+      // 第一步：在任务列表中找到并点击该任务
+      console.log('[GetCCCFromPopup] 步骤1: 自动点击任务行...');
+      const clickResult = await clickTaskInList(taskData);
+      if (!clickResult.success) {
+        console.log(`[GetCCCFromPopup] ❌ 点击失败: ${clickResult.error}`);
+        return { success: false, error: clickResult.error };
+      }
+      console.log(`[GetCCCFromPopup] ✓ 点击成功 (${clickResult.method})`);
+      
+      // 第二步：等待详情页加载
+      console.log('[GetCCCFromPopup] 步骤2: 等待详情页加载...');
+      const popupResult = await waitForDetailPopup({ timeout: 15000, checkContent: false });
+      if (!popupResult.success) {
+        console.log(`[GetCCCFromPopup] ❌ 等待弹窗失败: ${popupResult.error}`);
+        return { success: false, error: popupResult.error };
+      }
+      console.log('[GetCCCFromPopup] ✓ 详情页已加载');
+      
+      // 额外等待确保内容完全渲染（特别是layui表单）
+      console.log('[GetCCCFromPopup] 等待内容完全渲染...');
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // 第三步：从弹窗中获取CCC状态
+      console.log('[GetCCCFromPopup] 步骤3: 从弹窗获取CCC状态...');
+      const detailPopup = popupResult.element;
+      
+      // 如果layui存在，尝试重新渲染表单以确保状态正确
+      if (typeof layui !== 'undefined' && layui.form) {
+        layui.form.render();
+        console.log('[GetCCCFromPopup] 已触发layui.form.render()');
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      const isCcc = checkCccStatus(detailPopup);
+      console.log(`[GetCCCFromPopup] ✓ 获取到CCC状态: ${isCcc ? '是CCC件' : '非CCC件'}`);
+      
+      // 第四步：关闭详情页
+      console.log('[GetCCCFromPopup] 步骤4: 关闭详情页...');
+      await closeDetailPopup();
+      console.log('[GetCCCFromPopup] ✓ 详情页已关闭');
+      
+      console.log('[GetCCCFromPopup] ====== 完成 ======');
+      return {
+        success: true,
+        isCcc: isCcc,
+        source: 'popup'
+      };
+      
+    } catch (err) {
+      console.log(`[GetCCCFromPopup] ❌ 异常: ${err.message}`);
+      // 异常时尝试关闭弹窗
+      try {
+        await closeDetailPopup();
+      } catch (e) {
+        // 忽略关闭错误
+      }
+      return { success: false, error: err.message };
+    }
+  }
+
   // ============ 3.4 Auto Check Detail by API Data ============
   async function autoCheckDetailByAPI(apiData, taskData) {
     try {
       const results = [];
+      
+      // 调试：检查传入的参数
+      console.log('[autoCheckDetailByAPI] ========== 函数开始 ==========');
+      console.log('[autoCheckDetailByAPI] 参数1 - apiData 类型:', typeof apiData);
+      console.log('[autoCheckDetailByAPI] 参数2 - taskData 类型:', typeof taskData);
+      console.log('[autoCheckDetailByAPI] 参数2 - taskData 值:', taskData);
+      console.log('[autoCheckDetailByAPI] 参数2 - taskData 是否存在:', !!taskData);
+      
+      // 检查 arguments 对象
+      console.log('[autoCheckDetailByAPI] arguments 长度:', arguments.length);
+      console.log('[autoCheckDetailByAPI] arguments[0] 类型:', typeof arguments[0]);
+      console.log('[autoCheckDetailByAPI] arguments[1] 类型:', typeof arguments[1]);
+      
+      if (taskData) {
+        console.log('[autoCheckDetailByAPI] taskData.id:', taskData.id);
+        console.log('[autoCheckDetailByAPI] taskData.partsName:', taskData.partsName);
+        console.log('[autoCheckDetailByAPI] taskData.models:', taskData.models);
+      } else {
+        console.log('[autoCheckDetailByAPI] ⚠️ taskData 为空! 尝试使用 arguments[1]:', arguments[1]);
+        // 如果 taskData 为空但 arguments[1] 有值，使用 arguments[1]
+        if (arguments[1]) {
+          taskData = arguments[1];
+          console.log('[autoCheckDetailByAPI] 已使用 arguments[1] 作为 taskData:', taskData.id);
+        }
+      }
       
       // --- 3.4.1 Extract basic info from API data ---
       const supplierName = apiData.supplierName || '';
@@ -1359,14 +2382,120 @@
         passed: true
       });
 
+      // --- 3.4.1b Fetch attachment info from separate API ---
+      // 附件数据需要通过独立的API获取（多策略尝试）
+      let attachmentList = [];
+      try {
+        // 安全检查：确保 taskData 存在
+        const taskId = (taskData && taskData.id) ? taskData.id : (apiData && apiData.id ? apiData.id : null);
+        console.log('[API] 附件检测 - taskData:', taskData ? '存在' : '不存在', ', apiData.id:', apiData ? apiData.id : '无', ', 最终taskId:', taskId);
+        
+        if (taskId) {
+          // 策略1: 尝试从主任务详情API响应中查找附件信息
+          console.log('[API] 策略1: 从主任务详情API响应中查找附件信息...');
+          attachmentList = extractAttachmentsFromApiData(apiData);
+          
+          if (attachmentList.length > 0) {
+            console.log('[API] 策略1成功: 从主API响应中获取到附件列表:', attachmentList.length, '个');
+            attachmentList.forEach((att, idx) => {
+              console.log(`[API] 附件${idx + 1}:`, att.fileName, 'type:', att.type);
+            });
+          } else {
+            console.log('[API] 策略1: 主API响应中未找到附件信息，尝试专用附件API...');
+            
+            // 策略2: 尝试专用附件API
+            console.log('[API] 策略2: 尝试专用附件API...');
+            const attachApiUrl = `${window.location.origin}/api/unifomity/uniformityCheckSWTaskWaitFile/getUniformityCheckFile?uniformityCheckTaskId=${taskId}`;
+            console.log('[API] 附件API URL:', attachApiUrl);
+            
+            try {
+              const attachResponse = await fetch(attachApiUrl, {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: {
+                  'Accept': 'application/json'
+                }
+              });
+              
+              console.log('[API] 附件API响应状态:', attachResponse.status);
+              
+              if (attachResponse.ok) {
+                const attachResult = await attachResponse.json();
+                console.log('[API] 附件API响应:', attachResult);
+                if (attachResult.ok && attachResult.data && attachResult.data.length > 0) {
+                  attachmentList = attachResult.data;
+                  console.log('[API] 策略2成功: 从专用附件API获取到附件列表:', attachmentList.length, '个');
+                  attachmentList.forEach((att, idx) => {
+                    console.log(`[API] 附件${idx + 1}:`, att.fileName, 'type:', att.type);
+                  });
+                } else {
+                  console.log('[API] 策略2: 专用附件API返回无数据:', attachResult.message || '空数据');
+                }
+              } else {
+                console.log('[API] 策略2: 专用附件API请求失败，状态码:', attachResponse.status);
+              }
+            } catch (attachErr) {
+              console.log('[API] 策略2: 专用附件API调用失败:', attachErr.message);
+            }
+            
+            // 策略3: 如果前两个策略都失败，尝试其他可能的附件API端点
+            if (attachmentList.length === 0) {
+              console.log('[API] 策略3: 尝试备用附件API端点...');
+              attachmentList = await tryAlternativeAttachmentApis(taskId);
+            }
+          }
+        } else {
+          console.log('[API] 无法获取任务ID，跳过附件检测');
+        }
+      } catch (err) {
+        console.log('[API] 获取附件信息失败:', err.message);
+        console.error('[API] 附件检测异常:', err);
+      }
+
       // --- 3.4.2 Check manufacturer name consistency ---
-      // 从API数据中获取生产企业列表
-      const manufacturerList = apiData.manufacturerList || apiData.manufacturerVos || [];
-      const manufacturerNames = manufacturerList.map(m => m.manufacturerName || m.name || '').filter(Boolean);
+      // 根据实际API验证：API中没有独立的manufacturerList字段
+      // 生产企业名称通过 supplierName 字段获取
+      console.log('[API] 查找生产企业信息，apiData字段:', Object.keys(apiData));
+      
+      // 优先尝试专用的生产企业列表字段
+      let manufacturerList = apiData.manufacturerList || apiData.manufacturerVos || apiData.manufacturers || [];
+      
+      // 如果有嵌套结构则从中提取
+      if (!manufacturerList || manufacturerList.length === 0) {
+        const possibleKeys = Object.keys(apiData).filter(k => 
+          k.toLowerCase().includes('manufacturer') || 
+          k.toLowerCase().includes('enterprise') ||
+          k.toLowerCase().includes('factory')
+        );
+        console.log('[API] 可能的生产企业字段:', possibleKeys);
+        
+        for (const key of possibleKeys) {
+          const val = apiData[key];
+          if (Array.isArray(val) && val.length > 0) {
+            manufacturerList = val;
+            console.log(`[API] 从字段 ${key} 获取到生产企业列表:`, manufacturerList);
+            break;
+          }
+        }
+      }
+      
+      let manufacturerNames = manufacturerList.map(m => {
+        if (typeof m === 'string') return m;
+        return m.manufacturerName || m.name || m.enterpriseName || m.factoryName || 
+               m.manufacturer || m.enterprise || m.companyName || m.company || '';
+      }).filter(Boolean);
+
+      // 根据实际API验证：若无独立生产企业字段，直接使用 supplierName 作为生产企业名称
+      if (manufacturerNames.length === 0 && supplierName) {
+        console.log('[API] 未找到独立生产企业字段，使用 supplierName 作为生产企业:', supplierName);
+        manufacturerNames = [supplierName];
+      }
+
+      console.log('[API] 提取到的生产企业名称:', manufacturerNames);
 
       if (manufacturerNames.length > 0) {
         const manufacturerMatch = manufacturerNames.some(
-          (name) => name === supplierName || supplierName.includes(name) || name.includes(supplierName)
+          (name) => isNormalizedEqual(name, supplierName) || isNormalizedIncludes(supplierName, name) || isNormalizedIncludes(name, supplierName)
         );
         results.push({
           item: '生产企业名称一致性',
@@ -1384,11 +2513,133 @@
       }
 
       // --- 3.4.3 Check CCC info from API ---
-      const isCccOnPage = apiData.isCccParts === '1' || apiData.isCccParts === 1 || apiData.cccFlag === true;
+      // 增强CCC件判断逻辑，支持多种可能的字段名和值类型
+      // 优先从 taskData（列表API数据）中获取，如果没有再从 apiData（详情API）中获取
+      function checkCccFromData(data, sourceName) {
+        // 可能的字段名（按优先级排序）
+        const possibleFields = [
+          'isCccParts', 'cccFlag', 'isCcc', 'ccc', 'hasCcc', 
+          'isCCC', 'CCC', 'cccStatus', 'cccParts', 'isCCCParts'
+        ];
+        
+        for (const field of possibleFields) {
+          if (data.hasOwnProperty(field)) {
+            const value = data[field];
+            console.log(`[API CCC] 在${sourceName}中找到字段 ${field}:`, value, `(类型: ${typeof value})`);
+            
+            // 支持多种值类型表示"是"
+            if (value === '1' || value === 1 || value === true || 
+                value === 'true' || value === '是' || value === 'yes' || 
+                value === 'Y' || value === 'y') {
+              console.log(`[API CCC] 字段 ${field} 值为 '${value}'，判定为CCC件`);
+              return { isCcc: true, source: sourceName, field: field, value: value };
+            }
+            // 支持多种值类型表示"否"
+            if (value === '0' || value === 0 || value === false || 
+                value === 'false' || value === '否' || value === 'no' || 
+                value === 'N' || value === 'n') {
+              console.log(`[API CCC] 字段 ${field} 值为 '${value}'，判定为非CCC件`);
+              return { isCcc: false, source: sourceName, field: field, value: value };
+            }
+          }
+        }
+        
+        return null;
+      }
+      
+      // 优先从 taskData（列表API数据）中查找CCC信息
+      let cccResult = null;
+      if (taskData) {
+        cccResult = checkCccFromData(taskData, 'taskData(列表API)');
+      }
+      
+      // 如果 taskData 中没有，再从 apiData（详情API）中查找
+      if (!cccResult) {
+        cccResult = checkCccFromData(apiData, 'apiData(详情API)');
+      }
+      
+      // 如果都没有找到，尝试通过弹窗获取CCC状态（混合模式）
+      if (!cccResult) {
+        console.log('[API CCC] 未在API数据中找到CCC字段，尝试通过弹窗获取CCC状态...');
+        
+        // 尝试打开弹窗获取CCC状态
+        const popupCccResult = await getCccStatusFromPopup(taskData);
+        
+        if (popupCccResult.success) {
+          console.log(`[API CCC] 从弹窗获取到CCC状态: ${popupCccResult.isCcc ? '是CCC件' : '非CCC件'}`);
+          cccResult = {
+            isCcc: popupCccResult.isCcc,
+            source: 'popup',
+            field: 'checkCccStatus',
+            value: popupCccResult.isCcc
+          };
+        } else {
+          console.log('[API CCC] 弹窗获取CCC状态失败，默认返回非CCC件:', popupCccResult.error);
+          cccResult = { isCcc: false, source: 'default', field: null, value: null };
+        }
+      }
+      
+      const isCccOnPage = cccResult.isCcc;
+      console.log(`[API CCC] 最终CCC判定结果: ${isCccOnPage ? '是CCC件' : '非CCC件'} (来源: ${cccResult.source}, 字段: ${cccResult.field})`);
 
       // --- 3.4.4 Check model info from API ---
-      const modelList = apiData.modelList || apiData.modelVos || [];
-      const pageModels = modelList.map(m => m.model || m.modelCode || '').filter(Boolean);
+      // 根据实际API验证：型号信息在列表API的 models 字段（字符串）中，详情API中可能不含
+      // 优先使用从 taskData 传入的列表API数据
+      console.log('[API] 查找型号信息...');
+      
+      // 优先从 taskData（列表API数据）中获取型号字段
+      let pageModels = [];
+      if (taskData && taskData.models) {
+        // models 字段可能是字符串（单个型号）或逗号分隔
+        const modelsRaw = String(taskData.models).trim();
+        if (modelsRaw && modelsRaw !== '0') {
+          pageModels = modelsRaw.split(/[,，;；]/).map(s => s.trim()).filter(Boolean);
+          console.log('[API] 从 taskData.models 获取型号:', pageModels);
+        }
+      }
+
+      // 如果 taskData 中没有，再从详情API数据中查找
+      if (pageModels.length === 0) {
+        let modelList = apiData.modelList || apiData.modelVos || [];
+        
+        if (!modelList || modelList.length === 0) {
+          const possibleModelKeys = Object.keys(apiData).filter(k => 
+            k.toLowerCase().includes('model') || 
+            k.toLowerCase().includes('spec')
+          );
+          console.log('[API] 可能的型号字段:', possibleModelKeys);
+          
+          for (const key of possibleModelKeys) {
+            const val = apiData[key];
+            if (Array.isArray(val) && val.length > 0) {
+              modelList = val;
+              console.log(`[API] 从字段 ${key} 获取到型号列表:`, modelList);
+              break;
+            } else if (typeof val === 'string' && val.trim() && val !== '0') {
+              pageModels = val.split(/[,，;；]/).map(s => s.trim()).filter(Boolean);
+              console.log(`[API] 从字段 ${key} (字符串) 获取型号:`, pageModels);
+              break;
+            }
+          }
+        }
+        
+        if (pageModels.length === 0 && modelList.length > 0) {
+          pageModels = modelList.map(m => {
+            if (typeof m === 'string') return m;
+            return m.model || m.modelCode || m.modelName || m.type || m.typeCode || 
+                   m.spec || m.specification || m.name || '';
+          }).filter(Boolean);
+        }
+      }
+      
+      console.log('[API] 提取到的型号:', pageModels);
+      // 记录型号标识位置和方法（来自列表API）
+      if (taskData && taskData.modelMarkPositions) {
+        console.log('[API] 型号标识位置:', taskData.modelMarkPositions);
+      }
+      if (taskData && taskData.modelMarkApplicateMethods) {
+        console.log('[API] 型号标识方法:', taskData.modelMarkApplicateMethods);
+      }
 
       // --- 3.4.5 Query Excel for comparison ---
       const excelResult = await queryExcel(partsName, latestPartsCode);
@@ -1415,7 +2666,7 @@
           expectedModel = excelModels[0]; // Use Excel model as expected
           if (pageModels.length > 0) {
             const modelMatch = excelModels.some((em) =>
-              pageModels.some((pm) => pm.includes(em) || em.includes(pm))
+              pageModels.some((pm) => isNormalizedIncludes(pm, em) || isNormalizedIncludes(em, pm))
             );
             results.push({
               item: '型号信息(与Excel)',
@@ -1443,7 +2694,7 @@
         const excelManufacturers = parseMultiValue(excelRow.manufacturer);
         if (excelManufacturers.length > 0 && excelManufacturers[0] !== 'N/A') {
           const mfMatch = excelManufacturers.some((em) =>
-            manufacturerNames.some((mn) => mn.includes(em) || em.includes(mn))
+            manufacturerNames.some((mn) => isNormalizedIncludes(mn, em) || isNormalizedIncludes(em, mn))
           );
           results.push({
             item: '生产企业(与Excel)',
@@ -1462,9 +2713,16 @@
       }
 
       // --- 3.4.6 AI Image Recognition (from API attachments) ---
-      // 从API数据中获取附件信息
-      const cccAttachment = apiData.cccFile || apiData.cccAttachment || {};
-      const modelAttachment = apiData.modelFile || apiData.modelAttachment || {};
+      // 注意：attachmentList为空数组表示无附件
+      console.log(`[API] 附件检测完成，共找到 ${attachmentList.length} 个附件`);
+      
+      // 从附件列表中筛选CCC标识和型号标识附件
+      // type: 0=CCC标识, 1=型号标识
+      const cccAttachment = attachmentList.find(a => a.type === '0' || a.type === 0) || {};
+      const modelAttachment = attachmentList.find(a => a.type === '1' || a.type === 1) || {};
+      
+      console.log('[API] CCC附件:', cccAttachment.fileName || '无');
+      console.log('[API] 型号附件:', modelAttachment.fileName || '无');
       
       // CCC attachment
       if (isCccOnPage) {
@@ -1651,6 +2909,89 @@
     }
   }
 
+  // ============ 5. Open Task Detail Page ============
+  // 在当前页面打开任务单详情
+  async function openTaskDetailPage(taskId, detailPath, taskData) {
+    try {
+      console.log('[OpenDetail] 开始打开任务详情页, taskId:', taskId);
+      
+      if (!taskId) {
+        return { success: false, error: '任务ID为空' };
+      }
+      
+      // 尝试通过API获取任务详情，然后使用popupCenter打开详情弹窗
+      try {
+        // 先获取任务详情，确认任务存在
+        const response = await fetch(
+          `${window.location.origin}/api/unifomity/uniformityCheckSWTaskSearch/getUniCheckTaskInfo`,
+          {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ id: taskId })
+          }
+        );
+        
+        if (!response.ok) {
+          throw new Error(`HTTP 错误: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('[OpenDetail] API响应:', result.respCode || result.ok);
+        
+        if ((result.ok || result.respCode === 0) && result.data) {
+          // 设置全局变量，供详情页使用
+          window.fileParrentId = taskId;
+          
+          // 使用layui的admin.popupCenter打开详情弹窗
+          if (typeof layui !== 'undefined' && layui.adc) {
+            var data = result.data;
+            layui.adc.popupCenter({
+              title: '一致性确认零件信息查询列表查看详情',
+              path: detailPath,
+              offset: 'auto',
+              area: ['100%', '100%'],
+              shadeClose: true,
+              success: function() {
+                // 获取当前登录用户信息
+                var localData = {};
+                try {
+                  var stored = localStorage.getItem('loginInfo') || sessionStorage.getItem('loginInfo');
+                  if (stored) localData = JSON.parse(stored);
+                } catch(e) {}
+                data.loginName = localData.supplierJc || '';
+                data.roleName = localData.roleName || '';
+                if (typeof setValue === 'function') {
+                  setValue(data);
+                }
+              }
+            });
+            return { success: true };
+          } else {
+            // 如果layui不可用，尝试直接跳转到详情页URL
+            var detailUrl = window.location.origin + '/' + detailPath + '?id=' + taskId;
+            window.open(detailUrl, '_blank');
+            return { success: true };
+          }
+        } else {
+          throw new Error('任务信息获取失败: ' + (result.message || '未知错误'));
+        }
+      } catch (apiErr) {
+        console.log('[OpenDetail] API方式失败, 尝试直接在列表中点击任务:', apiErr.message);
+        
+        // 如果API失败，尝试在列表中找到该任务并点击打开详情
+        const clickResult = await clickTaskInList(taskData);
+        if (!clickResult.success) {
+          return { success: false, error: '无法打开任务详情: ' + clickResult.error };
+        }
+        return { success: true };
+      }
+    } catch (err) {
+      console.log('[OpenDetail] 异常:', err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
   // ============ DOM Helper Functions ============
 
   function getText(selector) {
@@ -1661,6 +3002,34 @@
   function parseMultiValue(value) {
     if (!value) return [];
     return value.split(/[,，;；]/).map((v) => v.replace(/^[A-Z][:：]/, '').trim()).filter(Boolean);
+  }
+
+  /**
+   * 规范化字符串，将相似的字符统一处理
+   * 例如：φ(小写) 和 Φ(大写) 视为相同字符
+   */
+  function normalizeString(str) {
+    if (!str) return '';
+    if (typeof str !== 'string') str = String(str);
+    // 将 φ (U+03C6, 小写希腊字母phi) 和 Φ (U+03A6, 大写希腊字母Phi) 统一为 φ
+    // 同时处理其他可能的变体：∅(U+2205), ⌀(U+2300), ϕ(U+03D5)
+    return str
+      .replace(/[Φϕ∅⌀]/g, 'φ')
+      .trim();
+  }
+
+  /**
+   * 规范化比对：比较两个字符串是否相等（忽略φ/Φ差异）
+   */
+  function isNormalizedEqual(str1, str2) {
+    return normalizeString(str1) === normalizeString(str2);
+  }
+
+  /**
+   * 规范化包含检查：检查str1是否包含str2（忽略φ/Φ差异）
+   */
+  function isNormalizedIncludes(str1, str2) {
+    return normalizeString(str1).includes(normalizeString(str2));
   }
 
   function truncate(str, maxLen) {
@@ -1706,15 +3075,236 @@
   }
 
   function checkCccStatus(detailPopup) {
-    const radios = detailPopup.querySelectorAll('input[name="isCccParts"]');
+    console.log('[checkCccStatus] 开始检测CCC状态...');
+    
+    // 方法1: 通过单选按钮判断（原有逻辑）
+    console.log('[checkCccStatus] 方法1: 查找单选按钮...');
+    
+    // 查找所有radio input，包括name包含ccc或value为1/0、是/否的
+    const radios = detailPopup.querySelectorAll('input[type="radio"]');
+    console.log(`[checkCccStatus] 找到 ${radios.length} 个radio input`);
+    
     let isCcc = false;
-    radios.forEach((radio) => {
-      const wrapper = radio.nextElementSibling;
-      if (wrapper && wrapper.classList.contains('layui-form-radioed')) {
-        isCcc = radio.value === '1';
+    let foundRadio = false;
+    
+    // 先查找"是否CCC件"附近的radio
+    let cccRadios = [];
+    
+    for (const radio of radios) {
+      // 检查radio的name、value或周围的文本
+      const name = radio.name || '';
+      const value = radio.value || '';
+      const parent = radio.parentElement;
+      const grandparent = parent ? parent.parentElement : null;
+      const containerText = (parent ? parent.textContent : '') + ' ' + (grandparent ? grandparent.textContent : '');
+      
+      // 如果name包含ccc，或者周围文本包含"是否CCC件"
+      if (name.toLowerCase().includes('ccc') || 
+          containerText.includes('是否CCC件') ||
+          containerText.includes('CCC')) {
+        cccRadios.push({
+          radio: radio,
+          name: name,
+          value: value,
+          checked: radio.checked,
+          containerText: containerText.substring(0, 50)
+        });
       }
-    });
-    return isCcc;
+    }
+    
+    console.log(`[checkCccStatus] 找到 ${cccRadios.length} 个CCC相关radio`);
+    
+    // 检查这些radio的选中状态
+    for (const item of cccRadios) {
+      console.log(`[checkCccStatus] CCC radio: name=${item.name}, value=${item.value}, checked=${item.checked}`);
+      
+      if (item.checked) {
+        foundRadio = true;
+        // 判断value是否为"是"的状态
+        if (item.value === '1' || item.value === 'true' || item.value === '是' || item.value === 'yes' || item.value === 'Y') {
+          isCcc = true;
+        } else if (item.value === '0' || item.value === 'false' || item.value === '否' || item.value === 'no' || item.value === 'N') {
+          isCcc = false;
+        }
+        console.log(`[checkCccStatus] 找到选中的CCC radio，value=${item.value}, isCcc=${isCcc}`);
+      }
+    }
+    
+    // 如果找到了选中的radio，直接返回结果
+    if (foundRadio) {
+      console.log(`[checkCccStatus] ✓ 通过单选按钮确定CCC状态: ${isCcc}`);
+      return isCcc;
+    }
+    
+    // 备选：查找所有radio，看是否有value为"是"或"否"的
+    console.log('[checkCccStatus] 方法1b: 查找所有radio中的"是/否"...');
+    let yesRadioInput = null;
+    let noRadioInput = null;
+    
+    for (const radio of radios) {
+      const value = radio.value || '';
+      const parentText = radio.parentElement ? radio.parentElement.textContent.trim() : '';
+      
+      if (value === '1' || value === 'true' || value === '是' || value === 'yes' || parentText === '是') {
+        yesRadioInput = radio;
+      }
+      if (value === '0' || value === 'false' || value === '否' || value === 'no' || parentText === '否') {
+        noRadioInput = radio;
+      }
+    }
+    
+    if (yesRadioInput && yesRadioInput.checked) {
+      console.log('[checkCccStatus] ✓ 通过"是"radio input确定CCC状态: true');
+      return true;
+    }
+    if (noRadioInput && noRadioInput.checked) {
+      console.log('[checkCccStatus] ✓ 通过"否"radio input确定CCC状态: false');
+      return false;
+    }
+    
+    // 方法2: 通过layui的radio样式判断（根据截图，CCC信息使用layui radio）
+    console.log('[checkCccStatus] 方法2: 查找layui radio样式...');
+    
+    // 先查找"是否CCC件"标签附近的radio
+    const allElements = detailPopup.querySelectorAll('*');
+    let cccLabelElement = null;
+    
+    for (const el of allElements) {
+      if (el.textContent && el.textContent.includes('是否CCC件')) {
+        cccLabelElement = el;
+        console.log('[checkCccStatus] 找到"是否CCC件"标签:', el.tagName);
+        break;
+      }
+    }
+    
+    if (cccLabelElement) {
+      // 在"是否CCC件"标签的父元素或兄弟元素中查找radio
+      const parent = cccLabelElement.parentElement;
+      const grandparent = parent ? parent.parentElement : null;
+      
+      // 尝试在多个层级查找radio
+      let radioContainer = parent;
+      if (!radioContainer || !radioContainer.querySelector('.layui-form-radio')) {
+        radioContainer = grandparent;
+      }
+      
+      if (radioContainer) {
+        const layuiRadios = radioContainer.querySelectorAll('.layui-form-radio');
+        console.log(`[checkCccStatus] 在"是否CCC件"附近找到 ${layuiRadios.length} 个layui radio`);
+        
+        for (const radio of layuiRadios) {
+          const text = radio.textContent.trim();
+          const isChecked = radio.classList.contains('layui-form-radioed');
+          console.log(`[checkCccStatus] layui radio: 文本="${text}", 选中=${isChecked}`);
+          
+          if (isChecked) {
+            if (text === '是' || text.includes('是')) {
+              console.log('[checkCccStatus] ✓ 通过layui radio确定CCC状态: true (选中"是")');
+              return true;
+            }
+            if (text === '否' || text.includes('否')) {
+              console.log('[checkCccStatus] ✓ 通过layui radio确定CCC状态: false (选中"否")');
+              return false;
+            }
+          }
+        }
+      }
+    }
+    
+    // 备选：在整个弹窗中查找所有layui radio
+    const allLayuiRadios = detailPopup.querySelectorAll('.layui-form-radio');
+    console.log(`[checkCccStatus] 在整个弹窗中找到 ${allLayuiRadios.length} 个layui radio`);
+    
+    // 查找包含"是"或"否"的radio组合
+    let yesRadio = null;
+    let noRadio = null;
+    
+    for (const radio of allLayuiRadios) {
+      const text = radio.textContent.trim();
+      if (text === '是' || text === 'yes') {
+        yesRadio = radio;
+      }
+      if (text === '否' || text === 'no') {
+        noRadio = radio;
+      }
+    }
+    
+    // 如果找到了"是/否"radio对，检查哪个被选中
+    if (yesRadio && noRadio) {
+      if (yesRadio.classList.contains('layui-form-radioed')) {
+        console.log('[checkCccStatus] ✓ 通过"是/否"radio对确定CCC状态: true');
+        return true;
+      }
+      if (noRadio.classList.contains('layui-form-radioed')) {
+        console.log('[checkCccStatus] ✓ 通过"是/否"radio对确定CCC状态: false');
+        return false;
+      }
+    }
+    
+    // 方法3: 通过文本内容判断（备选方案）
+    console.log('[checkCccStatus] 方法3: 通过文本内容判断...');
+    const cccLabels = detailPopup.querySelectorAll('label, span, div, td, p, h1, h2, h3, h4, h5, h6');
+    console.log(`[checkCccStatus] 检查 ${cccLabels.length} 个文本元素`);
+    
+    for (const label of cccLabels) {
+      const text = label.textContent.trim();
+      
+      // 匹配"是否CCC件"相关文本
+      if (/是否CCC件|CCC认证|是否.*CCC|CCC.*状态/i.test(text)) {
+        console.log(`[checkCccStatus] 找到CCC相关文本: ${text}`);
+        
+        // 匹配"是"的情况
+        if (/[:：]\s*是|[:：]\s*有|[:：]\s*yes|[:：]\s*Y|[:：]\s*1|[:：]\s*true/i.test(text) ||
+            /是CCC件|有CCC|是.*CCC|CCC.*是/i.test(text)) {
+          console.log('[checkCccStatus] ✓ 通过文本确定CCC状态: true');
+          return true;
+        }
+        
+        // 匹配"否"的情况
+        if (/[:：]\s*否|[:：]\s*无|[:：]\s*no|[:：]\s*N|[:：]\s*0|[:：]\s*false/i.test(text) ||
+            /非CCC件|无CCC|否.*CCC|不是CCC|CCC.*否/i.test(text)) {
+          console.log('[checkCccStatus] ✓ 通过文本确定CCC状态: false');
+          return false;
+        }
+      }
+    }
+    
+    // 方法4: 通过隐藏字段或data属性判断
+    console.log('[checkCccStatus] 方法4: 查找隐藏字段...');
+    const hiddenCccField = detailPopup.querySelector('input[type="hidden"][name*="ccc"], input[type="hidden"][name*="CCC"], input[name*="ccc"], input[name*="CCC"]');
+    if (hiddenCccField) {
+      const value = hiddenCccField.value;
+      console.log(`[checkCccStatus] 找到隐藏字段: name=${hiddenCccField.name}, value=${value}`);
+      const result = value === '1' || value === 'true' || value === '是' || value === 'yes' || value === 'Y' || value === 'y';
+      console.log(`[checkCccStatus] ✓ 通过隐藏字段确定CCC状态: ${result}`);
+      return result;
+    }
+    
+    // 方法5: 通过整个弹窗的文本内容模糊匹配
+    console.log('[checkCccStatus] 方法5: 通过弹窗整体文本模糊匹配...');
+    const popupText = detailPopup.textContent || '';
+    
+    // 查找"是否CCC件"附近的内容
+    const cccIndex = popupText.indexOf('是否CCC件');
+    if (cccIndex !== -1) {
+      // 获取"是否CCC件"前后50个字符的文本
+      const contextText = popupText.substring(Math.max(0, cccIndex - 50), Math.min(popupText.length, cccIndex + 100));
+      console.log(`[checkCccStatus] "是否CCC件"上下文: ${contextText}`);
+      
+      if (/是|有|yes|Y/.test(contextText.substring(cccIndex, cccIndex + 20))) {
+        console.log('[checkCccStatus] ✓ 通过上下文确定CCC状态: true');
+        return true;
+      }
+      if (/否|无|no|N/.test(contextText.substring(cccIndex, cccIndex + 20))) {
+        console.log('[checkCccStatus] ✓ 通过上下文确定CCC状态: false');
+        return false;
+      }
+    }
+    
+    // 默认返回false（非CCC件）
+    console.warn('[checkCccStatus] 无法确定CCC状态，默认返回非CCC件');
+    console.log('[checkCccStatus] 弹窗HTML片段:', detailPopup.innerHTML.substring(0, 500));
+    return false;
   }
 
   function extractModelInfo(detailPopup) {

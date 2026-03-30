@@ -1,0 +1,184 @@
+/**
+ * 是/否枚举
+ * @type {EsEnum}
+ */
+const yesOrNoEnum = new EsEnum({
+    NO: {name: '否', index: 0},
+    YES: {name: '是', index: 1},
+});
+
+/**
+ * 字段类型枚举
+ * @type {EsEnum}
+ */
+const fieldTypeEnum = new EsEnum({
+    FIELD_TYPE_DEFAULT: {name: '默认', index: 1},
+    FIELD_TYPE_DATE: {name: '日期', index: 2},
+    FIELD_TYPE_ENUM: {name: '枚举', index: 3}
+});
+
+
+// 操作模态框
+const operateTypeEnum = new EsEnum({
+    ADD: {name: '新增', index: 1},
+    EDIT: {name: '编辑', index: 2},
+    DELETE: {name: '删除', index: 3},
+});
+
+// 供应商状态值的枚举数据
+const supStatusEnum = new EsEnum({
+    SUPPLY: {name: '在供', index: 1},
+    STOP: {name: '停用', index: 2},
+    QUIT: {name: '退出', index: 3},
+});
+
+// 零件信息中状态值的枚举数据
+const partStatusEnum = new EsEnum({
+    ADD: {name: '新增', index: 1},
+    SUPPLY: {name: '在供', index: 2},
+    BREAKPOINT: {name: '断点', index: 3},
+});
+
+// 第三方物流中，物流公司状态的枚举数据
+const logisticsStatusEnum = new EsEnum({
+    SUPPLY: {name: '在供', index: 1},
+    EXIT: {name: '退出', index: 2},
+    UNDECIDED: {name: '未定', index: 3},
+});
+
+//月生产计划状态
+const mrpMonthSubmitStatussEnum = new EsEnum({
+    ALL: {name: '请选择', index: ''},
+    CREATED: {name: '已创建', index: 1},
+    SUBMIT: {name: '已提交', index: 2},
+    PASSED: {name: '已发布', index: 3},
+    REJECTED: {name: '已驳回', index: 4},
+    VIEWED: {name: '已查看', index: 5},
+    RECEIVED: {name: '已回执', index: 6}
+});
+
+//月交付风险状态
+const mrpMonthSubmitStatussEnumrisk = new EsEnum({
+    ALL: {name: '请选择', index: ''},
+    CREATED: {name: '已创建', index: 1},
+    SUBMIT: {name: '已提交', index: 2},
+    PASSED: {name: '已发布', index: 3},
+    REJECTED: {name: '已驳回', index: 4},
+    COMPLETED: {name: '已填报', index: 7},
+    CLOSED: {name: '已关闭', index: 8},
+});
+
+//月生产计划状态
+const approvalResultsEnum = new EsEnum({
+    REJECTED: {name: '驳回', index: 4},
+    PASSED: {name: '发布', index: 3},
+});
+
+const allApprovalResultsEnum = new EsEnum({
+    PASSED: {name: '全部通过', index: 3},
+    REJECTED: {name: '全部驳回', index: 4},
+});
+
+//月生产计划状态
+const linkTypeEnum = new EsEnum({
+    MRP_MONTH: {name: '生产物料需求月计划', index: 1},
+    MRP_WEEK: {name: '生产物料需求周计划', index: 2},
+    MONTHLY_DELIVERY_RISK: {name: '月交付风险', index: 3},
+    DAILY_DELIVERY_RISK: {name: '日交付风险', index: 4},
+    MATERIAL_PREPARATION: {name: '备料', index: 8},
+    ORDER_FIXED: {name: '订单修正', index: 9}
+});
+
+//月生产计划是否满足状态
+const mrpMonthVerifyResultEnum = new EsEnum({
+    ALL: {name: '请选择', index: ''},
+    CREATED: {name: '满足', index: 1},
+    PUBLISHED: {name: '不满足', index: 0}
+});
+
+
+//月生产计划是否满足状态
+const mrpMonthVerifyResultNoAllEnum = new EsEnum({
+    CREATED: {name: '满足', index: 1},
+    PUBLISHED: {name: '不满足', index: 0}
+});
+
+
+//月生产计划是否满足状态
+const monthEnum = new EsEnum({
+    NONE: {name: '', index: ''},
+    Jan: {name: '一月', index: 1},
+    Feb: {name: '二月', index: 2},
+    Mar: {name: '三月', index: 3},
+    Apr: {name: '四月', index: 4},
+    May: {name: '五月', index: 5},
+    Jun: {name: '六月', index: 6},
+    Jul: {name: '七月', index: 7},
+    Aug: {name: '八月', index: 8},
+    Sept: {name: '九月', index: 9},
+    Oct: {name: '十月', index: 10},
+    Nov: {name: '十一月', index: 11},
+    Dec: {name: '十二月', index: 12},
+});
+
+//月生产计划状态
+const BaseEnum = new EsEnum({
+    HE_XI: {name: '河西', index: 1},
+    BAO_JUN: {name: '宝骏', index: 2},
+    QING_DAO: {name: '青岛', index: 3},
+    CHONG_QI: {name: '重庆', index: 4},
+});
+
+// 页面文字管理
+const menuTypeEnum = new EsEnum({
+    PLANT_SEARCH: {name: '厂内库存查询', index: 1},
+    MONTH_SEARCH: {name: '关键链路数据查询', index: 2},
+    MONTH_DISTRIBUTE: {name: '关键链路数据发布', index: 3},
+});
+
+// 备料
+const StockEnum = new EsEnum({
+    ALL: {name: '请选择', index: ''},
+    CREATED: {name: '已创建', index: 1},
+    SUBMIT: {name: '已提交', index: 2},
+    PASSED: {name: '已发布', index: 3},
+    REJECTED: {name: '已驳回', index: 4},
+    VIEWED: {name: '已查看', index: 5},
+    RECEIVED: {name: '已回执', index: 6}
+})
+// 备料确认结果
+const stockHasRiskEnum = new EsEnum({
+    All: {name: '请选择', index: ''},
+    YES: {name: '满足', index: 0},
+    NO: {name: '不满足', index: 1},
+    UNDETERMINED: {name: '未确认', index: 2},
+});
+
+const stockMonthEnum = new EsEnum({
+    NONE: {name: '', index: ''},
+    Jan: {name: '一月', index: 1, val: '01'},
+    Feb: {name: '二月', index: 2, val: '02'},
+    Mar: {name: '三月', index: 3, val: '03'},
+    Apr: {name: '四月', index: 4, val: '04'},
+    May: {name: '五月', index: 5, val: '05'},
+    Jun: {name: '六月', index: 6, val: '06'},
+    Jul: {name: '七月', index: 7, val: '07'},
+    Aug: {name: '八月', index: 8, val: '08'},
+    Sept: {name: '九月', index: 9, val: '09'},
+    Oct: {name: '十月', index: 10, val: '10'},
+    Nov: {name: '十一月', index: 11, val: '11'},
+    Dec: {name: '十二月', index: 12, val: '12'},
+});
+
+/*
+*订单修正状态枚举
+* */
+const orderFixedEnum = new EsEnum(
+    {
+        CREATED: {name: '已创建', index: 1},
+        SUBMIT: {name: '已提交', index: 2},
+        REJECTED: {name: '已驳回', index: 4},
+        PASSED: {name: '已发布', index: 3},
+        BE_COMPLETED: {name: '已完成', index: 16},
+    }
+)

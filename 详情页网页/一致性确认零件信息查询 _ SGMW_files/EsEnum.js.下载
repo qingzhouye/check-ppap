@@ -1,0 +1,102 @@
+ class EsEnum {
+  constructor(val) {
+    if (!val) {
+      return;
+    }
+    Object.keys(val).forEach(key => {
+      let item = val[key];
+      this.addAll(key, item);
+    });
+    return this;
+  }
+
+  /**
+   * 添加枚举
+   * @param key
+   * @param item
+   */
+  addAll(key, item) {
+    this[key] = item;
+  }
+
+  /**
+   * 获取所有枚举值列表
+   * @returns {Array}
+   */
+  getItemList() {
+    let optionList = [];
+    for (let i in this) {
+      let item = this[i];
+      let option = {};
+      Object.assign(option, item);
+      option.key = i;
+      optionList.push(option);
+    }
+    optionList.sort((a, b) => {
+      let value1 = a['index'];
+      let value2 = b['index'];
+      return value1 - value2
+    });
+    return optionList;
+  }
+
+  /**
+   * 获取需要排除的枚举值后的所有枚举值列表
+   * @param val 需要排除的枚举值或枚举值数组
+   */
+  getItemListExcept(val) {
+    let valueArr = [];
+    if (val) {
+      if (Array.isArray(val)) {
+        valueArr = val;
+      } else {
+        valueArr.push(val);
+      }
+    }
+    let optionList = [];
+    for (let i in this) {
+      let item = this[i];
+      if (!valueArr.includes(item.name)) {
+        let option = {};
+        Object.assign(option, item);
+        option.key = i;
+        optionList.push(option);
+      }
+    }
+    return optionList;
+  }
+
+  /**
+   * 根据name获取index
+   * @param name
+   */
+  indexOfName(name) {
+    if (name) {
+      for (let i in this) {
+        let e = this[i];
+        if (e.name.toString() === name.toString()) {
+          return (e.index);
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * 根据index获取name
+   * @param index
+   * @returns {*}
+   */
+  nameOfIndex(index) {
+    if (!index && index !== 0) {
+      return '';
+    }
+    for (let i in this) {
+      let e = this[i];
+      if (e.index !== undefined && e.index !== null && e.index.toString() === index.toString()) {
+        return e.name;
+      }
+    }
+    return '';
+  }
+}

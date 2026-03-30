@@ -1,0 +1,1990 @@
+/*
+* Created: 2020-09-15
+* Author : zhangqi
+* Description: 封装公用方法或组件的js文件
+* */
+
+// 公用的表格和公用的方法
+var mainPublicTableAndMethod = Vue.component('main-public-table-and-method-lzj', {
+    /*
+     * description: props参数说明
+     * searchParam: 选择的查询条件的对象
+     * selectInterfaceArr: 页面顶部查询条件中下拉菜单类型的查询条件的所对应的接口
+     * mainFormSelectInterfaceArr: 新增或编辑的表单中下拉菜单类型的查询条件的所对应的接口
+     * headData: 表头内容
+     * fieldData: 对应字段
+     * fixedColumn: 是否固定列
+     * isCheckBox: 是否开启多选列
+     * isNumber: 是否开启序号列
+     * align: 表格内容的对齐方式  left左对齐，center居中对齐，right右对齐
+     * operationText: 带有其他操作按钮的列的列名称
+     * operationBtnList: 带有其他操作按钮的列中的内容
+     * getMainTableAllDataUrl: 获取主表格所有数据的接口地址
+     * addMainTableDataUrl: 新增一条主表格数据的接口地址
+     * deleteMainTableDataUrl: 删除一条或多条主表格数据的接口地址
+     * downloadTemplateUrl: 下载模板的接口
+     * uploadFileUrl: 导入（上传）文件的接口地址
+     * exportDataUrl: 导出文件的接口
+     */
+    props: ['tableName','searchParam', 'mainLinkageData', 'mainLinkageSelectInterfaceArr', 'selectInterfaceArr', 'mainFormSelectInterfaceArr', 'headData', 'fieldData', 'fixedColumn',
+        'isCheckBox', 'isNumber', 'align', 'operationText', 'operationFixed', 'operationBtnList', 'columnWidth', 'templetList',
+        'getTableDataUrl', 'addOrEditTableDataUrl', 'publishTableDataUrl', 'deleteTableDataUrl', 'unlockTableDataUrl', 'retractTableDataUrl', 'approvalTableDataUrl',
+        'downloadTemplateUrl', 'uploadFileUrl', 'exportDataUrl', 'hasChildren'],
+    data: function () {
+        return {
+            table: {},
+            pagination: {
+                total: 0, //记录表格的总数据条数
+                size: 20, //当前每页展示的数据的条数
+                current: 1
+            },
+            deep_copy_searchParam: {},
+            submitFormType: "", //执行表单中提交方法的类型, 判断是新增方法,还是编辑方法, 1-新增 2-编辑
+            checkedTableDataId: '', //此变量用于编辑功能时，存储被勾选的数据的ID
+            tableData: [],
+            columnObj: {},
+            columnObjArr: [],
+            tableColumn: [],
+            size: ['700px', '450px'],
+            layerBox: '', //定义一个弹出框的标识变量名称，这个的作用是用于在接口调用并且方法执行成功之后（例如新增或编辑方法），单独关闭所对应的提示框
+            total: '', //记录表格的总数据条数
+            pageSize: '', //当前每页展示的数据的条数
+            uploadFileName: '', //选择上传的文件的文件名称
+            uploadDom: null,
+            files: [],
+            //下拉菜单中带有分页表格的情况下，需要通过选择其中一项去筛选另一项的数据时，定义这个对象变量，作为筛选另一项的数据时的补充查询条件
+            //这个变量只有在联动的情况下，作用体现的非常大，如果不需要联动功能的话，这个变量的作用非常小，甚至没用
+            linkageParamObj: {}
+        }
+    },
+    template:
+        '<div>' +
+        '<table id="main_table" lay-filter="main_test"></table>' +
+        '<div id="tablePager"></div>' +
+        '<div id="layui-upload" style="display: none">' +
+        '<div class="layui-upload g-layui-upload" id="aaa">' +
+        '<label class="g-upload-lable"><span style="color: red;">*</span>文件:</label>' +
+        '<input class="g-layui-upload-input" type="text" v-model="uploadFileName" lay-verify="required" autocomplete="off" placeholder="请上传文件" disabled>' +
+        '<button type="button" class="layui-btn layui-btn-normal g-layui-upload-btn" id="chooseFile">选择文件</button>' +
+        '</div>' +
+        '<span class="g-layui-upload-flie-type-tips">请上传50M以内Excel格式的文件。</span>' +
+        '<div class="g-layui-upload-btn-group">' +
+        '<button type="submit" class="layui-btn layui-btn-normal g-layui-upload-btn" @click="uploadsubmitbtn" id="upload">确定</button>' +
+        '<button type="button" class="project_btnStyle restBtn layui-btn layui-btn-primary" @click="closeUploadModalFunc">取消</button>' +
+        '</div>' +
+        '</div>' +
+        '</div>',
+
+    mounted: function () {
+        var _this = this;
+        //重置用于查询副表格数据的全局变量
+        searchViceObjParam = {
+            "parentId": '', //主表格中被选中的一行数据的id
+            "childType": 0, //tabs标签项中的位置
+            "size": "", //每页展示的数据的条数（每页展示几条数据）
+            "current": "",//当前所在的页码数（当前在第几页）
+            "removeTableData": true//是否清空子表数据开关
+
+        }
+        if (_this.selectInterfaceArr != undefined) {
+            _this.getSearchDataFunc()
+        }
+        if (_this.mainFormSelectInterfaceArr != undefined) {
+            _this.getFormSelectDataFunc()
+        }
+        if (_this.mainLinkageSelectInterfaceArr != undefined) {
+            _this.getLinkageSelectDataFunc()
+        }
+        _this.searchDataFunc();
+        // _this.getTableDataFunc(function () {
+        //     _this.loadTablePager()
+        // });
+    },
+    methods: {
+        // 上传取消按钮
+        closeUploadModalFunc: function () {
+            var _this = this;
+            for (let x in _this.files) {
+                delete _this.files[x];
+            }
+            layer.close(_this.layerBox)
+        },
+        /*
+       * author: linzijian
+       * description: 封装admin请求方便在父类中使用
+       * time: 2020/09/22
+       */
+        adminReports(url, data, Func, callBack) {
+            layuiEvent.admin.req(url, data, function (res) {
+                if (res.ok) {
+                    callBack && callBack(res);
+                } else {
+                    layerInfo(res.message, 2);
+                }
+            }, { method: Func })
+        },
+
+        /*
+        * author: zhangqi
+        * description:加载时间选择器的方法
+        * time: 2020/09/21
+        */
+        loadDataTimePickerFunc: function (type, domId) {
+            layuiEvent.laydate.render({
+                elem: domId ? domId : '#chooseTime',//通过id绑定html中插入的end
+                type: type ? type : 'date',
+                min: "1970-1-1",//设置min默认最小值
+                isInitValue: true,
+                // value: '1989-10-14',
+            });
+        },
+
+        /*
+        * author: zhangqi
+        * description: 获取页面顶部查询条件中，下拉菜单类型的查询条件中的所有数据，这个方法在此js中封装，
+        *              可以简化前端页面的代码重复性，当选择好下拉菜单中的数据后，点击查询可以直接根据查询条件获取表格数据
+        * time: 2020/09/22
+        */
+        getSearchDataFunc: function () {
+            var _this = this;
+            _this.selectInterfaceArr.forEach(function (ss) {
+                $.each(ss, function (key, val) {
+                    if (val) {
+                        layuiEvent.admin.req(val, {}, function (res) {
+                            if (res.ok) {
+                                res.data.forEach(function (item) {
+                                    $('#' + key).append("<option value='" + item + "'>" + item + "</option>");
+                                    layuiEvent.form.render("select");
+                                })
+                                layuiEvent.form.on('select(' + key + ')', function (data) {//对应lay-filter
+                                    _this.searchParam[key] = data.value;
+                                })
+                            } else {
+                                layerInfo(res.message, 2);
+                            }
+                        }, { method: 'GET' }
+                        );
+                    } else {
+                        //如果下拉菜单属于选择‘是或否’，或是选择‘时间’的类型，这种类型的是直接在前端定义好选项的，但是没有定义接口路径
+                        //这样的情况在，在当前的这个方法中就是没有参数val，所以执行else中的方法，直接监听在前端定义好内容的下拉菜单的选的内容，
+                        //赋值给前端定义的_this.searchParam对象中对应的变量
+                        layuiEvent.form.on('select(' + key + ')', function (data) {//对应lay-filter
+                            _this.searchParam[key] = data.value;
+                        })
+                    }
+                })
+            })
+        },
+
+        /*
+        * author: zhangqi
+        * description: 获取新增或编辑的表单中，下拉菜单类型的查询条件中的所有数据，这个方法在此js中封装，
+        *              可以简化前端页面的代码重复性，当选择好下拉菜单中的数据后，这样操作还可以直接获取选择的数据，传入接口中（单一下拉）
+        * time: 2020/09/22
+        */
+        getFormSelectDataFunc: function () {
+            var _this = this;
+            _this.mainFormSelectInterfaceArr.forEach(function (ss) {
+                if (ss.name) {
+                    layuiEvent.admin.req(ss.url, {}, function (res) {
+                        if (res.ok) {
+                            for (let key in res.data) {
+                                if (key == ss.name) {
+                                    ss.data = res.data[key]
+                                }
+                            }
+                            ss.data.forEach(function (item) {
+                                $('#' + ss.name).append("<option value='" + item + "'>" + item + "</option>");
+                                layuiEvent.form.render("select");
+                            });
+                        } else {
+                            layerInfo(res.message, 2);
+                        }
+                    }, { method: 'GET' }
+                    );
+                    if (ss.linkageUrl) {
+                        layuiEvent.form.on('select(form_' + ss.name + ')', function (data) {
+                            if (data.value) {
+                                layuiEvent.admin.req(ss.linkageUrl, { stage: data.value }, function (res) {
+                                    if (res.ok) {
+                                        res.data.forEach(function (item) {
+                                            $('#' + ss.childSelectName).append("<option value='" + item + "'>" + item + "</option>");
+                                            layuiEvent.form.render("select");
+                                        })
+                                    } else {
+                                        layerInfo(res.message, 2);
+                                    }
+                                }, { method: 'GET' });
+                            } else {
+                                $('#' + ss.childSelectName).html("");
+                                $('#' + ss.childSelectName).append("<option value=''>请选择</option>");
+                                layuiEvent.form.render("select");
+                            }
+
+                            layuiEvent.form.render("select");
+                        })
+                    }
+                } else {
+                    $.each(ss, function (key, val) {
+                        layuiEvent.admin.req(val, {}, function (res) {
+                            if (res.ok) {
+                                res.data.forEach(function (item) {
+                                    $('#' + key).append("<option value='" + item + "'>" + item + "</option>");
+                                    layuiEvent.form.render("select");
+                                })
+                            } else {
+                                layerInfo(res.message, 2);
+                            }
+                        }, { method: 'GET' }
+                        );
+                    })
+                }
+
+            })
+        },
+
+        /*
+        * author: linzijian
+        * description: 获取新增或编辑的表单中，下拉菜单类型的查询条件中的所有数据，这个方法在此js中封装，
+        *              可以简化前端页面的代码重复性，当选择好下拉菜单中的数据后，这样操作还可以直接获取选择的数据，传入接口中（联动下拉）
+        * time: 2020/09/22
+        */
+        getLinkageSelectDataFunc: function () {
+            var _this = this;
+            _this.mainLinkageSelectInterfaceArr.forEach(function (ss) {
+                _this.getLinkageData(ss);
+            })
+        },
+        // 联动递归
+        getLinkageData: function (ss, data) {
+            var _this = this;
+            var searchData = {};
+            $.each(ss, function (key, val) {
+                if (data) {
+                    searchData[val.fieldIdentifier] = data;
+                } else if (val.requestData) {
+                    searchData = val.requestData;
+                }
+                if (!val.url) {
+                    return
+                }
+                layuiEvent.admin.req(val.url, searchData, function (res) {
+                    if (res.ok) {
+                        $('#' + key).html('<option value=""> 请选择 </option>');
+                        if (val.clearDomID) {
+                            val.clearDomID.forEach(function (item) {
+                                $('#' + item).html('<option value=""> 请选择 </option>');
+                            })
+                        }
+                        layuiEvent.form.render("select");
+                        res.data.forEach(function (item) {
+                            $('#' + key).append("<option value='" + item[val.value] + "'>" + item[val.name] + "</option>");
+                            layuiEvent.form.on('select(' + key + ')', function (data) {//对应lay-filter
+                                if (val.echoSelectId) {
+                                    $('#' + val.echoSelectId).val(data.value);
+                                }
+                                if (val.children) {
+                                    val.children.forEach(function (ss) {
+                                        _this.getLinkageData(ss, data.value);
+                                    })
+                                }
+                                layuiEvent.form.render("select");
+                            })
+                            layuiEvent.form.render("select");
+                        })
+                    } else {
+                        layerInfo(res.message, 2);
+                    }
+                }, { method: val.requestType }
+                );
+            })
+        },
+
+        /*
+        * author: linzijian
+        * description: 获取新增或编辑的表单中，下拉菜单类型的查询条件中的所有数据，这个方法在此js中封装，
+        *              可以简化前端页面的代码重复性，当选择好下拉菜单中的数据后，这样操作还可以直接获取选择的数据，传入接口中（联动下拉回显）
+        * time: 2020/09/22
+        */
+        echoLinkageDataFunc: function (data) {
+            var _this = this;
+            if (_this.mainLinkageData) {
+                _this.mainLinkageData.forEach(function (ss) {
+                    _this.getLinkageData1(ss, data);
+                })
+            }
+        },
+        // 联动递归
+        getLinkageData1: function (ss, data) {
+            $.each(ss, function (key, val) {
+                var requestdata = {};
+                requestdata[val.requestDataName] = data[val.requestDataName];
+                layuiEvent.admin.req(val.url, requestdata, function (res) {
+                    if (res.ok) {
+                        $('#' + key).html('<option value=""> 请选择 </option>');
+                        $('#' + val.clearDomID).html('<option value=""> 请选择 </option>');
+                        res.data.forEach(function (item) {
+                            $('#' + key).append("<option value='" + item[val.value] + "'>" + item[val.name] + "</option>");
+                        });
+                        layuiEvent.form.on('select(' + key + ')', function (data) {//对应lay-filter
+                            if (val.echoSelectId) {
+                                $('#' + val.echoSelectId).val(data.value);
+                            }
+                            if (val.children) {
+                                val.children.forEach(function (ss) {
+                                    _this.getLinkageData1(ss, data.value);
+                                })
+                            }
+                            layuiEvent.form.render("select");
+                        })
+                        layuiEvent.form.render("select");
+                        layuiEvent.form.val('example', data);
+                    } else {
+                        layerInfo(res.message, 2);
+                    }
+                }, { method: val.requestType }
+                );
+            })
+        },
+        /*
+        * author: zhangqi
+        * description: 根据查询条件，调用接口，查询并获取表格数据
+        * time: 2020/09/21
+        */
+        getTableDataFunc: function (callback) {
+            var _this = this;
+            _this.tableData = {};
+            //分页器对象变量
+            let options = {
+                "size": _this.pagination.size, //每页展示多少条
+                "current": _this.pagination.current //current:当前选择的第几页
+            };
+            let params = Object.assign({}, options, _this.deep_copy_searchParam)
+            layuiEvent.admin.req(_this.getTableDataUrl, params, function (res) {
+                if (res.ok) {
+                    _this.tableData = res.data.records;
+                    _this.pagination.total = res.data.total;
+                    _this.pagination.size = res.data.size;
+                    // searchViceObjParam.parentId = res.data.records[0].id;
+                    //将全局变量传入中间组件transferParam中，用于查询副表格数据
+                    // transfer.$emit('transferParam', searchViceObjParam);//TODO初始化页面子表默认展示主表第一条数据
+                    //执行拼接绘制渲染表格的方法
+                    _this.drawTableFunc();
+                    callback && callback();
+                } else {
+                    layerInfo(res.message, 2);
+                }
+            }, { method: 'GET' }
+            )
+        },
+
+        /*
+        * author: zhangqi
+        * description: 点击查询按钮执行的方法
+        * time: 2020/09/22
+        */
+        searchDataFunc: function () {
+            var _this = this;
+            _this.pagination.current = 1;
+            _this.deep_copy_searchParam = {};
+            _this.deep_copy_searchParam = JSON.parse(JSON.stringify(_this.searchParam));
+            _this.getTableDataFunc(function () {
+                _this.loadTablePager()
+            })
+        },
+        /*
+        * author: linzijian
+        * description: 获取当前表格内选中数据集合方法
+        * time: 2020/09/21
+        */
+        getTableChickDataList: function (callback) {
+            var _this = this;
+            //获取表格中被勾选的数据的集合
+            var checkStatus = _this.table.checkStatus('main_table')
+            //data是一个数组，数组中的元素是表格中被勾选所有数据
+            var data = checkStatus.data;
+            callback && callback(data);
+        },
+
+        /*
+         * author: zhangqi
+         * description: 重置查询条件
+         * time: 2020/09/22
+         */
+        resetSearchParamFunc: function (mustparameter) {
+            var _this = this;
+            _this.deep_copy_searchParam = {};
+            document.getElementById("search-form-ptr-application").reset();
+            layuiEvent.form.render("select");
+            Object.keys(_this.searchParam).forEach(function (item) {
+                _this.searchParam[item] = '';
+            })
+            // 添加搜索请求毕传参数
+            $.each(mustparameter, function (key, val) {
+                _this.searchParam[key] = val;
+                _this.deep_copy_searchParam[key] = val;
+            })
+            _this.pagination.current = 1;
+            _this.pagination.size = 20;
+            _this.getTableDataFunc(function () {
+                _this.loadTablePager()
+            })
+        },
+
+        /*
+        * author: zhangqi
+        * description: 拼接绘制渲染表格
+        * time: 2020/09/16
+        */
+        drawTableFunc: function () {
+            var _this = this;
+            _this.tableColumn = [];
+            _this.columnObjArr = [];
+            //判断表格是否开启多选列，如果开启在表格中添加多选列
+            if (_this.isCheckBox) {
+                _this.tableColumn.push({ type: 'checkbox', })
+            }
+            //判断表格是否开启序号列，如果开启在表格中添加序号列
+            if (_this.isNumber) {
+                _this.tableColumn.push({ type: 'numbers', title: '序号', event: 'setSign' })
+            }
+            // 循环表头数据，整合绘制表格所需要的数据格式
+            _this.headData.forEach(function (item) {
+                if(item == '标题'){
+                    _this.columnObj = { title: item, align: _this.align, event: 'setSign',width:'360' }
+                    if (_this.templetList != undefined) {
+                        _this.columnObj.templet = _this.templetList[item];
+                    }
+                }else if(item == '类型' || item == '重要公告' || item == '发布基地' || item == '用户类型'){
+                    _this.columnObj = { title: item, align: _this.align, event: 'setSign' ,width:'90'}
+                    if (_this.templetList != undefined) {
+                        _this.columnObj.templet = _this.templetList[item];
+                    }
+                }else{
+                    _this.columnObj = { title: item, align: _this.align, event: 'setSign'}
+                    if (_this.templetList != undefined) {
+                        _this.columnObj.templet = _this.templetList[item];
+                    }
+                }
+
+                _this.columnObjArr.push(_this.columnObj);
+                _this.columnObj = {};
+            });
+            // 循环数据字段的数组，赋值给中间变量数组中的字段，整合绘制表格所需要的数据格式
+            _this.fieldData.forEach(function (item, index) {
+                _this.columnObjArr[index].field = item;
+            });
+            // 循环数据字段的宽度数组，赋值给中间变量数组中的字段，添加没列宽度
+            if (_this.columnWidth) {
+                _this.columnWidth.forEach(function (item, index) {
+                    if (item !== '') {
+                        _this.columnObjArr[index].width = item;
+                    }
+                });
+            }
+            // 循环是否固定列的数组，赋值给中间变量数组中的字段，整合绘制表格所需要的数据格式
+            if (_this.fixedColumn != undefined) {
+                _this.fixedColumn.forEach(function (item, index) {
+                    _this.columnObjArr[index].fixed = item;
+                });
+            }
+            // 循环中间变量数组，将数组中的每一条数据添加进新的数组中，然后新的数组是表格所需要的并且已经整理好格式的数据
+            _this.columnObjArr.forEach(function (item) {
+                _this.tableColumn.push(item)
+            });
+            let cols=[];
+            if(_this.tableName == 'ddxz'){
+            	cols = [[{"type":"checkbox",rowspan: 2},
+            	{"type":"numbers",rowspan: 2,"title":"序号","event":"setSign"},
+            	{"title":"订单修正流水号",rowspan: 2,"align":"center","event":"setSign","field":"serialNumber","fixed":""},
+            	{"title":"历史创建人",rowspan: 2,"align":"center","event":"setSign","field":"historyCreator","fixed":""},
+            	{"title":"月计划流水号",rowspan: 2,"align":"center","event":"setSign","field":"monthSerialNumber","fixed":""},
+            	{"title":"工厂代码",rowspan: 2,"align":"center","event":"setSign","field":"factoryCode","fixed":""},
+            	{"title":"年份",rowspan: 2,"align":"center","event":"setSign","field":"year","fixed":""},
+            	{"title":"月份",rowspan: 2,"align":"center","event":"setSign","field":"month","fixed":""},
+            	{"title":"计划批次",rowspan: 2,"align":"center","event":"setSign","field":"planBatch","fixed":""},
+            	{"title":"零件号",rowspan: 2,"align":"center","event":"setSign","field":"partNumber"},
+            	{"title":"零件名称",rowspan: 2,"align":"center","event":"setSign","field":"partName"},
+            	{"title":"供应商代码",rowspan: 2,"align":"center","event":"setSign","field":"supplierCode"},
+            	{"title":"供应商名称",rowspan: 2,"align":"center","event":"setSign","field":"supplierName"},
+            	{ title: '修正前', colspan: 8, align: "center", },
+            	{"title":"修正类型",rowspan: 2,"align":"center","event":"setSign","field":"modificationType",templet:function(res) {
+					switch(res.modificationType) {
+						case 1:
+							return '取消原订单'
+						case 2:
+							return '减少原订单'
+						default:
+							return ""
+					}
+				}},
+            	{ title: '修正后', colspan: 8, align: "center", },
+            	{"title":"修正原因",rowspan: 2,"align":"center","event":"setSign","field":"reasonForCorrection"},
+            	{"title":"修正人",rowspan: 2,"align":"center","event":"setSign","field":"reviser"},
+            	{"title":"修正人联系方式",rowspan: 2,"align":"center","event":"setSign","field":"contactInformationOfReviser"},
+            	{"title":"审批人",rowspan: 2,"align":"center","event":"setSign","field":"approver"},
+            	{"title":"修正确认",rowspan: 2,"align":"center","event":"setSign","field":"correctionResult",templet: function(res) {
+					switch(res.correctionResult) {
+						case 0:
+							return '不同意，顺延交付'
+						case 1:
+							return '同意'
+						default:
+							return ""
+					}
+				}},
+				{"title":"不同意原因",rowspan: 2,"align":"center","event":"setSign","field":"reasonsForDisagreement"},
+            	{"title":"状态",rowspan: 2,"align":"center","event":"setSign","field":"status",templet:function(res) {
+					return orderFixedEnum.nameOfIndex(res.status)
+				}}],
+            	[{"title":"月需求总量","align":"center","event":"setSign","field":"totalMonthlyDemand"},
+            	{"title":"第1周需求总量","align":"center","event":"setSign","field":"week1"},
+            	{"title":"第2周需求总量","align":"center","event":"setSign","field":"week2"},
+            	{"title":"第3周需求总量","align":"center","event":"setSign","field":"week3"},
+            	{"title":"第4周需求总量","align":"center","event":"setSign","field":"week4"},
+            	{"title":"第5周需求总量","align":"center","event":"setSign","field":"week5"},
+            	{"title":"送货地址","align":"center","event":"setSign","field":"deliveryAddress"},
+            	{"title":"备注信息","align":"center","event":"setSign","field":"remarksInformation"},
+            	{"title":"月需求总量","align":"center","event":"setSign","field":"totalMonthlyDemandNew"},
+            	{"title":"第1周需求总量","align":"center","event":"setSign","field":"week1New"},
+            	{"title":"第2周需求总量","align":"center","event":"setSign","field":"week2New"},
+            	{"title":"第3周需求总量","align":"center","event":"setSign","field":"week3New"},
+            	{"title":"第4周需求总量","align":"center","event":"setSign","field":"week4New"},
+            	{"title":"第5周需求总量","align":"center","event":"setSign","field":"week5New"},
+            	{"title":"送货地址","align":"center","event":"setSign","field":"deliveryAddressNew"},
+            	{"title":"备注信息","align":"center","event":"setSign","field":"remarksInformationNew"},]
+            	]
+//          	console.log(JSON.stringify(_this.tableColumn))
+            }else{
+            	cols=[_this.tableColumn];
+            }
+//         cols=[_this.tableColumn];
+            layui.use('table', function () {
+                _this.table = layui.table
+                //展示已知数据
+                _this.table.render({
+                    elem: '#main_table',
+                    data: _this.tableData,
+                    cols: cols,
+                    cellMinWidth: 120,
+                    limit: _this.pagination.size,
+                });
+
+                //点击主表格内单元格时触发的方法
+                _this.rowInLineOperationFunc();
+            });
+        },
+
+        /**
+         * author: zhangqi
+         * description: 加载表格分页
+         * time: 2020/09/17
+         */
+        loadTablePager: function () {
+            var _this = this;
+            layuiEvent.laypage.render({
+                elem: 'tablePager',
+                count: _this.pagination.total,
+                layout: ['count', 'limit', 'prev', 'page', 'next', 'skip'],
+                prev: '<em><i class="layui-icon" ><</i></em>',
+                next: '<em><i class="layui-icon" >></i></em>',
+                jump: function (obj) {
+                    _this.pagination.size = obj.limit;
+                    _this.pagination.current = obj.curr;
+                    _this.getTableDataFunc();
+                }
+            });
+        },
+
+
+        /*
+        * author: zhangqi
+        * description: 点击主表格内单元格时触发的方法
+        * time: 2020/09/17
+        */
+        rowInLineOperationFunc: function () {
+            var _this = this;
+            //表格行内的操作，包括获取表格单行的数据，表格单行中‘编辑’或‘删除’的方法
+            _this.table.on('tool(main_test)', function (obj) {
+                var data = obj.data;
+                if (obj.event === 'setSign') {
+                    if (_this.hasChildren) {
+                        searchViceObjParam.parentId = data.id;
+                        searchViceObjParam.parentData = data;
+                        searchViceObjParam.removeTableData = false
+                        //将全局变量传入中间组件transferParam中，用于查询副表格数据
+                        transfer.$emit('transferParam', searchViceObjParam);
+                    }
+                }
+                _this.$emit('tableoperation', obj);
+            });
+        },
+
+
+        /**
+         * description:点击表格上方‘新增’按钮执行的方法
+         * author:zhangqi
+         * time: 2020-09-16
+         */
+        addDataFunc: function (size, dateType, domId) {
+            var _this = this;
+            //清空下拉菜单带有分页表格的方法中的补充查询条件的变量，防止存在数据联动的情况下，导致被联动的部分数据查询不正确
+            _this.linkageParamObj = {};
+            _this.loadDataTimePickerFunc(dateType, domId);
+            size = size || _this.size;
+            //给表单中提交方法的类型的变量赋值, 判断是新增方法,还是编辑方法, 1-新增 2-编辑
+            _this.submitFormType = 1;
+            //清空表单中所有内容，
+            document.getElementById("layui-form").reset();
+            _this.layerBox = layer.open({
+                type: 1,
+                title: '新增',
+                closeBtn: 1,
+                area: [size.width + 'px', size.height + 'px'],
+                shade: false,
+                shadeClose: false,
+                content: $("#layui-form")
+            });
+        },
+        /**
+         * description:点击表格上方‘返回当前表格选中行数据集合’按钮执行的方法
+         * author:linzijian
+         * time: 2020-09-16
+         */
+        seeDataFunc: function (data, domId, callBack, title) {
+            var _this = this;
+            size = data || _this.size;
+            var searchData = { size: data.size, current: data.current }
+            if (data.state) {
+                searchData.state = data.state
+            }
+            searchData = Object.assign(searchData, _this.searchParam);
+            layuiEvent.admin.req(_this.getTableDataUrl, searchData, function (res) {
+                if (res.ok) {
+                    callBack && callBack(res.data)
+                } else {
+                    layerInfo(res.message, 2);
+                }
+            }, { method: 'GET' }
+            )
+            _this.layerBox = layer.open({
+                type: 1,
+                title: title ? title : '新增',
+                closeBtn: 1,
+                area: [size.width + 'px', size.height + 'px'],
+                shade: false,
+                shadeClose: false,
+                content: $("#" + domId)
+            });
+        },
+
+        /*
+       * author: zhangqi
+       * description: 主表格顶部编辑按钮执行的方法(用于判断当某条数据的状态不符合弹出编辑模态框时，进行提示并阻止弹出编辑模态框)
+       * time: 2020/09/21
+       */
+        batreq: function (next) {
+            var _this = this;
+            //获取表格中被勾选的数据的集合
+            var checkStatus = _this.table.checkStatus('main_table')
+            //data是一个数组，数组中的元素是表格中被勾选所有数据
+            var data = checkStatus.data;
+            //批量操作起码一个数据
+            if (data.length == 0) {
+                layer.alert('请先勾选一条数据', {
+                    title: '提示',
+                    icon: 5,
+                    btn: ['关闭']
+                });
+                return false
+            }
+            next(data);
+        },
+
+        /*
+        * author: zhangqi
+        * description: 主表格顶部编辑按钮执行的方法
+        * time: 2020/09/21
+        */
+        editDataFunc: function (size, dateType, domId) {
+            var _this = this;
+            //清空下拉菜单带有分页表格的方法中的补充查询条件的变量，防止存在数据联动的情况下，导致被联动的部分数据查询不正确
+            _this.linkageParamObj = {};
+            size = size || _this.size;
+            //给表单中提交方法的类型的变量赋值, 判断是新增方法,还是编辑方法, 1-新增 2-编辑
+            _this.submitFormType = 2;
+            //获取表格中被勾选的数据的集合
+            var checkStatus = _this.table.checkStatus('main_table')
+            //data是一个数组，数组中的元素是表格中被勾选所有数据
+            var data = checkStatus.data;
+            if (data.length == 0) {
+                layer.alert('请先勾选一条数据', {
+                    title: '提示',
+                    icon: 5,
+                    btn: ['关闭']
+                });
+                return false
+            } else if (data.length > 1) {
+                layer.alert('只能选择一条数据进行编辑', {
+                    title: '提示',
+                    icon: 5,
+                    btn: ['关闭']
+                });
+                return false
+            } else {
+                if (_this.getTableDataUrl == '/mc-api/achievements/achievements/page/administrator') {
+                    if (data[0].state == 5) {
+                        layer.alert('已处理的不能再进行修改', {
+                            title: '提示',
+                            icon: 5,
+                            btn: ['关闭']
+                        });
+                        return false
+                    }
+                }else if (_this.getTableDataUrl == '/mc-api/pdp/monthOrderRevision/page') {
+                    if (data[0].status != 1 && data[0].status != 4) {
+                        layer.alert('当前状态不能进行修改', {
+                            title: '提示',
+                            icon: 5,
+                            btn: ['关闭']
+                        });
+                        return false
+                    }
+                  }
+                _this.layerBox = layer.open({
+                    type: 1,
+                    title: '编辑',
+                    closeBtn: 1,
+                    area: [size.width + 'px', size.height + 'px'],
+                    shade: false,
+                    shadeClose: false,
+                    content: $("#layui-form")
+                });
+                // 加载联动下拉回显可选值
+                _this.loadDataTimePickerFunc(dateType, domId);
+                _this.fromTypeTransition(data);
+                //表单赋值
+                _this.echoLinkageDataFunc(data[0]);
+                layuiEvent.form.val('example', data[0]);
+                _this.checkedTableDataId = data[0].id;
+            }
+            return data[0];
+        },
+        /**
+         * description:表单赋值时是否需要数据类型转换
+         * author:zhangqi
+         * time: 2020-09-16
+         */
+        fromTypeTransition: function (data) {
+            var _this = this;
+            if (data[0].ifAppeal != undefined && typeof data[0].ifAppeal != String) {
+                data[0].ifAppeal = data[0].ifAppeal + '';
+            }
+            if (data[0].happenTime != undefined && typeof data[0].ifAppeal != String) {
+                data[0].happenTime = _this.transitionDtatFormat(data[0].happenTime);
+            }
+        },
+
+        /**
+         * description:转换时间格式
+         * author:zhangqi
+         * time: 2020-09-16
+         */
+        transitionDtatFormat: function (dataTime) {
+            var date = new Date(dataTime);
+            var YY = date.getFullYear() + '-';
+            var MM = (date.getMonth() + 1 < 10 ? '0' + (date.getMonth() + 1) : date.getMonth() + 1) + '-';
+            var DD = (date.getDate() < 10 ? '0' + (date.getDate()) : date.getDate());
+            return YY + MM + DD;
+        },
+        /**
+         * description:提交表单数据
+         * author:zhangqi
+         * time: 2020-09-16
+         */
+        submitFormFunc: function () {
+            var _this = this;
+            layuiEvent.form.on('submit(main-form)', function (data) {
+                if (_this.submitFormType == 1) {
+                    //调用新增接口，新增数据
+                    layuiEvent.admin.req(_this.addOrEditTableDataUrl, data.field, function (res) {
+                        if (res.ok) {
+                            layerInfo("数据新增成功", 1);
+                            layer.closeAll();
+                            _this.getTableDataFunc(function () {
+                                _this.loadTablePager()
+                            });
+                        } else {
+                            layerInfo(res.message, 2);
+                        }
+                    }, { method: 'POST' }
+                    )
+                } else if (_this.submitFormType == 2) {
+                    var obj = JSON.parse(JSON.stringify(data.field))
+                    obj.id = _this.checkedTableDataId;
+                    layuiEvent.admin.req(_this.addOrEditTableDataUrl, obj, function (res) {
+                        if (res.ok) {
+                            layerInfo("数据编辑成功", 1);
+                            layer.closeAll();
+                            _this.getTableDataFunc();
+                        } else {
+                            layerInfo(res.message, 2);
+                        }
+                    }, { method: 'POST' }
+                    )
+                }
+                return false
+            });
+        },
+
+        /**
+         * author: zhangqi
+         * description: 主表格顶部提交按钮执行的方法
+         * time: 2020/09/17
+         */
+        publishDataFunc: function (InfoTitle, title) {
+            var _this = this;
+            InfoTitle = InfoTitle || '数据提交成功';
+            title = title || '确认要提交已勾选的数据吗？';
+            //获取表格中被勾选的数据的集合
+            var checkStatus = _this.table.checkStatus('main_table')
+            var data = checkStatus.data;
+            //判断当前是否有选中数据
+            if (data.length == 0) {
+                layer.alert('请先勾选一条数据', {
+                    title: '提示',
+                    icon: 5,
+                    btn: ['关闭']
+                });
+            } else {
+                layer.alert(title, {
+                    title: '提示',
+                    icon: 3,
+                    btn: ['确定', '关闭'],
+//                  area: ['400px', '200px'], //宽高
+                }, function () {
+                    //获取每条数据的id，并添加进新的数组中
+                    var ids = []
+                    data.forEach(function (item) {
+                        ids.push(item.id)
+                    });
+                    layuiEvent.admin.req(_this.publishTableDataUrl, ids, function (res) {
+                        if (res.ok) {
+                            layerInfo(InfoTitle, 1);
+                            _this.getTableDataFunc();
+                        } else {
+                            layerInfo(res.message, 2);
+                        }
+                    }, { method: 'POST' }
+                    );
+                });
+            }
+        },
+
+
+        /**
+         * author: zhangqi
+         * description: 主表格顶部提交按钮执行的方法
+         * time: 2020/09/17
+         */
+        publishDataSearchFunc: function (InfoTitle, title,searchData) {
+            var _this = this;
+            InfoTitle = InfoTitle || '数据提交成功';
+            title = title || '确认要提交已勾选的数据吗？';
+            //获取表格中被勾选的数据的集合
+            var checkStatus = _this.table.checkStatus('main_table')
+            var data = checkStatus.data;
+            //判断当前是否有选中数据
+            layer.alert(title, {
+                title: '提示',
+                icon: 3,
+                btn: ['确定', '关闭'],
+//              area: ['400px', '200px'], //宽高
+            }, function () {
+                //获取每条数据的id，并添加进新的数组中
+                var ids = []
+                data.forEach(function (item) {
+                    ids.push(item.id)
+                });
+                searchData.ids = ids;
+                layuiEvent.admin.req(_this.publishTableDataUrl, searchData, function (res) {
+                        if (res.ok) {
+                            layerInfo(InfoTitle, 1);
+                            _this.getTableDataFunc();
+                        } else {
+                            layerInfo(res.message, 2);
+                        }
+                    }, { method: 'POST' }
+                );
+            });
+        },
+
+        /**
+         * author: zhangqi
+         * description: 主表格顶部提交按钮执行的方法
+         * time: 2020/09/17
+         */
+        batchPublishDataFunc: function (url) {
+            var _this = this;
+            layer.alert('确认批量发布数据吗？', {
+                title: '提示',
+                icon: 3,
+                btn: ['确定', '关闭'],
+//              area: ['400px', '200px'], //宽高
+            }, function () {
+                layuiEvent.admin.req(url, _this.searchParam, function (res) {
+                    if (res.ok) {
+                        layerInfo('数据发布成功', 1);
+                        _this.getTableDataFunc();
+                    } else {
+                        layerInfo(res.message, 2);
+                    }
+                }, { method: 'GET' }
+                );
+            });
+        },
+
+        /**
+         * author: zhangqi
+         * description: 主表格顶部删除按钮执行的方法
+         * time: 2020/09/17
+         */
+        deleteDataFunc: function () {
+            var _this = this;
+            //获取表格中被勾选的数据的集合
+            var checkStatus = _this.table.checkStatus('main_table')
+            var data = checkStatus.data;
+            // layer.alert(JSON.stringify(data));
+            //当点击删除按钮时，判断当前是否有选中数据
+            if (data.length == 0) {
+                layer.alert('请先勾选一条数据', {
+                    title: '提示',
+                    icon: 5,
+                    btn: ['关闭']
+                });
+            } else {
+                layer.alert('确认要删除已勾选的数据吗？', {
+                    title: '删除',
+                    icon: 3,
+                    btn: ['确定', '关闭'],
+//                  area: ['400px', '200px'], //宽高
+                }, function () {
+                    //获取每条数据的id，并添加进新的数组中
+                    var ids = []
+                    data.forEach(function (item) {
+                        ids.push(item.id)
+                    });
+                    //调用删除接口，删除数据
+                    layuiEvent.admin.req(_this.deleteTableDataUrl, { "ids": ids }, function (res) {
+                        if (res.ok) {
+                            layerInfo("数据删除成功", 1);
+                            _this.getTableDataFunc(function () {
+                                _this.loadTablePager()
+                            });
+                            //初始化副表格的tabs页签，删除主表格数据后，定位下标数是0的第一个tabs标签
+                            tabsIndex = 0;
+                            //设置副表格选中一个tabs标签的样式
+                            $('.layui-tab-title li').eq(0).addClass('layui-this').siblings().removeClass('layui-this')
+                            //重置用于查询副表格数据的全局变量
+                            searchViceObjParam = {
+                                "parentId": '', //主表格中被选中的一行数据的id
+                                "childType": 0, //tabs标签项中的位置
+                                "size": "", //每页展示的数据的条数（每页展示几条数据）
+                                "current": "", //当前所在的页码数（当前在第几页）
+                                "removeTableData": true//是否清空子表数据开关
+                            }
+                            //将全局变量传入中间组件transferParam中，用于查询副表格数据
+                            transfer.$emit('transferParam', searchViceObjParam);
+                        } else {
+                            layerInfo(res.message, 2);
+                        }
+                    }, { method: 'DELETE' }
+                    );
+                });
+            }
+        },
+
+        /**
+         * author: zhangqi
+         * description: 下载模板的方法
+         * time: 2020/09/29
+         */
+        downloadTemplateFunc: function () {
+            var _this = this;
+            var link = document.createElement('a');
+            link.href = layui.config.setToken(_this.downloadTemplateUrl);
+            link.click();
+            // window.location.href = ;
+        },
+
+        /**
+         * author: zhangqi
+         * description: 导入文件的方法
+         * time: 2020/09/28
+         */
+        importItemInfo: function (callback) {
+            var _this = this;
+            _this.uploadFileName = '';
+            _this.layerBox = layer.open({
+                type: 1,
+                title: '导入',
+                closeBtn: 1,
+                area: ['450px', '250px'], //宽高
+                shade: false,
+                shadeClose: false,
+                content: $("#layui-upload")
+            });
+            _this.loadChooseFileCheckBoxFunc(callback)
+        },
+        uploadsubmitbtn: function () {
+            let _this = this;
+            if (_this.uploadFileName == '') {
+                layerInfo('请选择需要上传的文件！', 5);
+            }
+        },
+        /**
+         * author: zhangqi
+         * description: 加载选择文件的选择框的方法
+         * time: 2020/09/28
+         */
+        loadChooseFileCheckBoxFunc: function (callback) {
+            var _this = this;
+            if (_this.uploadDom) {
+                return
+            }
+            _this.uploadDom = layuiEvent.upload.render({
+                elem: '#chooseFile',
+                url: _this.uploadFileUrl, //改成您自己的上传接口
+                auto: false,
+                accept: 'file', //普通文件
+                acceptMime: '.xls,.xlsx', //选择文件时，过滤掉这三种文件之外的所有文件
+                exts: 'xls|xlsx', //允许上传文件的格式
+                size: 51200, //限制文件大小，最大为50MB的文件，此处单位是KB
+                bindAction: '#upload',
+                choose: function (obj) {
+                    _this.files = obj.pushFile(); //将每次选择的文件追加到文件队列
+                    //读取本地文件
+                    obj.preview(function (index, file, result) {
+                        _this.uploadFileName = file.name;
+                    });
+                    _this.uploadDom.config.elem.next()[0].value = '';
+                },
+                done: function (res, index) {
+                    if (res.ok) {
+                        layerInfo("文件上传成功", 1);
+                        layer.close(_this.layerBox);
+                        layer.closeAll('loading');
+                        callback && callback(res);
+                        //执行查询表格数据的方法
+                        _this.getTableDataFunc(function () {
+                            _this.loadTablePager()
+                        })
+                    } else {
+                        // layerInfo(res.message, 2);
+                        layer.alert(res.message)
+                        layer.close(_this.layerBox);
+                        layer.closeAll('loading');
+                    }
+                    //删除数组文件中上传成功的图片，防止重复上传（重点）
+                    for (let x in _this.files) {
+                        delete _this.files[x];
+                    }
+                },
+                error: function () {
+                    //删除数组文件中上传成功的图片，防止重复上传（重点）
+                    for (let x in _this.files) {
+                        delete _this.files[x];
+                    }
+                    layer.closeAll('loading');
+                }
+            });
+        },
+
+        /**
+         * author: zhangqi
+         * description: 导出文件的方法
+         * time: 2020/10/14
+         */
+        exportItemInfo: function (fileName, exportData) {
+            var _this = this;
+            var exportObj = {};
+            //获取表格中被勾选的数据的集合
+            var checkStatus = _this.table.checkStatus('main_table')
+            var data = checkStatus.data;
+            var ids
+            //获取每条数据的id，并添加进新的数组中
+            if (data.length > 0) {
+                ids = [];
+            }
+            data.forEach(function (item) {
+                ids.push(item.id)
+            });
+            // _this.searchParam
+            // $.each( _this.searchParam, function (key, val){
+            //         if(exportObj[key] = val;)
+            //     });
+            exportObj = JSON.parse(JSON.stringify(_this.searchParam));
+            exportObj.ids = ids;
+            if (!!exportData) {
+                exportObj = exportData;
+            }
+            fetch(_this.exportDataUrl, {
+                method: 'post',
+                headers: {
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Content-Type': 'application/json',
+                    "type":"CASTGC",
+                            "CASTGC": layui.config.CASTGC,
+                },
+                'credentials': 'include',
+                body: JSON.stringify(exportObj),
+            })
+                .then(res => res.blob())
+                .then(blob => {
+                    var a = document.createElement('a');
+                    var url = window.URL.createObjectURL(blob);
+                    a.href = url;
+                    a.setAttribute("download", fileName);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                })
+        },
+        exportListInfo: function (fileName, exportData, url) {
+            var _this = this;
+            fetch(url, {
+                method: 'post',
+                headers: {
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Content-Type': 'application/json',
+                    "type":"CASTGC",
+                            "CASTGC": layui.config.CASTGC,
+                },
+                'credentials': 'include',
+                body: JSON.stringify(exportData),
+            })
+                .then(res => res.blob())
+                .then(blob => {
+                    var a = document.createElement('a');
+                    var url = window.URL.createObjectURL(blob);
+                    a.href = url;
+                    a.setAttribute("download", fileName);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                })
+        },
+
+        /**
+         * author: zhangqi
+         * description: 加载 select下拉菜单中带有分页表格的方法
+         * time: 2021/01/18
+         */
+        tableSelectLoadFunc: function (obj) {
+            var _this = this;
+            //定义展示表格数据的数据结构模板
+            var colsArr = [];
+            //默认表格数据的单选，默认添加单选操作列
+            colsArr.push({ type: 'radio' });
+            //循环数据，继续添加表格数据列
+            $.each(obj.tableCols, function (key, value) {
+                colsArr.push({ title: key, field: value, align: 'center' })
+            })
+            var tableSelects = layui.tableSelects;
+            tableSelects.render({
+                elem: '#' + obj.elem, //定义输入框input对象 必填
+                checkedKey: obj.checkedKey, //表格的唯一建值，非常重要，影响到选中状态 必填
+                searchKey:  ["partNumber", "supplierCode", "year", "month"],	//搜索输入框的name值 默认keyword
+                searchPlaceholder:  ["零件号",  "供应商代码", "年份", "月份"],	//搜索输入框的提示文字 默认关键词搜索
+                table: {	//定义表格参数，与LAYUI的TABLE模块一致，只是无需再定义表格elem
+                    url: obj.url,
+                    cols: [colsArr],
+                    page: true,
+                    request: {
+                        pageName: 'current', //页码的参数名称，默认：page
+                        limitName: 'size' //每页数据量的参数名，默认：limit
+                    },
+                    limit: 20,
+                    parseData: function (res) { //res 即为原始返回的数据
+                        return {
+                            "code": res.respCode, //解析接口状态
+                            "msg": res.message, //解析提示文本
+                            "count": res.data.total, //解析数据长度
+                            "data": res.data.records //解析数据列表
+                        };
+                    },
+                },
+                done: function (elem, data) {
+                    console.log(data,'testTable')
+                    //选择完后的回调，包含2个返回值 elem:返回之前input对象；data:表格返回的选中的数据 []
+                    //拿到data[]后 就按照业务需求做想做的事情啦~比如加个隐藏域放ID...
+                    var storageDataObj = {};
+
+                    if (obj.fillFieldData === '[object Object]') {
+
+                        obj.fillFieldDataArr.forEach(function (item) {
+                            layuiEvent.form.val('example', { [item.formValue]: data.data[0][item.tableValue] });
+                            storageDataObj[item.formValue] = data.data[0][item.tableValue]
+                        })
+                        // if (obj.isEnableLinkage) {
+                        //     _this.linkageParamObj = {};
+                        //     obj.enableLinkageParamArr.forEach(function (item) {
+                        //         _this.linkageParamObj[item] = storageDataObj[item];
+                        //     })
+                        //     obj.emptyDomValue.forEach(function (item) {
+                        //         layuiEvent.form.val('example', { [item]: '' });
+                        //     })
+                        // }
+
+                    } else {
+                        obj.fillFieldDataArr.forEach(function (item) {
+                            layuiEvent.form.val('example', { [item]: data.data[0][item] });
+                            storageDataObj[item] = data.data[0][item]
+                        })
+                        if (obj.isEnableLinkage) {
+                            _this.linkageParamObj = {};
+                            obj.enableLinkageParamArr.forEach(function (item) {
+                                _this.linkageParamObj[item] = storageDataObj[item];
+                            })
+                            obj.emptyDomValue.forEach(function (item) {
+                                layuiEvent.form.val('example', { [item]: '' });
+                            })
+                        }
+                    }
+
+                }
+            })
+        },
+
+        /**
+         * author: zhangqi
+         * description: 加载 包含联动功能的select下拉菜单中带有分页表格的方法
+         * description：通过一项数据去查询另一项数据，是需要与上方'tableSelectLoadFunc'联合操作的方法
+         * time: 2021/01/18
+         */
+        tableSelectLinkageFunc: function (obj) {
+            var _this = this;
+            //定义展示表格数据的数据结构模板
+            var colsArr = [];
+            //默认表格数据的单选，默认添加单选操作列
+            colsArr.push({ type: 'radio' });
+            //循环数据，继续添加表格数据列
+            $.each(obj.tableCols, function (key, value) {
+                colsArr.push({ title: key, field: value, align: 'center' })
+            })
+            var whereObj = Object.keys(_this.linkageParamObj).length ? _this.linkageParamObj : obj.defaultParam || ''
+            var tableSelect = layui.tableSelect;
+            tableSelect.render({
+                elem: '#' + obj.elem, //定义输入框input对象 必填
+                checkedKey: obj.checkedKey, //表格的唯一建值，非常重要，影响到选中状态 必填
+                searchKey: obj.searchKey,	//搜索输入框的name值 默认keyword
+                searchPlaceholder: '关键词搜索',	//搜索输入框的提示文字 默认关键词搜索
+                table: {	//定义表格参数，与LAYUI的TABLE模块一致，只是无需再定义表格elem
+                    url: obj.url,
+                    cols: [colsArr],
+                    page: true,
+                    request: {
+                        pageName: 'current', //页码的参数名称，默认：page
+                        limitName: 'size' //每页数据量的参数名，默认：limit
+                    },
+                    where: whereObj,
+                    limit: 20,
+                    parseData: function (res) { //res 即为原始返回的数据
+                        return {
+                            "code": res.respCode, //解析接口状态
+                            "msg": res.message, //解析提示文本
+                            "count": res.data.total, //解析数据长度
+                            "data": res.data.records //解析数据列表
+                        };
+                    },
+                },
+                done: function (elem, data) {
+                    obj.fillfFieldDataArr.forEach(function (item) {
+                        layuiEvent.form.val('example', { [item]: data.data[0][item] });
+                    })
+                }
+            })
+        }
+    },
+});
+
+
+var tabsIndex = 0 //全局变量，当前选中的tabs的下标
+
+// tabs标签切换的组件
+var tabsAssembly = Vue.component('tabs-assembly-lzj', {
+    props: ['tabsList'],
+    data: function () {
+        return {}
+    },
+    template: '<div class="layui-tab layui-tab-brief" lay-filter="tabs_demo">' +
+        '<ul class="layui-tab-title g-tabs-div">' +
+        '<li v-for="i in tabsList">{{i}}</li>' +
+        '</ul>' +
+        '</div>',
+
+    mounted: function () {
+        var _this = this;
+
+        //初始化副表格的tabs页签，加载tabs模块时，默认定位下标数是0的第一个tabs标签
+        tabsIndex = 0;
+
+        //设置加载页面后，子表格默认选中一个tabs标签的样式
+        $('.layui-tab-title li').eq(0).addClass('layui-this').siblings().removeClass('layui-this')
+
+        //执行点击切换tabs标签，获得当前选中的tabs的数据的方法
+        _this.getChangeTabsDataFunc();
+
+    },
+    methods: {
+        /**
+         * author: zhangqi
+         * description: 点击切换tabs标签，获得当前选中的tabs的数据
+         * time: 2020/09/23
+         */
+        getChangeTabsDataFunc: function () {
+            var _this = this;
+            layuiEvent.element.on('tab(tabs_demo)', function (data) {
+                tabsIndex = data.index;
+                searchViceObjParam.childType = tabsIndex;
+                if (searchViceObjParam.parentId == '') {
+                    layerInfo("没有选择主表格中指定的数据", 2)
+                } else {
+                    //将全局变量传入中间组件transferParam中，用于查询副表格数据
+                    transfer.$emit('transferParam', searchViceObjParam);
+                    _this.$emit('tabdata', searchViceObjParam);
+                }
+            });
+        },
+    }
+});
+
+
+// 副表格部分和公用的方法
+var vicePublicTableAndMethod = Vue.component('vice-public-table-and-method-lzj', {
+    props: ['vicTempletList', 'viceTableHeadObj', 'viceFormSelectUrlObjArr', 'isCheckBox', 'isNumber', 'align', 'getViceDataUrl', 'viceTableUrlObj', 'viceLinkageSelectInterfaceArr', 'pageUrls', 'idNames', 'viceTempletList'],
+    data: function () {
+        return {
+            searchViceObj: {}, //用户存放查询副表格数据的对象的变量
+            table: {},
+            submitFormType: "", //执行表单中提交方法的类型, 判断是新增方法,还是编辑方法, 1-新增 2-编辑
+            checkedTableDataId: '', //此变量用于编辑功能时，存储被勾选的数据的ID
+            tableData: [],
+            columnObj: {},
+            columnObjArr: [],
+            tableColumn: [],
+            layerBox: '', //定义一个弹出框的标识变量名称，这个的作用是用于在接口调用并且方法执行成功之后（例如新增或编辑方法），单独关闭所对应的提示框
+            total: '', //记录表格的总数据条数
+            pageSize: '', //当前每页展示的数据的条数
+            size: ['700px', '450px'],
+        }
+    },
+    template:
+        '<div>' +
+        '<table id="vice_table" lay-filter="vice_test"></table>' +
+        '<div id="viceTablePager"></div>' +
+        '</div>',
+
+    created: function () {
+        var _this = this;
+
+        transfer.$off('transferParam');
+        transfer.$on("transferParam", function (msg) {
+            _this.searchViceObj = {};
+            _this.searchViceObj = msg;
+            if (_this.searchViceObj.removeTableData) {
+                _this.tableData = [];
+                _this.drawTableFunc();
+            } else {
+                _this.$emit("disabledvicebtn", _this.searchViceObj)
+                _this.getViceTableDataFunc(function () {
+                    _this.loadViceTablePager();
+                });
+            }
+        });
+    },
+    beforeDestroy() {
+        transfer.$off('transferParam');
+    },
+    mounted: function () {
+        var _this = this;
+        //在前端定义好副表格的表单中是否有下拉菜单，如果有这个变量，则执行下方方法，循环对象数组，获取每个下拉菜单对应的数据
+        if (_this.viceFormSelectUrlObjArr != undefined) {
+            _this.getViceFormSelectDataFunc();
+        }
+        //在前端定义判断副表格中的下拉菜单选项是否属于联动回显的类型，，如果有这个变量，则执行下方方法，处理下拉菜单数据联动的问题
+        if (_this.viceLinkageSelectInterfaceArr != undefined) {
+            _this.getLinkageSelectDataFunc()
+        }
+    },
+    methods: {
+        /*
+       * author: wangweili
+       * description: 子表格行内按钮点击事件
+       * time: 2020/09/17
+       */
+        vicTableButtonClick: function () {
+            var _this = this;
+            //表格行内的操作，包括获取表格单行的数据，表格单行操作列按钮
+            _this.table.on('tool(vice_test)', function (obj) {
+                if (obj.event !== 'setSign') {
+                    _this.$emit('victablebuttonclick', obj);
+                }
+            });
+        },
+
+        /*
+        * author: linzijan
+        * description:附表格加载时间选择器的方法
+        * time: 2020/09/21
+        */
+        LastTableLoadDataTimePickerFunc: function (type, domId) {
+            if (!domId) {
+                layuiEvent.laydate.render({
+                    elem: '#chooseTime',//通过id绑定html中插入的end
+                    type: 'date',
+                    min: "1970-1-1",//设置min默认最小值
+                    isInitValue: true,
+                    value: '1989-10-14',
+                });
+                return
+            }
+            domId.forEach(function (item, index) {
+                layuiEvent.laydate.render({
+                    elem: item,//通过id绑定html中插入的end
+                    type: type[index],
+                    min: "1970-1-1",//设置min默认最小值
+                    isInitValue: true,
+                    // value: '1989-10-14',
+                });
+            })
+        },
+        /**
+         * author: zhangqi
+         * description: 调用接口，查询并获取表格数据
+         * time: 2020/09/21
+         */
+        getViceTableDataFunc: function (callback) {
+            var _this = this;
+            _this.tableData = {};
+            var searchData = {}
+            if (_this.pageUrls) {
+                if (_this.idNames[_this.searchViceObj.childType].type) {
+                    layuiEvent.admin.req(_this.pageUrls[_this.searchViceObj.childType] + _this.searchViceObj.parentId, {}, function (res) {
+                        if (res.ok) {
+                            _this.tableData = [res.data];
+                            _this.total = res.data.total ? res.data.total : 1;
+                            _this.pageSize = res.data.size ? res.data.size : 1;
+                            //执行拼接绘制渲染表格的方法
+                            _this.drawTableFunc();
+                            callback && callback();
+                        } else {
+                            layerInfo(res.message, 2);
+                        }
+                        _this.searchViceObj[_this.idNames[_this.searchViceObj.childType]] = '';
+                    }, { method: 'GET' })
+                } else {
+                    $.each(_this.idNames[_this.searchViceObj.childType], function (key, val) {
+                        if (!_this.searchViceObj.parentData[val]) {
+                            searchData[key] = _this.idNames[_this.searchViceObj.childType][key];
+                        } else {
+                            searchData[key] = _this.searchViceObj.parentData[val];
+                        }
+                    });
+                    searchData.childType = _this.searchViceObj.childType;
+                    searchData.current = _this.searchViceObj.current;
+                    searchData.size = _this.searchViceObj.size;
+                    layuiEvent.admin.req(_this.pageUrls[_this.searchViceObj.childType], searchData, function (res) {
+                        if (res.ok) {
+                            _this.tableData = res.data.records;
+                            _this.total = res.data.total;
+                            _this.pageSize = res.data.size
+                            //执行拼接绘制渲染表格的方法
+                            _this.drawTableFunc();
+                            callback && callback();
+                        } else {
+                            layerInfo(res.message, 2);
+                        }
+                        _this.searchViceObj[_this.idNames[_this.searchViceObj.childType]] = '';
+                    }, { method: 'GET' })
+                }
+            } else {
+                layuiEvent.admin.req(_this.getViceDataUrl, _this.searchViceObj, function (res) {
+                    if (res.ok) {
+                        _this.tableData = res.data.records;
+                        _this.total = res.data.total;
+                        _this.pageSize = res.data.size
+                        //执行拼接绘制渲染表格的方法
+                        _this.drawTableFunc();
+                        callback && callback();
+                    } else {
+                        layerInfo(res.message, 2);
+                    }
+                }, { method: 'GET' }
+                )
+            }
+        },
+        /*
+        * author: zhangqi
+        * description: 拼接绘制渲染表格
+        * time: 2020/09/16
+        */
+        drawTableFunc: function () {
+            var _this = this;
+            _this.tableColumn = [];
+            _this.columnObjArr = [];
+            //判断表格是否开启多选列，如果开启在表格中添加多选列
+            if (_this.isCheckBox) {
+                _this.tableColumn.push({ type: 'checkbox', fixed: 'left' })
+            }
+            //判断表格是否开启序号列，如果开启在表格中添加序号列
+            if (_this.isNumber) {
+                _this.tableColumn.push({ type: 'numbers', title: '序号', fixed: 'left' })
+            }
+
+            // 循环对象中的数组获取表头数据，整合绘制表格所需要的数据格式
+            _this.viceTableHeadObj[tabsIndex][0].forEach(function (item) {
+                _this.columnObj = { title: item, align: _this.align, event: 'setSign' }
+                //月计划使用
+                if (_this.vicTempletList != undefined) {
+                    _this.columnObj.templet = _this.vicTempletList[item];
+                }
+                if (_this.viceTempletList != undefined) {
+                    _this.columnObj.templet = _this.viceTempletList[item];
+                }
+                _this.columnObjArr.push(_this.columnObj);
+                _this.columnObj = {}
+            })
+
+            // 循环数据字段的数组，赋值给中间变量数组中的字段，整合绘制表格所需要的数据格式
+            _this.viceTableHeadObj[tabsIndex][1].forEach(function (item, index) {
+                _this.columnObjArr[index].field = item;
+            })
+
+            // 循环是否固定列的数组，赋值给中间变量数组中的字段，整合绘制表格所需要的数据格式
+            if (_this.fixedColumn != undefined) {
+                _this.fixedColumn.forEach(function (item, index) {
+                    _this.columnObjArr[index].fixed = item;
+                });
+            }
+
+            // 循环中间变量数组，将数组中的每一条数据添加进新的数组中，然后新的数组是表格所需要的并且已经整理好格式的数据
+            _this.columnObjArr.forEach(function (item) {
+                _this.tableColumn.push(item)
+            });
+            //_this.tableColumn.concat(_this.columnObjArr)
+
+            layui.use('table', function () {
+                _this.table = layui.table
+                //展示已知数据
+                _this.table.render({
+                    elem: '#vice_table',
+                    // url: _this.getTableDataUrl,
+                    data: _this.tableData,
+                    cols: [_this.tableColumn],
+                    cellMinWidth: 120,
+                    limit: _this.pageSize,
+                });
+            });
+
+            //渲染子表格行内按钮点击事件
+            _this.vicTableButtonClick();
+            // 零件信息模块，副表格中存在新增，编辑，删除等操作，未加载查询副表格数据之前不应该显示此按钮组，
+            // 所以在此处副表格数据完成查询并渲染之后，显示操作的按钮组
+            _this.$emit("showbuttongroup", true)
+        },
+
+        /**
+         * author: zhangqi
+         * description: 加载副表格分页
+         * time: 2020/09/17
+         */
+        loadViceTablePager: function () {
+            var _this = this;
+            layuiEvent.laypage.render({
+                elem: 'viceTablePager',
+                count: _this.total,
+                layout: ['count', 'limit', 'prev', 'page', 'next', 'skip'],
+                prev: '<em><i class="layui-icon" ><</i></em>',
+                next: '<em><i class="layui-icon" >></i></em>',
+                jump: function (obj) {
+                    _this.searchViceObj.size = obj.limit;
+                    _this.searchViceObj.current = obj.curr;
+                    _this.getViceTableDataFunc();
+                }
+            });
+        },
+
+        /*
+        * author: zhangqi
+        * description: 循环对象数组，获取每个下拉菜单对应的数据
+        * time: 2020/10/09
+        */
+        getViceFormSelectDataFunc: function () {
+            var _this = this;
+            _this.viceFormSelectUrlObjArr.forEach(function (ss) {
+                $.each(ss, function (key, val) {
+                    layuiEvent.admin.req(val, {}, function (res) {
+                        if (res.ok) {
+                            res.data.forEach(function (item) {
+                                $('#' + key).append("<option value='" + item + "'>" + item + "</option>");
+                                layuiEvent.form.render("select");
+                            })
+                        } else {
+                            layerInfo(res.message, 2);
+                        }
+                    }, { method: 'GET' }
+                    );
+                })
+            })
+        },
+
+        /**
+         * description:点击副表格上方‘新增’按钮执行的方法
+         * author:zhangqi
+         * time: 2020-09-29
+         */
+        addViceDataFunc: function (size, dateType, domId) {
+            var _this = this;
+            _this.LastTableLoadDataTimePickerFunc(dateType, domId);
+            size = size ? size[_this.searchViceObj.childType] : _this.size;
+            //给表单中提交方法的类型的变量赋值, 判断是新增方法,还是编辑方法, 1-新增 2-编辑
+            _this.submitFormType = 1;
+            //清空表单中所有内容，
+            document.getElementById("layui-vice-form-" + _this.searchViceObj.childType).reset();
+            _this.layerBox = layer.open({
+                type: 1,
+                title: '新增',
+                closeBtn: 1,
+                area: [size.width + 'px', size.height + 'px'],
+                shade: false,
+                shadeClose: false,
+                content: $("#layui-vice-form-" + _this.searchViceObj.childType),
+            });
+        },
+
+        /*
+        * author: zhangqi
+        * description: 主表格顶部编辑按钮执行的方法
+        * time: 2020/09/21
+        */
+        editViceDataFunc: function (size) {
+            var _this = this;
+            _this.checkedTableDataId = '';
+            size = size || _this.size;
+            //给表单中提交方法的类型的变量赋值, 判断是新增方法,还是编辑方法, 1-新增 2-编辑
+            _this.submitFormType = 2;
+            //获取表格中被勾选的数据的集合
+            var checkStatus = _this.table.checkStatus('vice_table')
+            //data是一个数组，数组中的元素是表格中被勾选所有数据
+            var data = checkStatus.data;
+            if (data.length == 0) {
+                layer.alert('请先勾选一条数据', {
+                    title: '提示',
+                    icon: 5,
+                    btn: ['关闭']
+                });
+                return false
+            } else if (data.length > 1) {
+                layer.alert('只能选择一条数据进行编辑', {
+                    title: '提示',
+                    icon: 5,
+                    btn: ['关闭']
+                });
+                return false
+            } else {
+                _this.layerBox = layer.open({
+                    type: 1,
+                    title: '编辑',
+                    closeBtn: 1,
+                    area: [size.width + 'px', size.height + 'px'],
+                    shade: false,
+                    shadeClose: false,
+                    content: $("#layui-vice-form-" + _this.searchViceObj.childType),
+                });
+
+                //表单赋值
+                layuiEvent.form.val('example-' + _this.searchViceObj.childType, data[0]);
+                _this.checkedTableDataId = data[0].id;
+            }
+        },
+
+        /**
+         * description:提交表单数据
+         * author:zhangqi
+         * time: 2020-09-16
+         * param: mainTableCurrentRowId 在操作子表格的新增或编辑方法时，要获取主表格当前选中行的数据的id
+         */
+        submitViceFormFunc: function (mainTableCurrentRowId) {
+            var _this = this;
+            var obj = {};
+            layuiEvent.form.on('submit(vaic-form-' + _this.searchViceObj.childType + ')', function (data) {
+                obj = JSON.parse(JSON.stringify(data.field))
+                obj[mainTableCurrentRowId] = _this.searchViceObj.parentId;
+                if (_this.submitFormType == 1) {
+                    obj = JSON.parse(JSON.stringify(data.field))
+                    obj[mainTableCurrentRowId] = _this.searchViceObj.parentId;
+                    //调用新增接口，新增数据
+                    layuiEvent.admin.req(_this.viceTableUrlObj[_this.searchViceObj.childType].addOrEditUrl, obj, function (res) {
+                        if (res.ok) {
+                            layerInfo("数据新增成功", 1);
+                            layer.close(_this.layerBox);
+                            _this.getViceTableDataFunc(function () {
+                                _this.loadViceTablePager()
+                            });
+                        } else {
+                            layerInfo(res.message, 2);
+                        }
+                    }, { method: 'POST' }
+                    )
+                } else if (_this.submitFormType == 2) {
+                    obj.id = _this.checkedTableDataId;
+                    layuiEvent.admin.req(_this.viceTableUrlObj[_this.searchViceObj.childType].addOrEditUrl, obj, function (res) {
+                        if (res.ok) {
+                            layerInfo("数据编辑成功", 1);
+                            layer.close(_this.layerBox);
+                            _this.getViceTableDataFunc();
+                        } else {
+                            layerInfo(res.message, 2);
+                        }
+                    }, { method: 'POST' }
+                    )
+                }
+                return false
+            });
+        },
+
+        /**
+         * author: zhangqi
+         * description: 主表格顶部删除按钮执行的方法
+         * time: 2020/09/17
+         */
+        deleteViceDataFunc: function () {
+            var _this = this;
+            //获取表格中被勾选的数据的集合
+            var checkStatus = _this.table.checkStatus('vice_table')
+            var data = checkStatus.data;
+            //当点击删除按钮时，判断当前是否有选中数据
+            if (data.length == 0) {
+                layer.alert('请先勾选一条数据', {
+                    title: '提示',
+                    icon: 5,
+                    btn: ['关闭']
+                });
+            } else {
+                layer.alert('确认要删除已勾选的数据吗？', {
+                    title: '删除',
+                    icon: 3,
+                    btn: ['确定', '关闭'],
+//                  area: ['400px', '200px'], //宽高
+                }, function () {
+                    //获取每条数据的id，并添加进新的数组中
+                    var ids = []
+                    data.forEach(function (item) {
+                        ids.push(item.id)
+                    });
+                    //调用删除接口，删除数据
+                    layuiEvent.admin.req(_this.viceTableUrlObj[_this.searchViceObj.childType].deleteUrl, { "ids": ids }, function (res) {
+                        if (res.ok) {
+                            layerInfo("数据删除成功", 1);
+                            _this.getViceTableDataFunc(function () {
+                                _this.loadViceTablePager()
+                            });
+                        } else {
+                            layerInfo(res.message, 2);
+                        }
+                    }, { method: 'DELETE' }
+                    );
+                });
+            }
+        },
+
+        /*
+        * author: linzijian
+        * description: 获取新增或编辑的表单中，下拉菜单类型的查询条件中的所有数据，这个方法在此js中封装，
+        *              可以简化前端页面的代码重复性，当选择好下拉菜单中的数据后，这样操作还可以直接获取选择的数据，传入接口中（联动下拉）
+        * time: 2020/10/13
+        */
+        getLinkageSelectDataFunc: function () {
+            var _this = this;
+            _this.viceLinkageSelectInterfaceArr.forEach(function (ss) {
+                _this.getLinkageData(ss);
+            })
+        },
+        getLinkageData: function (ss, data) {
+            var _this = this;
+            var searchData = {};
+            $.each(ss, function (key, val) {
+                if (data) {
+                    searchData[val.fieldIdentifier] = data;
+                } else if (val.requestData) {
+                    searchData = val.requestData;
+                }
+                layuiEvent.admin.req(val.url, searchData, function (res) {
+                    if (res.ok) {
+                        $('#' + key).html('<option value=""> 请选择 </option>');
+                        if (val.clearDomID) {
+                            val.clearDomID.forEach(function (item) {
+                                $('#' + item).html('<option value=""> 请选择 </option>');
+                            })
+                        }
+                        res.data.forEach(function (item) {
+                            $('#' + key).append("<option value='" + item[val.value] + "'>" + item[val.name] + "</option>");
+                            layuiEvent.form.on('select(' + key + ')', function (data) {//对应lay-filter
+                                if (val.echoSelectId) {
+                                    $('#' + val.echoSelectId).val(data.value);
+                                }
+                                if (val.children) {
+                                    val.children.forEach(function (ss) {
+                                        _this.getLinkageData(ss, data.value);
+                                    })
+                                }
+                                layuiEvent.form.render("select");
+                            })
+                            layuiEvent.form.render("select");
+                        })
+                    } else {
+                        layerInfo(res.message, 2);
+                    }
+                }, { method: val.requestType }
+                );
+            })
+        },
+
+        /**
+         * author: zhangqi
+         * description: 加载 select下拉菜单中带有分页表格的方法
+         * time: 2021/01/20
+         */
+        viceTableSelectLoadFunc: function (obj) {
+            var _this = this;
+            //定义展示表格数据的数据结构模板
+            var colsArr = [];
+            //根据选择类型的参数判断选择方式为单选或者多选，如果没有这个参数则默认选择方式是单选
+            var checkType = obj.checkType || 'radio'
+            //添加勾选操作列
+            colsArr.push({ type: checkType });
+            //循环数据，继续添加表格数据列
+            $.each(obj.tableCols, function (key, value) {
+                colsArr.push({ title: key, field: value, align: 'center' })
+            })
+            var tableSelect = layui.tableSelect;
+            tableSelect.render({
+                elem: '#' + obj.elem, //定义输入框input对象 必填
+                checkedKey: obj.checkedKey, //表格的唯一建值，非常重要，影响到选中状态 必填
+                searchKey: obj.searchKey,	//搜索输入框的name值 默认keyword
+                searchPlaceholder: '关键词搜索',	//搜索输入框的提示文字 默认关键词搜索
+                table: {	//定义表格参数，与LAYUI的TABLE模块一致，只是无需再定义表格elem
+                    url: obj.url,
+                    cols: [colsArr],
+                    page: true,
+                    request: {
+                        pageName: 'current', //页码的参数名称，默认：page
+                        limitName: 'size' //每页数据量的参数名，默认：limit
+                    },
+                    limit: 20,
+                    parseData: function (res) { //res 即为原始返回的数据
+                        return {
+                            "code": res.respCode, //解析接口状态
+                            "msg": res.message, //解析提示文本
+                            "count": res.data.total, //解析数据长度
+                            "data": res.data.records //解析数据列表
+                        };
+                    },
+                },
+                done: function (elem, data) {
+                    //选择完后的回调，包含2个返回值 elem:返回之前input对象；data:表格返回的选中的数据 []
+                    //拿到data[]后 就按照业务需求做想做的事情啦~比如加个隐藏域放ID...
+                    var storageDataObj = {};
+                    if (checkType == 'radio') {
+                        obj.fillFieldDataArr.forEach(function (item) {
+                            layuiEvent.form.val('example-' + _this.searchViceObj.childType, { [item]: data.data[0][item] });
+                            storageDataObj[item] = data.data[0][item]
+                        })
+                    } else if (checkType == 'checkbox') {
+                        var arr = [];
+                        obj.fillFieldDataArr.forEach(function (item) {
+                            data.data.forEach(function (ss) {
+                                arr.push(ss[item]);
+                            })
+                            layuiEvent.form.val('example-' + _this.searchViceObj.childType, { [item]: arr.join() });
+                            storageDataObj[item] = arr.join()
+                            arr = [];
+                        })
+                    }
+                    //需要进行联动晒段选择数据的时候才会执行的方法
+                    if (obj.isEnableLinkage) {
+                        _this.viceLinkageParamObj = {};
+                        obj.enableLinkageParamArr.forEach(function (item) {
+                            _this.viceLinkageParamObj[item] = storageDataObj[item];
+                        })
+                        obj.emptyDomValue.forEach(function (item) {
+                            layuiEvent.form.val('example', { [item]: '' });
+                        })
+                    }
+                }
+            })
+        },
+
+        /**
+         * author: zhangqi
+         * description: 加载 包含联动功能的select下拉菜单中带有分页表格的方法
+         * description：通过一项数据去查询另一项数据，是需要与上方'viceTableSelectLoadFunc'联合操作的方法
+         * time: 2021/01/20
+         */
+        viceTableSelectLinkageFunc: function (obj) {
+            var _this = this;
+            //定义展示表格数据的数据结构模板
+            var colsArr = [];
+            //根据选择类型的参数判断选择方式为单选或者多选，如果没有这个参数则默认选择方式是单选
+            var checkType = obj.checkType || 'radio'
+            //添加勾选操作列
+            colsArr.push({ type: checkType });
+            //循环数据，继续添加表格数据列
+            $.each(obj.tableCols, function (key, value) {
+                colsArr.push({ title: key, field: value, align: 'center' })
+            })
+            var whereObj = Object.keys(_this.viceLinkageParamObj).length ? _this.viceLinkageParamObj : obj.defaultParam || ''
+            var tableSelect = layui.tableSelect;
+            tableSelect.render({
+                elem: '#' + obj.elem, //定义输入框input对象 必填
+                checkedKey: obj.checkedKey, //表格的唯一建值，非常重要，影响到选中状态 必填
+                searchKey: obj.searchKey,	//搜索输入框的name值 默认keyword
+                searchPlaceholder: '关键词搜索',	//搜索输入框的提示文字 默认关键词搜索
+                table: {	//定义表格参数，与LAYUI的TABLE模块一致，只是无需再定义表格elem
+                    url: obj.url,
+                    cols: [colsArr],
+                    page: true,
+                    request: {
+                        pageName: 'current', //页码的参数名称，默认：page
+                        limitName: 'size' //每页数据量的参数名，默认：limit
+                    },
+                    where: whereObj,
+                    limit: 20,
+                    parseData: function (res) { //res 即为原始返回的数据
+                        return {
+                            "code": res.respCode, //解析接口状态
+                            "msg": res.message, //解析提示文本
+                            "count": res.data.total, //解析数据长度
+                            "data": res.data.records //解析数据列表
+                        };
+                    },
+                },
+                done: function (elem, data) {
+                    if (checkType == 'radio') {
+                        obj.fillFieldDataArr.forEach(function (item) {
+                            layuiEvent.form.val('example-' + _this.searchViceObj.childType, { [item]: data.data[0][item] });
+                        })
+                    } else if (checkType == 'checkbox') {
+                        var arr = [];
+                        obj.fillFieldDataArr.forEach(function (item) {
+                            data.data.forEach(function (ss) {
+                                arr.push(ss[item]);
+                            })
+                            layuiEvent.form.val('example-' + _this.searchViceObj.childType, { [item]: arr.join() });
+                            arr = [];
+                        })
+                    }
+                }
+            })
+        }
+    }
+});

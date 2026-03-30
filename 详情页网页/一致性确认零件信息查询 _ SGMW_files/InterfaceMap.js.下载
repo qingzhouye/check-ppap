@@ -1,0 +1,636 @@
+//接口地址
+
+var InterfaceMap = {
+    /***********生产需求计划月计划********/
+    mrpMonth: {
+        page: "/mc-api/pdp/mrpMonth/page", //分页查询
+        delete: "/mc-api/pdp/mrpMonth/delete", //单条/批量删除数据
+        download: "/mc-api/pdp/mrpMonth/download", //下载月模板
+        saveOrUpdate: "/mc-api/pdp/mrpMonth/saveOrUpdate", //下载月模板
+        importExcelMonth: "/mc-api/pdp/mrpMonth/importExcelMonth", //导入到月需求计划表和月详情表
+        exportExcel: "/mc-api/pdp/mrpMonth/exportExcel", //导出月需求信息
+        listCalendar: '/mc-api/pdp/reviewInformation/listCalendar',//月日历
+    },
+
+    /***********生产需求计划月计划子表接口********/
+    mrpMonthDetail: {
+        page: "/mc-api/pdp/mrpMonthDetail/page", //分页查询
+        saveOrUpdate: "/mc-api/pdp/mrpMonthDetail/saveOrUpdate", //单条数据新增/更改
+        delete: "/mc-api/pdp/mrpMonthDetail/delete", //单条/批量删除数据
+        pushMonthlyDeliveryRisk: "/mc-api/pdp/mrpMonthDetail/pushMonthlyDeliveryRisk", //发布月风险
+    },
+    /***********生产需求计划备料接口********/
+    stockUrl: {
+        page: "/mc-api/pdp/materialPreparation/page",  //分页查询
+        exportExcel: "/mc-api/pdp/materialPreparation/exportMonthMaterialDate", // 导出
+        download: "/mc-api/pdp/materialPreparation/downLoadTemplate",  //下载模板
+        delete: "/mc-api/pdp/materialPreparation/delete",   //删除
+        saveOrUpdate: "/mc-api/pdp/materialPreparation/saveOrUpdate",  //新增编辑
+        importExcelMonth: "/mc-api/pdp/materialPreparation/importExcelMonth", //导入到月需求计划表和月详情表
+    },
+    /***********生产需求计划备料字表接口********/
+    stockSonUrl: {
+        page: "/mc-api/pdp/materialPreparationChildren/page",
+        delete: "/mc-api/pdp/materialPreparationChildren/delete",
+        saveOrUpdate: "/mc-api/pdp/materialPreparationChildren/saveOrUpdate",
+        exportExcel: "/mc-api/pdp/materialPreparationChildren/exportMonthMaterialDate", // 导出
+    },
+    /***** 风险管理供应商一览表接口 ******/
+    Supplieinventory: {
+        getAllTableDataUrl: '/mc-api/pdp/supplierInventoryList/page',//分页查询
+        getAllTableDataUrldetailPage: '/mc-api/pdp/supplierInventoryList/detailPage',
+        exportExportSupplierInventory: '/mc-api/pdp/supplierInventoryList/exportExportSupplierInventory',
+        exportExportSupplierSurplus: "/mc-api/pdp/supplierInventoryList/exportExportSupplierSurplus", //导出供应商人员调查
+        pushDailyDeliveryRisk: '/mc-api/pdp/supplierInventoryList/pushDailyDeliveryRisk',
+        downloadTemplateUrl: '/mc-api/pdp/partsDailyDemand/exportHeader',
+        uploadFileUrl: "/mc-api/pdp/partsDailyDemand/importDailyDemand", //上传文件的接口
+    },
+    /***********操作日志记录接口********/
+    reviewInformation: {
+        page: "/mc-api/pdp/reviewInformation/page", //分页查询
+        processSubmitBatch: "/mc-api/pdp/reviewInformation/processSubmitBatch", //分页查询
+        selectFactory: "/mc-api/pdp/reviewInformation/selectFactory", //查询工厂名称和代码
+        getPlannerUser: "/mc-api/pdp/reviewInformation/getPlannerUser", //查询计划员信息
+        listBusinessMoudle: "/mc-api/pdp/reviewInformation/listBusinessMoudle", //查询计划员信息
+
+        processSubmitAllBatch: 'mc-api/pdp/reviewInformation/submitAll',//审批全部数据的接口
+        submitBatch: 'mc-api/pdp/reviewInformation/submitBatch', //审批全部数据的接口
+        processSubmit : "/mc-api/pdp/reviewInformation/processSubmit"//订单确认 修正
+
+    },
+
+    /***********生产需求计划周计划********/
+    mrpWeek: {
+        page: "/mc-api/pdp/mrpWeek/page", //分页查询
+        delete: "/mc-api/pdp/mrpWeek/delete", //单条/批量删除数据
+        download: "/mc-api/pdp/mrpWeek/download", //下载月模板
+        saveOrUpdate: "/mc-api/pdp/mrpWeek/saveOrUpdate", //下载月模板
+        importExcelMonth: "/mc-api/pdp/mrpWeek/importExcelWeek", //导入到月需求计划表和月详情表
+        exportExcel: "/mc-api/pdp/mrpWeek/exportExcel", //导出月需求信息
+    },
+
+    /***********生产需求计划周计划子表接口********/
+    mrpWeekDetail: {
+        page: "/mc-api/pdp/mrpWeekDetail/page", //分页查询
+        saveOrUpdate: "/mc-api/pdp/mrpWeekDetail/saveOrUpdate", //单条数据新增/更改
+        delete: "/mc-api/pdp/mrpWeekDetail/delete", //单条/批量删除数据
+    },
+
+    /***** 风险管理供应商人员调查表接口 ******/
+    personneLsuevey: {
+        page: "/mc-api/pdp/supplierPersonnelSurvey/page", //分页查询
+        exportExcelPersonBySGMW: "/mc-api/pdp/supplierPersonnelSurvey/exportExcelPersonBySGMW", //导出供应商人员调查
+    },
+    /***** 风险管理月风险人员调查表接口 ******/
+    Monthlydeliveryrisk: {
+        page: "/mc-api/pdp/monthlyDeliveryRisk/page", //分页查询
+        saveOrUpdate: "/mc-api/pdp/monthlyDeliveryRisk/saveOrUpdate", //新增编辑
+        delete: "/mc-api/pdp/monthlyDeliveryRisk/delete", //删除
+        processSubmitBatch: '/mc-api/pdp/reviewInformation/processSubmitBatch',//提交
+        download: '/mc-api/pdp/monthlyDeliveryRisk/download',//下载日风险计划员导入模板
+        importExcelDailyRisk: '/mc-api/pdp/monthlyDeliveryRisk/importExcelDailyRisk',//导入到月交付风险表
+        exportExcel: '/mc-api/pdp/monthlyDeliveryRisk/exportExcel',//导出月交付风险表
+    },
+    /***** 风险管理日风险人员调查表接口 ******/
+    dailyDeliveryRisk: {
+        page: '/mc-api/pdp/dailyDeliveryRisk/page',//分页查询
+        saveOrUpdate: '/mc-api/pdp/dailyDeliveryRisk/saveOrUpdate',//新增编辑
+        delete: '/mc-api/pdp/dailyDeliveryRisk/delete',//删除
+        download: '/mc-api/pdp/dailyDeliveryRisk/download',//下载日风险计划员导入模板
+        importExcelDailyRisk: '/mc-api/pdp/dailyDeliveryRisk/importExcelDailyRisk',//下载日风险计划员导入模板
+        exportExcel: '/mc-api/pdp/dailyDeliveryRisk/exportExcel',//下载日风险计划员导入模板
+    },
+    /***** 车身表接口 ******/
+    dppBody: {
+        page: '/mc-api/pdp/dppBodyView/page',//分页查询
+        dppBodypage: '/mc-api/pdp/dppBody/page',//分页查询
+        download: '/mc-api/pdp/dppBody/download',//下载日排产计划-车身 导入模板
+        exportExcelDppBody: '/mc-api/pdp/dppBody/exportExcelDppBody',//日生产排产计划车身导出-计划员
+        importExcelDPPAssembly: '/mc-api/pdp/dppBody/importExcelDPPAssembly',//导入到日排产计划-车身表
+        supplierViewResult: '/mc-api/pdp/supplierViewResult/page',
+    },
+    /***** 总装表接口 ******/
+    dppAssemblyView: {
+        page: '/mc-api/pdp/dppAssemblyView/page',//分页查询
+        dppAssemblypage: '/mc-api/pdp/dppAssembly/page',
+        download: '/mc-api/pdp/dppAssembly/download',
+        exportExcelDPPAssembly: '/mc-api/pdp/dppAssembly/exportExcelDPPAssembly',
+        importExcelDPPAssembly: '/mc-api/pdp/dppAssembly/importExcelDPPAssembly',
+    },
+    /**********基础信息-零件信息**********/
+    sparePartsInfo: {
+        getSelectVehiclePlatformUrl: "/mc-api/base/part/allVehiclePlatform", //获取顶部查询条件中，车型平台下拉菜单中的选项数据的接口
+        getAllTableDataUrl: "/mc-api/base/part/page", //获取表格所有数据的接口
+        list: "/mc-api/base/part/page", //list接口获取所有数据
+        addOrEditTableDataUrl: "/mc-api/base/part/saveOrUpdate", //新增或编辑表格数据的接口
+        deleteTableDataUrl: "/mc-api/base/part/delete", //删除表格数据的接口
+        downloadTemplateUrl: "/mc-api/base/part/download", //下载模板的接口
+        uploadFileUrl: "/mc-api/base/part/upload", //上传文件的接口
+        exportDataUrl: "/mc-api/base/part/export", //导出文件的接口
+
+        mainFormVehicleTypeSelectUrl: "/mc-api/base/part/allVehicleType", //主表格部分中新增或编辑数据的表单中，获取车型/机型选项数据的接口
+        mainFormPlannerSelectUrl: "/mc-api/pdp/reviewInformation/getPlannerUserNames", //主表格部分中新增或编辑数据的表单中，获取计划员选项数据的接口
+        mainFormBuyerSelectUrl: "/mc-api/base/part/allBuyer", //主表格部分中新增或编辑数据的表单中，获取采购员选项数据的接口
+        mainFormDepartmentSelectUrl: "/mc-api/base/part/allDepartment", //主表格部分中新增或编辑数据的表单中，获取业务科室选项数据的接口
+
+        getViceDataUrl: "/mc-api/base/part/child", //获取副表格对应的数据的接口
+        addOrEditViceDataUrl: "/mc-api/base/partSub/saveOrUpdate", //副表格部分中第一个tabs标签(供应商信息)下对应的副表格新增或编辑数据的接口
+        deleteViceDataUrl: "/mc-api/base/partSub/delete", //副表格部分中第一个tabs标签(供应商信息)下对应的副表格删除数据的接口
+
+        getViceFormEchoSelectSupplierCodeDataUrl: "/mc-api/base/baseSupplier/allSupplierCode", //副表格部分中第一个tabs标签(供应商信息)下‘供应商代码’下拉菜单查询数据的接口
+        getViceFormEchoInputSupplierNameDataUrl: "/mc-api/base/baseSupplier/queryByCode",//获取根据副表格表单中供应商代码联动回显选择的选项查询供应商名称的数据的接口
+        viceFormLinkageSelectUrl: "/mc-api/base/baseSupplier/queryFieldsValue",
+        getViceFormSelectBaseNameDataUrl: "/mc-api/base/partSub/allBase" //副表格部分中第二个tabs标签(基地信息)下‘基地名称’下拉菜单查询数据的接口
+    },
+
+    /**********基础信息-供应商**********/
+    supplier: {
+        getSelectLevelUrl: "/mc-api/base/baseSupplier/allLevel", //获取顶部查询条件中，供应商级别下拉菜单中的选项数据的接口
+        getSelectRegionUrl: "/mc-api/base/baseSupplier/allRegion", //获取顶部查询条件中，区域下拉菜单中的选项数据的接口
+        getAllTableDataUrl: "/mc-api/base/baseSupplier/page", //获取表格所有数据的接口
+        addOrEditTableDataUrl: "/mc-api/base/baseSupplier/saveOrUpdate", //新增或编辑表格数据的接口
+        deleteTableDataUrl: "/mc-api/base/baseSupplier/delete", //删除表格数据的接口
+        downloadTemplateUrl: "/mc-api/base/baseSupplier/download", //下载模板的接口
+        uploadFileUrl: "/mc-api/base/baseSupplier/upload", //上传文件的接口
+        exportDataUrl: "/mc-api/base/baseSupplier/export", //导出文件的接口
+
+        mainFormLinkageSelectUrl: "/mc-api/base/dictionary/childList",//主表格部分中‘区域’，‘省’，‘市’下拉菜单联动查询数据的接口
+        mainFormLevelSelectUrl: "/mc-api/base/baseSupplier/allBaseSupplierLevel", //主表格部分中新增或编辑数据的表单中，获取供应商级别选项数据的接口
+        mainFormAttributeSelectUrl: "/mc-api/base/baseSupplier/allBaseSupplierAttribute",//主表格部分中新增或编辑数据的表单中，获取属性选项数据的接口
+    },
+
+    /**********基础信息-长周期物料**********/
+    longTermMateriel: {
+        getSelectFactoryBaseUrl: "/mc-api/base/longCycleList/allFactoryBase", //获取顶部查询条件中，生产基地下拉菜单中的选项数据的接口
+        getSelectSupplierNameUrl: "/mc-api/base/longCycleList/allSupplierName", //获取顶部查询条件中，供应商名称下拉菜单中的选项数据的接口
+        getSelectSupplierCodeUrl: "/mc-api/base/longCycleList/allSupplierCode", //获取顶部查询条件中，供应商代码下拉菜单中的选项数据的接口
+        getSelectPartCodeUrl: "/mc-api/base/longCycleList/allPartCode", //获取顶部查询条件中，零件号下拉菜单中的选项数据的接口
+        getSelectPartNameUrl: "/mc-api/base/longCycleList/allPartName", //获取顶部查询条件中，零件名称下拉菜单中的选项数据的接口
+        getSelectVehicleTypeUrl: "/mc-api/base/longCycleList/allVehiclePlatform", //获取顶部查询条件中，车型机型下拉菜单中的选项数据的接口
+        getSelectImportCountryUrl: "/mc-api/base/longCycleList/allImportCountry", //获取顶部查询条件中，进口国家下拉菜单中的选项数据的接口
+        getSelectPlanerUrl: "/mc-api/base/longCycleList/allPlaner", //获取顶部查询条件中，计划员下拉菜单中的选项数据的接口
+
+        getAllTableDataUrl: "/mc-api/base/longCycleList/page", //获取表格所有数据的接口
+        addOrEditTableDataUrl: "/mc-api/base/longCycleList/saveOrUpdate", //新增或编辑表格数据的接口
+        publishTableDataUrl: "/mc-api/base/longCycleList/publish", //发布数据的接口
+        deleteTableDataUrl: "/mc-api/base/longCycleList/delete", //删除表格数据的接口
+        downloadTemplateUrl: "/mc-api/base/longCycleList/download", //下载模板的接口
+        uploadFileUrl: "/mc-api/base/longCycleList/upload", //上传文件的接口
+        exportDataUrl: "/mc-api/base/longCycleList/export", //导出文件的接口
+
+        getViceDataUrl: "/mc-api/base/longCycleList/child", //获取副表格对应的数据
+
+        getMainFormEchoSelectPartCodeDataUrl: "/mc-api/base/part/allPartCode", //主表格表单部分中'零件号'下拉菜单查询数据的接口
+        getMainFormEchoInputPartNameDataUrl: "/mc-api/base/part/queryByCode", //获取根据主表格表单中‘零件号’联动回显选择的选项查询'零件名称'的数据的接口
+        getMainFormEchoSelectSupplierCodeDataUrl: "/mc-api/base/baseSupplier/allSupplierCode", //主表格表单部分中'供应商代码'下拉菜单查询数据的接口
+        getMainFormEchoInputSupplierNameDataUrl: "/mc-api/base/baseSupplier/queryByCode",//获取根据主表格表单中'供应商代码'联动回显选择的选项查询'供应商名称'的数据的接口
+
+        getMainFormSelectFactoryBaseDataUrl: "/mc-api/base/partSub/allBase" //主表格表单部分中'供货基地'下拉菜单查询数据的接口
+    },
+
+    /**********基础信息-第三方物流公司**********/
+    thirdPartyLogistics: {
+        getSelectSGMWBaseUrl: "/mc-api/base/logistics/queryAllBase", //获取顶部查询条件中，生产基地下拉菜单中的选项数据的接口
+
+        getAllTableDataUrl: "/mc-api/base/logistics/page", //获取表格所有数据的接口
+        addOrEditTableDataUrl: "/mc-api/base/logistics/saveOrUpdate", //新增或编辑表格数据的接口
+        deleteTableDataUrl: "/mc-api/base/logistics/delete", //删除表格数据的接口
+        downloadTemplateUrl: "/mc-api/base/logistics/download", //下载模板的接口
+        uploadFileUrl: "/mc-api/base/logistics/upload", //上传文件的接口
+        exportDataUrl: "/mc-api/base/logistics/export", //导出文件的接口
+
+        getViceDataUrl: "/mc-api/base/logistics/child", //获取副表格对应的数据
+        addOrEditViceDataUrl: "/mc-api/base/logisticsSub/saveOrUpdate", //副表格部分中第一个tabs标签(仓库信息)下对应的副表格新增或编辑数据的接口
+        deleteViceDataUrl: "/mc-api/base/logisticsSub/delete", //副表格部分中第一个tabs标签(仓库信息)下对应的副表格删除数据的接口
+    },
+    /**********基础信息变更-供应商变更**********/
+    BasicInfoChange: {
+        getSelectLevelUrl: "/mc-api/baseChange/hzSupplierChange/selectType", //获取顶部查询条件中，供应商级别下拉菜单中的选项数据的接口
+        getSelectRegionUrl: "/mc-api/base/baseSupplier/allRegion", //获取顶部查询条件中，区域下拉菜单中的选项数据的接口
+        getAllTableDataUrl: "/mc-api/baseChange/hzSupplierChange/page", //获取表格所有数据的接口
+        addOrEditTableDataUrl: "/mc-api/baseChange/hzSupplierChange/saveOrUpdate", //新增或编辑表格数据的接口
+        deleteTableDataUrl: "/mc-api/baseChange/hzSupplierChange/delete", //删除表格数据的接口
+        downloadTemplateUrl: "/mc-api/baseChange/hzSupplierChange/downLoadTemplate", //下载模板的接口
+        uploadFileUrl: "/mc-api/baseChange/hzSupplierChange/importSupplierChangeDate", //上传文件的接口
+        exportDataUrl: "/mc-api/baseChange/hzSupplierChange/exportSupplierChangeDate", //导出文件的接口
+        changeManageUrl: "/mc-api/baseChange/hzSupplierChange/changeManage", //确认更改的接口
+        mainFormLinkageSelectUrl: "/mc-api/base/dictionary/childList",//主表格部分中‘区域’，‘省’，‘市’下拉菜单联动查询数据的接口
+        mainFormLevelSelectUrl: "/mc-api/base/baseSupplier/allBaseSupplierLevel", //主表格部分中新增或编辑数据的表单中，获取供应商级别选项数据的接口
+        mainFormAttributeSelectUrl: "/mc-api/base/baseSupplier/allBaseSupplierAttribute",//主表格部分中新增或编辑数据的表单中，获取属性选项数据的接口
+        batSubmitUrl: "/mc-api/baseChange/hzSupplierChange/batSubmit",// 全部变更
+    },
+    /**********基础信息变更-配比变更**********/
+    MixChange: {
+        getSelectLevelUrl: "/mc-api/baseChange/hzSupplierChange/selectType", //获取顶部查询条件中，供应商级别下拉菜单中的选项数据的接口
+        getAllTableDataUrl: "/mc-api/baseChange/hzMatchChange/page", //获取表格所有数据的接口
+        addOrEditTableDataUrl: "/mc-api/baseChange/hzMatchChange/saveOrUpdate", //新增或编辑表格数据的接口
+        deleteTableDataUrl: "/mc-api/baseChange/hzMatchChange/delete", //删除表格数据的接口
+        downloadTemplateUrl: "/mc-api/baseChange/hzMatchChange/downLoadTemplate", //下载模板的接口
+        uploadFileUrl: "/mc-api/baseChange/hzMatchChange/importMatchChangeDate", //上传文件的接口
+        exportDataUrl: "/mc-api/baseChange/hzMatchChange/exportMatchChangeDate", //导出文件的接口
+        changeManageUrl: "/mc-api/baseChange/hzMatchChange/changeManage", //确认更改的接口
+        formUrl: '/mc-api/base/partSub/partRatioSelect',//零件配比下拉
+        batSubmitUrl: "/mc-api/baseChange/hzMatchChange/batSubmit",// 全部变更
+    },
+    /**********基础信息变更-人员变更**********/
+    PersonChange: {
+        getSelectLevelUrl: "/mc-api/baseChange/hzPersonChange/changType", //获取顶部查询条件中，供应商级别下拉菜单中的选项数据的接口
+        getAllTableDataUrl: "/mc-api/baseChange/hzPersonChange/page", //获取表格所有数据的接口
+        addOrEditTableDataUrl: "/mc-api/baseChange/hzPersonChange/saveOrUpdate", //新增或编辑表格数据的接口
+        deleteTableDataUrl: "/mc-api/baseChange/hzPersonChange/delete", //删除表格数据的接口
+        downloadTemplateUrl: "/mc-api/baseChange/hzPersonChange/downLoadTemplate", //下载模板的接口
+        uploadFileUrl: "/mc-api/baseChange/hzPersonChange/importPersonChangeDate", //上传文件的接口
+        exportDataUrl: "/mc-api/baseChange/hzPersonChange/exportPersonChangeDate", //导出文件的接口
+        changeManageUrl: "/mc-api/baseChange/hzPersonChange/changeManage", //确认更改的接口
+        formUrl: '/mc-api/base/partSub/personChangeSelect',//人员变更下拉
+        batSubmitUrl: "/mc-api/baseChange/hzPersonChange/batSubmit",// 全部变更
+    },
+    /**********基础信息变更-零件断点**********/
+    PartBreakpoint: {
+        getSelectLevelUrl: "/mc-api/baseChange/hzPartsBreak/selectType", //获取顶部查询条件中，供应商级别下拉菜单中的选项数据的接口
+        getAllTableDataUrl: "/mc-api/baseChange/hzPartsBreak/page", //获取表格所有数据的接口
+        addOrEditTableDataUrl: "/mc-api/baseChange/hzPartsBreak/saveOrUpdate", //新增或编辑表格数据的接口
+        deleteTableDataUrl: "/mc-api/baseChange/hzPartsBreak/delete", //删除表格数据的接口
+        downloadTemplateUrl: "/mc-api/baseChange/hzPartsBreak/downLoadTemplate", //下载模板的接口
+        uploadFileUrl: "/mc-api/baseChange/hzPartsBreak/importPartsBreakDate", //上传文件的接口
+        exportDataUrl: "/mc-api/baseChange/hzPartsBreak/exportPartsBreakDate", //导出文件的接口
+        changeManageUrl: "/mc-api/baseChange/hzPartsBreak/changeManage", //确认更改的接口
+        formUrl: '/mc-api/base/partSub/partBreakPointSelect',//零件断点下拉
+        batSubmitUrl: "/mc-api/baseChange/hzPartsBreak/batSubmit",// 全部变更
+    },
+
+    /**********变更管理-3PL申请和变更 /mc-api/tpl/tplInformation**********/
+    threePLApplyAndChange: {
+
+        getAllApplyTableDataUrl: "/mc-api/tpl/Approval/listNeedApprovePage", //获取3PL申请页面表格所有数据的接口
+        getAllChangeTableDataUrl: "/mc-api/tpl/Approval/listNeedApprovePageChange", //获取3PL切换表格页面表格所有数据的接口
+        getBusinessContentTableDataUrl: "/mc-api/tpl/tplInformation/detail", //审批时，根据当前勾选的数据的id 查看其对应的表单中具体业务内容标题下表格的数据
+        getFormChangeRecordDataById: "/mc-api/tpl/tplInformation/history", //审批时，根据当前勾选的数据的id 查看其对应的表单中修改记录标题下表格的数据
+        getFormApprovalDetailsDataById: "/mc-api/tpl/tplInformation/queryAllApprovalRecord", //审批时，根据当前勾选的数据的id 查看其对应的表单中审批明细标题下表格的数据
+        saveApprovalDataUrl: "/mc-api/tpl/Approval/approve",//审批表单中，单击保存按钮，保存审批数据的接口
+        savePowerApprovalDataUrl: "/mc-api/tpl/tplInformationApproval/coordinate",//审批表单中（总协调经理），单击保存按钮，保存审批数据的接口
+        getCoordinatorInfo: '/mc-api/tpl/tplInformationApproval/getCoordinatorInfo',//获取总协调经理审批权限
+        exportDataUrl: '/mc-api/tpl/tplInformation/exportExcel', //导出数据的接口
+        getUploadFileNameArrObjUrl: "/mc-api/tpl/tplInformation/uploadedFile", //获取上传的文件的文件对象数组
+        downloadFileUrl: '/mc-api/tpl/tplInformation/download', //下载之前上传的文件的接口
+        exportDataTab2Url: '/mc-api/tpl/tplInformation/exportApprovedExcel',//第二个tab导出url
+        getApplyTableTab2Url: "/mc-api/tpl/Approval/listApproved",//Apply页面第二个tab获取数据url
+        getchangeTableTab2Url: "/mc-api/tpl/Approval/listApprovedChange",//getchange第二个tab获取数据url
+
+        //申请页面下，总协调员用户所属的查询数据接口
+        getApplyTableDataZXTY: '/mc-api/tpl/tplInformation/page',
+        //变更页面下，总协调员用户所属的查询数据接口
+        getchangeTableDataZXTY: '/mc-api/tpl/tplInformation/pageChange',
+        //总协调员用户所属的导出数据的接口
+        exportDataZXTY: '/mc-api/tpl/tplInformation/exportCoordinatorExcel'
+    },
+
+    /**********交付索赔-供应商**********/
+    claimForCompensation: {
+        getSelectLevelUrl: "/mc-api/base/baseSupplier/allLevel", //获取顶部查询条件中，供应商级别下拉菜单中的选项数据的接口
+        getSelectRegionUrl: "/mc-api/base/baseSupplier/allRegion", //获取顶部查询条件中，区域下拉菜单中的选项数据的接口
+        getAllTableDataUrl: "/mc-api/compensate/compensate/page/administrator", //获取表格所有数据的接口
+        addOrEditTableDataUrl: "/mc-api/compensate/compensate/saveOrUpdate", //新增或编辑表格数据的接口
+        deleteTableDataUrl: "/mc-api/compensate/compensate/delete", //删除表格数据的接口
+        publishTableDataUrl: "/mc-api/compensate/compensate/release",//发布索赔单接口
+        getSupplierListUrl: '/mc-api/base/baseSupplier/page',//获取供应商接口
+        downloadTemplateUrl: "/mc-api/compensate/compensate/download/template", //下载模板的接口
+        uploadFileUrl: "/mc-api/compensate/compensate/importExcel", //上传文件的接口
+        exportDataUrl: "/mc-api/compensate/compensate/exportExcel", //导出文件的接口
+        exportDataUrl2: "/mc-api/compensate/compensate/exportExcel/statData", //导出文件的接口
+        getPartNumberUrl: '/mc-api/base/rPartSupplier/page',//获取零件号接口
+        getsupplierNumberUrl: '/mc-api/base/baseSupplier/queryFieldsValue',//获取供应商接口
+        batchPublishDataUrl: '/mc-api/compensate/compensate/batchRelease', //批量发布的接口
+        orderSummaryPage: '/mc-api/pdp/emc/orderSummaryPage',//订单汇总查询接口
+        importEmc :'/mc-api/pdp/emc/importEmc',//订单汇总 导入接口
+        downloadEmc:'/mc-api/pdp/emc/downloadEmc',//下载模板
+        exportOrderSummary:'/mc-api/pdp/emc/exportOrderSummary',//订单汇总导出
+    },
+    /**********公告管理-供应商**********/
+    publicSecuritySubbureau: {
+        getAllTableDataUrl: "/mc-api/notice/mcNotice/page/administrator", //获取表格所有数据的接口
+        addOrEditTableDataUrl: "/mc-api/notice/mcNotice/", //新增或编辑表格数据的接口
+        deleteTableDataUrl: "/mc-api/notice/mcNotice/delete", //删除表格数据的接口
+        publishTableDataUrl: '/mc-api/notice/mcNotice/published',//发布表格数据接口
+        rejectTableDataUrl: '/mc-api/notice/mcNotice/rejected',//驳回表格数据接口
+        submitTableDataUrl: '/mc-api/notice/mcNotice/submit',//提交表格数据接口
+        particularsDataUrl: '/mc-api/notice/mcNotice/',//查看公告详情接口
+        upLoadUrl: '/mc-api/notice/mcNotice/upload',//上传文件接口
+        upLoadPicUrl: '/mc-api/notice/mcNotice/upload/pic',//上传图片接口
+        ifSeeUrl: "/mc-api/notice/mcNoticeSupplier/query/supplier",//获取是否查看公告的供应商接口
+        getSupplierListUrl: '/mc-api/base/baseSupplier/list',//获取供应商接口
+        getSupplierListGroupUrl: '/mc-api/notice/noticeSupplierGroup/tree/group',//获取供应商群组接口
+        setSupplierListGroupUrl: '/mc-api/notice/noticeSupplierGroup',//获取供应商群组接口
+        supplierExport: '/mc-api/notice/mcNoticeSupplier/exportExcel',//供应商导出
+        accessoryDownload: "/mc-api/notice/mcNotice/"//附件下载
+    },
+    /**********公告管理-供应商**********/
+    publicSecurityNoticeBoard: {
+            getAllTableDataUrl: "/pl-api/notice/portalNotice/page/administrator", //获取表格所有数据的接口
+            addOrEditTableDataUrl: "/pl-api/notice/portalNotice/", //新增或编辑表格数据的接口
+            deleteTableDataUrl: "/pl-api/notice/portalNotice/delete", //删除表格数据的接口
+            publishTableDataUrl: '/pl-api/notice/portalNotice/published',//发布表格数据接口
+            rejectTableDataUrl: '/pl-api/notice/portalNotice/rejected',//驳回表格数据接口
+            submitTableDataUrl: '/pl-api/notice/portalNotice/submit',//提交表格数据接口
+            submitTableDataOneUrl: '/pl-api/notice/portalNotice/submitOne',//提交表格数据接口
+            particularsDataUrl: '/pl-api/notice/portalNotice/',//查看公告详情接口
+            portalCenterNoticeInfo: '/pl-api/notice/portalNotice/portalCenterDetailNotice/',//查看公告详情接口
+            upLoadUrl: '/pl-api/notice/portalNotice/upload',//上传文件接口
+            upLoadPicUrl: '/pl-api/notice/portalNotice/upload/pic',//上传图片接口
+            ifSeeUrl: "/pl-api/notice/portalNoticeSupplier/query/supplier",//获取是否查看公告的供应商接口
+            ifSeeUrlZJC: "/pl-api/notice/portalNoticeUser/query/user",//获取是否查看公告的主机厂接口
+            getSupplierListUrl: '/mc-api/base/baseSupplier/page',//获取供应商接口
+            getSupplierListGroupUrl: '/pl-api/notice/portalNoticeSupplierGroup/tree/group',//获取供应商群组接口
+            // setSupplierListGroupUrl: '/api/notice/noticeSupplierGroup',//获取供应商群组接口
+            supplierExport: '/pl-api/notice/portalNoticeSupplier/exportExcel',//供应商导出
+            supplierExportZJC: '/pl-api/notice/portalNoticeUser/exportExcel',//供应商导出
+            accessoryDownload: "/mc-api/notice/mcNotice/"//附件下载
+        },
+    /*厂内库存查询*/
+    inventoryKcSearch: {
+        getAllTableDataUrl: "/mc-api/inventory/factoryStock/page",
+        exportExportSupplierInventory: "/mc-api/inventory/factoryStock/export",
+    },
+    /*************月度料账发布**************/
+    inventoryMonthMaterialAccount:{
+        getAllTableDataUrl: "/mc-api/inventory/monthMaterialAccount/page", // 主表数据
+        deleteTableDataUrl: "/api//inventory/monthMaterialAccount/delete",   //主表删除
+        monthBatchPublishDataUrl: "/mc-api/inventory/monthMaterialAccount/publish",  //发布
+        downloadTemplateUrl: "/mc-api/inventory/monthMaterialAccount/downLoadTemplate", //下载模板
+        exportDataUrl: "/mc-api/inventory/monthMaterialAccount/exportMonthMaterialDate", // 导出模板
+        uploadFileUrl: "/mc-api/inventory/monthMaterialAccount/importMonthMaterialDate",  //上传文件
+        getViceDataUrl: "/mc-api/inventory/monthMaterialAccountChild/page"
+    },
+    /************料账类型*****************/
+    accountType: {
+        page: "/mc-api/inventory/accountType/page",   //分页
+        exportData: "/mc-api/inventory/accountType/export",  // 导出
+        importData: "/mc-api/inventory/accountType/importMonthMaterialDate", //导入
+        downTemplate: "/mc-api/inventory/accountType/downLoadTemplate", //下载
+        saveData: "/mc-api/inventory/accountType/saveOrUpdate",  //保存
+        uploadData: "/mc-api/inventory/accountType/importMonthMaterialDate",  //上传文件
+        deleteData: "/mc-api/inventory/accountType/delete"
+    },
+
+    /*************月度料账查询**************/
+    inventoryMonthMaterialAccountSearch: {
+        getTableDataUrl: "/mc-api/inventory/monthMaterialAccountChild/pagePublish",
+        exportDataUrl: "/mc-api/inventory/monthMaterialAccountChild/exportMonthMaterialDate", // 导出模板
+        emcPage: '/mc-api/pdp/emc/page'//列表接口
+    },
+    /**********交付绩效---年度评价**********/
+    yearAppealAndyEvaluate: {
+        mainSaveDataUrl: '/mc-api/achievements/achievements/saveOrUpdate',//主表修改数据接口
+        getAllTableDataUrl: "/mc-api/achievements/achievements/page/administrator", //获取表格所有数据的接口
+        getViceDataUrl1: '/mc-api/achievements/achievements/page/administrator',//年评价子表1tabbar表格获取数据接口
+        getViceDataUrl2: '/mc-api/achievements/achievementsBuckle/page',//年评价子表2tabbar表格获取数据接口
+        monthAppealParticulars1: '/mc-api/achievements/achievements/info/',//月度评价第一个子表数据接口
+        monthAppealParticulars2: '/mc-api/achievements/achievementsBuckle/page',//月评价获取第二个子表数据接口
+        monthAppealUpdate1: '/mc-api/achievements/achievementsBuckle/saveOrUpdate',//月度评价第一个子表编辑接口
+        monthAppealUpdate2: '/mc-api/achievements/achievementsBuckle/saveOrUpdate',//月度评价第二个子表编辑接口
+        monthAppealdelete1: '/mc-api/achievements/achievementsBuckle/delete',//月度评价第一个子表删除接口
+        monthAppealdelete2: '/mc-api/achievements/achievementsBuckle/delete',//月度评价第二个子表删除接口
+        addOrEditTableDataUrl: "/mc-api/achievements/achievements/saveOrUpdate", //新增或编辑表格数据的接口
+        publishTableDataUrl: "/mc-api/achievements/achievements/published", //主表格发布接口
+        deleteTableDataUrl: "/mc-api/achievements/achievements/delete", //删除表格数据的接口
+        getParticularsUrl: "/mc-api/achievements/achievements/info/",//查看申诉单接口
+        yearDownloadTemplateUrl: "/mc-api/achievements/achievements/download/template?timeType=1", //年度下载模板的接口
+        monthDownloadTemplateUrl: "/mc-api/achievements/achievements/download/template?timeType=2", //月度下载模板下载模板的接口
+        yearUploadFileUrl: "/mc-api/achievements/achievements/importExcelYear", //年度上传文件的接口
+        monthUploadFileUrl: "/mc-api/achievements/achievements/importExcelMonth", //月度上传文件的接口
+        yearExportDataUrl: "/mc-api/achievements/achievements/exportExcelYear", //导出文件的接口
+        monthExportDataUrl: "/mc-api/achievements/achievements/exportExcelMonth", //导出文件的接口
+
+        yearAndMonthBatchPublishDataUrl: "/mc-api/achievements/achievements/publishedBatch", //批量发布的接口
+    },
+    /**********项目物料管理-项目基础信息**********/
+    pmrbaseInfoConf: {
+        getAllTableDataUrl: "/mc-api/pmr/baseInfo/page", //获取表格所有数据的接口
+        addOrEditTableDataUrl: "/mc-api/pmr/baseInfo/saveOrUpdate", //新增或编辑表格数据的接口
+        deleteTableDataUrl: "/mc-api/pmr/baseInfo/delete", //删除表格数据的接口
+        downloadTemplateUrl: "/mc-api/pmr/baseInfo/downloadTemplate/1", //下载模板的接口
+        uploadFileUrl: "/mc-api/pmr/baseInfo/upload/1", //上传文件的接口
+        exportDataUrl: "/mc-api/pmr/baseInfo/export", //导出文件的接口
+    },
+    /**********项目物料管理-造车阶段**********/
+    pmrbaseInfoStage: {
+        getAllTableDataUrl: "/mc-api/pmr/baseInfo/page", //获取表格所有数据的接口
+        addOrEditTableDataUrl: "/mc-api/pmr/baseInfo/saveOrUpdate", //新增或编辑表格数据的接口
+        deleteTableDataUrl: "/mc-api/pmr/baseInfo/delete", //删除表格数据的接口
+        downloadTemplateUrl: "/mc-api/pmr/baseInfo/downloadTemplate/2", //下载模板的接口
+        uploadFileUrl: "/mc-api/pmr/baseInfo/upload/2", //上传文件的接口
+        exportDataUrl: "/mc-api/pmr/baseInfo/export", //导出文件的接口
+    },
+    /**********项目物料管理-造车工厂**********/
+    pmrbaseInfoFactory: {
+        getAllTableDataUrl: "/mc-api/pmr/baseInfo/page", //获取表格所有数据的接口
+        addOrEditTableDataUrl: "/mc-api/pmr/baseInfo/saveOrUpdate", //新增或编辑表格数据的接口
+        deleteTableDataUrl: "/mc-api/pmr/baseInfo/delete", //删除表格数据的接口
+        downloadTemplateUrl: "/mc-api/pmr/baseInfo/downloadTemplate/3", //下载模板的接口
+        uploadFileUrl: "/mc-api/pmr/baseInfo/upload/3", //上传文件的接口
+        exportDataUrl: "/mc-api/pmr/baseInfo/export", //导出文件的接口
+    },
+    /**********项目物料管理-项目提示**********/
+    projectTips: {
+        getAllTableDataUrl: "/mc-api/pmr/projectTips/page", //获取表格所有数据的接口
+        addOrEditTableDataUrl: "/mc-api/pmr/projectTips/saveOrUpdate", //新增或编辑表格数据的接口
+        deleteTableDataUrl: "/mc-api/pmr/projectTips/delete", //删除表格数据的接口
+        downloadTemplateUrl: "/mc-api/pmr/projectTips/downloadTemplate", //下载模板的接口
+        uploadFileUrl: "/mc-api/pmr/projectTips/upload", //上传文件的接口
+        exportDataUrl: "/mc-api/pmr/projectTips/export", //导出文件的接口
+        unlockDataUrl: "/mc-api/pmr/projectTips/unlock", //解锁数据的接口
+        publishDataUrl: "/mc-api/pmr/projectTips/publish", //发布数据的接口
+        getSelectLevelUrl: "/mc-api/pmr/count/getSelectOption", //所有下拉的集合的接口
+        getLinkageChildSelectLevelUrl: "/mc-api/pmr/baseInfo/getSlaveByTypeAndMaster", //联动下拉的接口
+    },
+    /**********项目物料管理-项目订单**********/
+    projectOrder: {
+        getAllTableDataUrl: "/mc-api/pmr/orderPosting/page", //获取表格所有数据的接口
+        addOrEditTableDataUrl: "/mc-api/pmr/orderPosting/saveOrUpdate", //新增或编辑表格数据的接口
+        deleteTableDataUrl: "/mc-api/pmr/orderPosting/delete", //删除表格数据的接口
+        exportDataUrl: "/mc-api/pmr/orderPosting/exportSupplyNote", //导出供货通知单的接口
+        exportMainDataUrl: "/mc-api/pmr/orderPosting/exportOrderPosting", //导出项目订单的接口
+        retractDataUrl: "/mc-api/pmr/orderPosting/retract", //撤回数据的接口
+        commitDataUrl: "/mc-api/pmr/orderPosting/commit", //提交数据的接口
+        approvalDataUrl: "/mc-api/pmr/orderPosting/approve", //审批数据的接口
+        getSelectLevelUrl: "/mc-api/pmr/orderPosting/listPrNum", //PR单编号下拉的接口
+        getReturnUrl: "/mc-api/pmr/projectTips/getInfoByPrNum", //根据PR单编号回显数据的接口
+        getVicePartsInfoDataUrl: "/mc-api/pmr/partInfo/partsInfo", //子表零件信息数据的接口
+        getViceorderPostingUrl: "/mc-api/pmr/orderPosting/listSupplyNote", //子表零件信息数据的接口
+
+        downloadTemplate: "/mc-api/pmr/partInfo/downloadTemplate", //下载模板的接口
+        exportPartInfo: "/mc-api/pmr/partInfo/exportPartInfo", //导出导出零件信息的接口
+        upload: "/mc-api/pmr/partInfo/upload", //导入零件信息
+
+    },
+    /**********项目物料管理-项目订单查询**********/
+    projectOrderQuery: {
+        getAllTableDataUrl: "/mc-api/pmr/partInfo/pageByPass", //获取表格所有数据的接口
+        orderRemindDataUrl: "/mc-api/pmr/orderPosting/orderAlert", //主表订单提醒的接口
+        orderCancelDataUrl: "/mc-api/pmr/partInfo/cancelOrder", //主表取消订单的接口
+        exportMainDataUrl: "/mc-api/pmr/partInfo/exportPartInfo", //导出项目订单的接口
+        getVicePartsInfoDataUrl: "/mc-api/pmr/partInfo/partsInfo", //子表数据的接口
+        exportDataUrl: "/mc-api/pmr/orderPosting/exportSupplyNote", //导出供货通知单的接口
+        exportZipUrl: "/mc-api/pmr/orderPosting/exportSupplyNoteByPartId", //导出压缩包的接口
+        exportMainExcDataUrl: "/mc-api/pmr/partInfo/exportExcelPartInfoMultiField"   //导出项目订单接口更改
+    },
+    /**********项目物料管理-项目接收一览**********/
+    projectMaterialReceivingList: {
+        getAllTableDataUrl: "/mc-api/pmr/receive/page", //获取表格所有数据的接口
+        exportMainDataUrl: "/mc-api/pmr/receive/exportReceive", //导出项目订单的接口
+        getVicePartsInfoDataUrl: "/mc-api/pmr/receiveLog/page", //子表数据的接口
+    },
+    /**********项目物料管理-项目分析**********/
+    projectAnalysis: {
+        getPart1DataUrl: "/mc-api/pmr/count/select", //上部分数据
+        getPart2DataUrl: "/mc-api/pmr/count/list", //下部分数据
+    },
+    /**********项目物料管理-常用表单下载**********/
+    downloadCommonForms: {
+        getAllTableDataUrl: "/mc-api/pmr/baseInfo/templateList", //获取表格所有数据的接口
+        exportMainDataUrl: "/mc-api/pmr/baseInfo/downloadCommonTemplate", //导出项目订单的接口
+        getVicePartsInfoDataUrl: "/mc-api/pmr/partInfo/partsInfo", //子表数据的接口
+    },
+    /**********工厂库存查询表**********/
+    factoryStock: {
+        getAllTableDataUrl: "mc-api/pmr/factoryInventory/page",//获取表格所有数据的接口
+        getDataByIdUrl: "mc-api/pmr/factoryInventory/info/{id}",//根据id查询数据的接口
+        getTableDataByListUrl: " mc-api/pmr/factoryInventory/list",//列表查询的接口
+        exportAllDataUrl: "mc-api/pmr/factoryInventory/exportall",//导出全部数据的接口
+        exportSelectDataUrl: "mc-api/pmr/factoryInventory/exportExcel",//导出选中数据的接口
+    },
+    /**********月度料账查询表**********/
+    monthMaterialAccount: {
+        getAllTableDataUrl: "/mc-api/pmr/materialsAccountMonth/page",//获取表格所有数据的接口
+        getTableDataByListUrl: "/mc-api/pmr/materialsAccountMonth/list",//根据列表查询的接口
+        exportAllDataUrl: "/mc-api/pmr/materialsAccountMonth/exportExcelAll",
+        exportSelectDataUrl: "/mc-api/pmr/materialsAccountMonth/exportExcelSelected",
+    },
+
+    /**********参数设置*********************/
+    gysscyyCssz: {
+        getAllTableDataUrl: "/api/statistical/parameterSetting/page",
+        addOrEditTableDataUrl: "/api/statistical/parameterSettingSub/updateBat",
+        editRegionSelectByIdUrl: "/api/statistical/parameterSettingSub/list"
+    },
+    orderManagement: {
+        getAllTableDataUrl: "/api/srms/orderControl/page",
+        addOrEditTableDataUrl: "/api/srms/orderControl/saveOrUpdate",
+        deleteTableDataUrl: "/api/srms/orderControl/delete",
+        mainFormSelectInterfaceArr: "/api/srms/orderControl/supplierInfo",
+        downloadTemplateUrl: '/api/srms/orderControl/download',
+        exportAllDataUrl: "/api/srms/orderControl/exportExcel",
+        uploadFileUrl: "/api/srms/orderControl/importExcelMonth",
+    },
+    /**********零件产能风险监控**********/
+    riskManagement: {
+        getAllTableDataUrl: "/api/srms/productAbility/page",
+        addOrEditTableDataUrl: "/api/srms/productAbility/saveOrUpdate",
+        deleteTableDataUrl: "/api/srms/productAbility/delete",
+        downloadTemplateUrl: '/api/srms/productAbility/download',
+        exportAllDataUrl: "/api/srms/productAbility/ExportExcel",
+        uploadFileUrl: "/api/srms/productAbility/UploadExecl",
+        getViceDataUrl: "/api/srms/capacityInformation/page",
+        viceFormSelectUrlObjArr: "/api/srms/productAbility/productline",
+        addOrEditTableViceDataUrl: "/api/srms/capacityInformation/saveOrUpdate",
+        deleteTableViceDataUrl: "/api/srms/capacityInformation/delete",
+
+    },
+    /**********主机场端用户管理**********/
+    sgmwUserManagement: {
+        getAllTableDataUrl: "/mc-api/hpm/sysHpmuser/page",
+        addOrEditTableDataUrl: "/mc-api/hpm/sysHpmuser/add",
+        deleteTableDataUrl: "/mc-api/hpm/sysHpmuser/delete",
+        getFormEchoSelectRoleDataUrl: "/api/sys/role",
+        getFormEchoSelectDepartDataUrl: "/api/sys/hpm03department",
+        getFormEchoSelectJobDataUrl: "/api/sys/hpm04jobinfo",
+        downloadTemplateUrl: "/mc-api/hpm/sysHpmuser/download",
+        uploadFileUrl: "/mc-api/hpm/sysHpmuser/importExcelUser", //上传文件的接口
+    },
+
+    /**********供应商端用户管理**********/
+    ppapUserManagement: {
+        getAllTableDataUrl: "/mc-api/pmr/supUserMange/page",
+        addOrEditTableDataUrl: "/mc-api/pmr/supUserMange/save",
+        deleteTableDataUrl: "mc-api/pmr/supUserMange/delete",
+        exportDataUrl: "/mc-api/pmr/supUserMange/exportSupplierUser",
+        getSelectSupplierArrUrl: "/mc-api/pmr/supUserMange/allSupplierInfoForPage",
+        getSelectJobArrUrl: "/mc-api/pmr/supUserMange/allJobInfo",
+        downloadTemplateUrl: "/mc-api/pmr/supUserMange/downLoadTemplate",
+
+    },
+    /**********基础信息-分类档案**********/
+    document: {
+        getSelectLevelUrl: "/mc-api/doc/document/selecttid", //获取顶部查询条件中，区分ID下拉菜单中的选项数据的接口
+        getSelectRegionUrl: "/mc-api/doc/document/selecttname", //获取顶部查询条件中，区分ID下区分名称下拉菜单中的选项数据的接口
+        getAllTableDataUrl: "/mc-api/doc/document/findall", //获取表格所有数据的接口
+        addOrEditTableDataUrl: "/mc-api/doc/document/saveOrUpdate", //新增或编辑表格数据的接口
+        deleteTableDataUrl: "/mc-api/doc/document/delete", //删除表格数据的接口
+        downloadTemplateUrl: "/mc-api/doc/document/download", //下载模板的接口
+        uploadFileUrl: "/mc-api/doc/document/regionexport", //上传文件的接口
+        exportDataUrl: "/mc-api/doc/document/export", //导出文件的接口
+
+        mainFormLinkageSelectUrl: "/mc-api/base/dictionary/childList",//主表格部分中‘区域’，‘省’，‘市’下拉菜单联动查询数据的接口
+        mainFormLevelSelectUrl: "/mc-api/base/baseSupplier/allBaseSupplierLevel", //主表格部分中新增或编辑数据的表单中，获取供应商级别选项数据的接口
+        mainFormAttributeSelectUrl: "/mc-api/con/constraintSetting/getAreaInformation",//主表格部分中新增或编辑数据的表单中，获取属性选项数据的接口
+
+        getDifferentDataByParamsUrl: "/mc-api/doc/document/selectlname?name=", //在分类档案中根据前端传来的不同参数获取不同的数据
+        getProductionDateUrl: "/mc-api/doc/document/pcrl",  //获取物控模块计划生产下生产计划的排产日历接口
+        getFactoryCodeUrl: "/mc-api/doc/document/selecttname",
+    },
+    /**********生产计划-约束条件设置**********/
+    constraintSetting: {
+        getAllTableDataUrl: "/mc-api/con/constraintSetting/page",
+        addOrEditTableDataUrl: "/mc-api/con/constraintSetting/saveOrUpdate",
+        deleteTableDataUrl: "mc-api/con/constraintSetting/delete",
+        exportDataUrl: "/mc-api/pmr/supUserMange/exportSupplierUser",
+        getSelectSupplierArrUrl: "/mc-api/pmr/supUserMange/allSupplierInfoForPage",
+        getSelectJobArrUrl: "/mc-api/pmr/supUserMange/allJobInfo",
+        downloadTemplateUrl: "/mc-api/pmr/supUserMange/downLoadTemplate",
+        mainFormAttributeSelectUrl: "/mc-api/con/constraintSetting/getAreaInformation",
+        mainFormLinkageSelectUrl: "/mc-api/con/constraintSetting/getWORKSHOP",
+        mainFormLevelSelectUrl: "/mc-api/con/constraintSetting/getCONSTRAINTTYPE"
+    },
+    /*周订单*/
+    weekOrder: {
+        getAllTableDataUrl: "/mc-api/constraintsetting/weekOrder/page"
+    },
+    arithmeticSet: {
+        getAllTableDataUrl: "/mc-api/constraintsetting/arithmeticSet/page"
+    },
+    /**********厂库存查询**********/
+    factoryStocks: {
+        getAllTableDataUrl: "/mc-api/inventory/factoryStock/page",
+        addOrEditTableDataUrl: "/mc-api/con/constraintSetting/saveOrUpdate",
+        deleteTableDataUrl: "mc-api/con/constraintSetting/delete",
+        exportDataUrl: "/mc-api/pmr/supUserMange/exportSupplierUser",
+        getSelectSupplierArrUrl: "/mc-api/pmr/supUserMange/allSupplierInfoForPage",
+        getSelectJobArrUrl: "/mc-api/pmr/supUserMange/allJobInfo",
+        downloadTemplateUrl: "/mc-api/pmr/supUserMange/downLoadTemplate",
+        mainFormAttributeSelectUrl: "/mc-api/con/constraintSetting/getAreaInformation",
+        mainFormLinkageSelectUrl: "/mc-api/con/constraintSetting/getWORKSHOP",
+        mainFormLevelSelectUrl: "/mc-api/con/constraintSetting/getCONSTRAINTTYPE"
+    },
+    dynamicHeader: {
+        page: "/mc-api/inventory/sysDynamicColumn/page",
+        saveOrUpdate: '/mc-api/inventory/sysDynamicColumn/saveOrUpdate',
+        sonPage: "/mc-api/inventory/sysDynamicColumnSub/page",
+        sonSaveOrUpdate: '/mc-api/inventory/sysDynamicColumnSub/saveOrUpdate'
+    },
+    pageText: {
+        page: "/mc-api/inventory/sysExplain/page",
+        saveOrUpdate: '/mc-api/inventory/sysExplain/saveOrUpdate',
+        sonPage: "/mc-api/inventory/sysExplainSub/page",
+        sonSaveOrUpdate: '/mc-api/inventory/sysExplainSub/saveOrUpdate',
+        upLoadUrl: '/mc-api/inventory/sysExplainSub/upload',//上传文件接口
+        delete: '/mc-api/inventory/sysExplainSub/delete', //子表删除接口
+    },
+    orderFix: {
+        page: "/mc-api/pdp/monthOrderRevision/page", //分页接口
+        delete: "/mc-api/pdp/monthOrderRevision/delete", // 删除接口
+        saveOrUpdate: "/mc-api/pdp/monthOrderRevision/saveOrUpdate", // 新增或编辑
+        uploadFileUrl: "/mc-api/pdp/monthOrderRevision/importMonthOrderRevision",
+        downloadTemplateUrl: "/mc-api/pdp/monthOrderRevision/downloadMonthOrderRevision",
+        exportDataUrl: '/mc-api/pdp/monthOrderRevision/exportMonthOrderRevision',
+    }
+}

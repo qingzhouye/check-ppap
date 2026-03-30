@@ -1,0 +1,893 @@
+/*
+ * File   : style.css
+ * Created: Thursday August 30th 2018 11:19:23 am
+ * Author : yuchunyu97
+ * License: MIT License
+ * 
+ * Copyright (c) 2018 yuchunyu97
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do
+ * so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ * -----
+ * Last Modified: Monday December 3rd 2018 9:44:18 am
+ * Modified By  : yuchunyu97 at <yuchunyu97@gmail.com>
+ * -----
+ * Description: 覆盖、优化 layui 样式
+ * -----
+ * HISTORY:
+ */
+
+
+/**
+  *
+  * 文字头像
+  *
+  */
+
+.avatar-text {
+    background-color: #37ABFF;
+    color: #fff;
+    width: 100%;
+    height: 100%;
+    border-radius: 100%;
+    border: 2px solid #fff;
+    text-align: center;
+    font-size: 4em;
+    font-weight: 500;
+    font-family: sans-serif;
+    box-sizing: border-box;
+    transition: .3s all;
+}
+
+
+/**
+  *
+  * input 输入框的 placeholder文字颜色
+  *
+  */
+
+input::-webkit-input-placeholder {
+    color: #949494;
+}
+
+
+/**
+ *
+ * 辅助样式
+ *
+ */
+
+.layui-pull-right {
+    float: right;
+}
+
+.layui-pull-right .layui-inline {
+    margin-right: 0;
+    margin-left: 10px;
+}
+
+.layui-hide {
+    display: none;
+}
+
+.layui-tpl-container {
+    padding: 20px;
+}
+
+.layui-tpl-container .p-form {
+    /* overflow: auto; */
+}
+
+
+/**
+ *
+ * 数据表格内操作列的按钮样式
+ *
+ */
+
+.table-control-btn {
+    color: #2487DA;
+    font-size: 12px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.table-control-btn:last-child {
+    margin-right: 0;
+}
+
+.table-control-btn.table-control-btn-danger {
+    color: #EF6E58;
+}
+
+
+/**
+ *
+ * 表单样式重写
+ *
+ */
+
+.layui-form-label {
+    padding: 5px 15px;
+    width: 115px;
+}
+
+.layui-input-block {
+    padding-right: 15px;
+    margin-left: 125px;
+}
+
+.layui-form-mid {
+    padding: 5px 0 !important;
+}
+
+.layui-form-pane .layui-form-label {
+    height: 30px;
+    line-height: 12px;
+}
+
+.layui-form-radio {
+    margin-top: 2px;
+}
+
+
+/**
+ *
+ * 左右伸缩块
+ *
+ */
+
+.autoScrollLeft,
+.autoScrollRight {
+    transition: .3s all;
+}
+
+
+/**
+ *
+ * card 关闭按钮
+ *
+ */
+
+.layui-card-body {
+    /*height: 575px;*/
+    overflow: visible;
+}
+
+@media screen and (max-width: 750px) {
+    .layui-card-body {
+        height: auto;
+    }
+}
+
+.layui-card-close {
+    position: absolute;
+    top: 19px;
+    right: 19px;
+    color: rgba(0, 0, 0, .29);
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all .3s;
+}
+
+.layui-card-close:hover {
+    color: rgba(0, 0, 0, .49);
+}
+
+
+/**
+ *
+ * 表格样式
+ *
+ */
+
+.layui-form.layui-border-box.layui-table-view {
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    padding-bottom: 12px;
+}
+
+.layui-table-box {
+    border-left: 1px solid #e6e6e6;
+    border-right: 1px solid #e6e6e6;
+    border-bottom: 1px solid #e6e6e6;
+    /*margin-bottom: 20px;*/
+}
+
+
+/* 表格显示全部文本的按钮，暂时隐藏掉，因为事件处理不完全用户体验不好 */
+
+
+/* .layui-table-grid-down {
+    display: none;
+} */
+
+
+/**
+ *
+ * 分页样式
+ *
+ */
+
+.layui-table-page {
+    border: none;
+    /* overflow-x: auto; */
+}
+
+.layui-table-page .layui-laypage {
+    display: block;
+    text-align: right;
+}
+
+.layui-table-page .layui-laypage-limits,
+.layui-table-page .layui-laypage-count {
+    float: left;
+    color: #999;
+}
+
+.layui-table-page .layui-laypage-limits::before {
+    content: '';
+}
+
+.layui-table-page .layui-laypage-limits::after {
+    content: '';
+}
+
+.layui-table-page .layui-laypage span.layui-laypage-curr,
+.layui-table-page .layui-laypage a {
+    width: 26px;
+    height: 26px;
+    box-sizing: border-box;
+    line-height: 26px;
+    text-align: center;
+    margin-right: 0;
+    padding: 0;
+}
+
+.layui-table-page .layui-laypage .layui-laypage-curr .layui-laypage-em {
+    background-color: transparent;
+    border: 1px solid #37ABFF;
+    box-sizing: border-box;
+}
+
+.layui-table-page .layui-laypage .layui-laypage-curr em {
+    color: #37ABFF;
+}
+
+.layui-table-page .layui-laypage a:hover {
+    color: #37ABFF;
+}
+
+.layui-table-page .layui-laypage button {
+    transition: all .3s;
+}
+
+.layui-table-page .layui-laypage button:hover {
+    color: #37ABFF;
+    border-color: #37ABFF;
+}
+
+.layui-table-page .layui-laypage input:focus,
+.layui-table-page .layui-laypage select:focus {
+    border-color: #37ABFF !important;
+}
+
+
+/**
+ *
+ * 时间选择器样式
+ *
+ */
+
+.layui-laydate-footer span:hover {
+    color: #37ABFF !important;
+}
+
+.layui-laydate-header i:hover,
+.layui-laydate-header span:hover {
+    color: #37ABFF !important;
+}
+
+.laydate-day-mark::after {
+    background-color: #37ABFF !important;
+}
+
+.layui-laydate-footer span[lay-type="date"] {
+    color: #37ABFF !important;
+}
+
+.layui-laydate .layui-laydate-main .layui-this {
+    background-color: #37ABFF !important;
+    color: #fff !important;
+}
+
+
+/**
+ *
+ * 顶部控制栏
+ *
+ */
+
+.table-top-bar {
+    margin-top: 5px;
+    margin-bottom: 0;
+}
+
+.table-top-bar .search-item i {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 30px;
+    height: 30px;
+    text-align: center;
+    line-height: 30px;
+    color: #6e6e6e;
+}
+
+.table-top-bar .search-item input {
+    padding-left: 30px;
+    color: #646464;
+    width: 170px;
+}
+
+.table-top-bar .formselect-item input {
+    width: 170px;
+}
+
+.table-top-bar .layui-pull-right.layui-inline {
+    margin-right: 0;
+}
+
+.table-top-bar .layui-form-item {
+    margin-bottom: 0;
+}
+
+.table-top-bar .layui-input-block {
+    padding-right: 0;
+    margin-left: 130px;
+}
+
+.table-top-bar .layui-form-switch {
+    margin-top: 3px;
+}
+
+.table-top-bar .layui-form-label {
+    width: 100px;
+}
+
+@media screen and (max-width: 450px) {
+    .layui-form-item .layui-inline {
+        display: inline-block;
+        margin-right: 5px;
+        margin-bottom: 5px;
+    }
+    .layui-pull-right {
+        float: none;
+    }
+    .layui-pull-right .layui-inline {
+        margin-left: 0;
+    }
+}
+
+
+/**
+ *
+ * 覆盖 formSelect 样式
+ *
+ */
+
+.table-top-bar .xm-select-parent .xm-select-title {
+    min-height: 30px;
+}
+
+.table-top-bar .xm-select-parent .xm-input {
+    height: 30px;
+    line-height: 1.3;
+}
+
+.table-top-bar .xm-select-parent .xm-form-select dl dd,
+.xm-select-parent .xm-form-select dl dt {
+    line-height: 30px;
+}
+
+.table-top-bar .xm-select-parent .xm-form-select dl dd {
+    height: 30px;
+}
+
+.table-top-bar .xm-form-checkbox>span {
+    height: 100%;
+    line-height: 30px;
+}
+
+.table-top-bar .xm-select-parent .xm-select {
+    min-height: 30px;
+}
+
+.table-top-bar .xm-select-parent .xm-select-title div.xm-select-label>span {
+    line-height: 18px;
+    height: 18px;
+}
+
+.table-top-bar .xm-select-parent .xm-select {
+    padding: 0 20px 1px 10px;
+}
+
+.table-top-bar .xm-select-parent .xm-select .xm-select-input {
+    height: 28px;
+}
+
+.table-top-bar .xm-form-checkbox>i {
+    top: 7px;
+}
+
+.xm-select-parent .xm-select-title div.xm-select-label>span {
+    height: auto;
+}
+
+.xm-select-parent .xm-select-title div.xm-select-label>span>font {
+    word-break: break-all;
+}
+
+.layui-form-select dl {
+    max-height: 192px;
+}
+
+
+/*----------  其他样式  ----------*/
+
+
+/** 主体部分标题样式 */
+
+.layui-card-header .header-title {
+    display: inline;
+    font-size: 16px;
+}
+
+
+/** 表格搜索框样式 */
+
+.search-input {
+    width: 150px;
+    display: inline-block;
+    height: 36px;
+    vertical-align: middle;
+    padding: 3px 6px;
+}
+
+
+/** 重写layui默认按钮的高度，因为按钮跟输入框不一样高特别丑 */
+
+.layui-btn:not(.layui-btn-lg):not(.layui-btn-sm):not(.layui-btn-xs) {
+    height: 34px;
+    line-height: 34px;
+}
+
+
+/** 如果按钮加图标减少内边距 */
+
+.icon-btn {
+    padding: 0 8px;
+}
+
+.layui-form.toolbar .layui-btn+.layui-btn {
+    margin-left: 15px;
+}
+
+.model-form-footer .layui-btn+.layui-btn {
+    margin-left: 15px;
+}
+
+.layui-table-cell .layui-btn+.layui-btn {
+    margin-left: 5px;
+}
+
+
+/** 表格上方工具栏样式 */
+
+.layui-form.toolbar {
+    color: #333;
+}
+
+.layui-form.toolbar .layui-form-select input {
+    height: 35px;
+    line-height: 35px;
+    width: 150px;
+    overflow: hidden;
+}
+
+.layui-form.toolbar .layui-form-select {
+    display: inline-block;
+}
+
+
+/* 表单弹窗样式 */
+
+.model-form {
+    padding-top: 30px;
+    padding-right: 45px;
+}
+
+.model-form-footer {
+    text-align: right;
+}
+
+
+/** dialog超出显示 */
+
+.layui-layout-body .layui-layer-page .layui-layer-content {
+    overflow: visible;
+}
+
+
+/* layui文档官网右侧弹窗目录列表的样式 */
+
+.site-dir li {
+    line-height: 26px;
+    margin-left: 20px;
+    overflow: visible;
+    list-style-type: disc;
+}
+
+
+/** laydate加图标 */
+
+.date-icon {
+    background-image: url(../images/icon_date.png);
+    background-repeat: no-repeat;
+    background-position: right center;
+}
+
+
+/** 辅助样式 */
+
+.layui-link {
+    color: #029789 !important;
+}
+
+.layui-link:hover {
+    opacity: .8;
+}
+
+.pull-right {
+    float: right;
+}
+
+.inline-block {
+    display: inline-block;
+}
+
+
+/** 卡片header里面的徽章样式调整 */
+
+.layui-card .layui-card-header .layui-badge.pull-right {
+    top: 50%;
+    margin-top: -9px;
+}
+
+
+/** 特大字体 */
+
+.lay-big-font {
+    font-size: 36px;
+    color: #666;
+    line-height: 36px;
+    padding: 5px 0 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-all;
+    white-space: nowrap;
+}
+
+
+/** 超链接样式 */
+
+.layui-text a:not(.layui-btn) {
+    color: #01AAED;
+}
+
+.layui-text a:not(.layui-btn):hover {
+    text-decoration: underline;
+}
+
+
+/** admin选项卡样式 */
+
+
+/** 调整header阴影 */
+
+.layui-layout-admin.open-tab .layui-header {
+    box-shadow: 0 1px 1px 0 rgba(0, 21, 41, .05);
+}
+
+
+/** 开启选项卡让去除body的内边距 */
+
+.layui-layout-admin.open-tab .layui-body {
+    padding: 0;
+    overflow-y: hidden;
+}
+
+.layui-layout-admin.open-tab .layui-body .layui-tab {
+    visibility: visible;
+    /** 开启选项卡才让tab可见 */
+}
+
+.layui-layout-admin .layui-body .layui-tab {
+    margin: 0;
+    overflow: hidden;
+    /* visibility: hidden; */
+    /** 默认隐藏tab */
+}
+
+
+/** 开启选项卡后让tab-content样式为以前的layui-body样式 */
+
+.layui-layout-admin .layui-body .layui-tab .layui-tab-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: absolute;
+    bottom: 0;
+    /* overflow-y: auto; */
+    padding: 15px 10px 0 10px;
+    right: 0;
+    top: 32px;
+    left: 0;
+}
+
+
+/** 选项卡标题样式 */
+
+.layui-layout-admin .layui-body .layui-tab .layui-tab-title {
+    height: 41px;
+    line-height: 41px;
+    padding: 0 80px 0 40px;
+    background-color: #fff;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .1);
+    position: absolute;
+    right: 0;
+    z-index: 999;
+    border: none;
+    overflow: hidden;
+}
+
+.layui-layout-admin .layui-body .layui-tab .layui-tab-title::-webkit-scrollbar {
+    display: none;
+}
+
+
+/* .layui-layout-admin .layui-body .layui-tab .layui-tab-title li {
+    min-width: 0;
+    line-height: 40px;
+    max-width: 160px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    border-right: 1px solid #f6f6f6;
+    vertical-align: top;
+} */
+
+.layui-layout-admin .layui-body .layui-tab .layui-tab-title .layui-tab-bar {
+    display: none;
+}
+
+
+/* .layui-layout-admin .layui-body .layui-tab .layui-tab-title li.layui-this,
+.layui-layout-admin .layui-body .layui-tab .layui-tab-title li:hover {
+    background-color: #f6f6f6;
+} */
+
+
+/* .layui-layout-admin .layui-body .layui-tab .layui-tab-title li.layui-this:after {
+    width: 100%;
+    border: none;
+    height: 2px;
+    background-color: #292B34
+} */
+
+
+/** tab关闭按钮样式 */
+
+.layui-layout-admin .layui-body .layui-tab .layui-tab-title li .layui-tab-close {
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+    border-radius: 50%;
+    font-size: 12px;
+}
+
+.layui-layout-admin .layui-body .layui-tab .layui-tab-title li:first-child .layui-tab-close {
+    display: none;
+    /** 第一个选项卡不可关闭 */
+}
+
+
+/** 选项卡其他操作按钮样式 */
+
+.layui-layout-admin .layui-body .admin-tabs-control {
+    position: absolute;
+    top: 0;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .3s;
+    box-sizing: border-box;
+    border-left: 1px solid #f6f6f6;
+    z-index: 1000;
+    visibility: hidden;
+    /** 默认隐藏 */
+    background-color: white;
+}
+
+.layui-layout-admin.open-tab .layui-body .admin-tabs-control {
+    visibility: visible;
+}
+
+.layui-layout-admin .layui-body .admin-tabs-control:hover {
+    background-color: #f6f6f6
+}
+
+.layui-layout-admin .layui-body .layui-icon-prev {
+    left: 0;
+    border-left: none;
+    border-right: 1px solid #f6f6f6;
+}
+
+.layui-layout-admin .layui-body .layui-icon-next {
+    right: 40px;
+}
+
+.layui-layout-admin .layui-body .layui-icon-down {
+    right: 0;
+}
+
+.admin-tabs-select.layui-nav {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    background: 0 0;
+}
+
+.admin-tabs-select.layui-nav .layui-nav-item {
+    line-height: 40px
+}
+
+.admin-tabs-select.layui-nav .layui-nav-item>a {
+    height: 40px
+}
+
+.admin-tabs-select.layui-nav .layui-nav-item a {
+    color: #666
+}
+
+.admin-tabs-select.layui-nav .layui-nav-child {
+    top: 40px;
+    left: auto;
+    right: 0
+}
+
+.admin-tabs-select.layui-nav .layui-nav-child dd.layui-this,
+.admin-tabs-select.layui-nav .layui-nav-child dd.layui-this a {
+    background-color: #f2f2f2 !important;
+    color: #333
+}
+
+.admin-tabs-select.layui-nav .layui-nav-bar,
+.admin-tabs-select.layui-nav .layui-nav-more {
+    display: none;
+}
+
+.layui-fluid {
+    padding: 15px;
+}
+
+body.layui-fluid {
+    overflow-y: scroll;
+}
+
+.admin-iframe {
+    width: 100%;
+    height: 100%;
+}
+
+.layui-layout-admin .layui-body.admin-iframe-body {
+    padding: 0;
+    overflow: hidden;
+}
+
+
+/* .layui-title-bar {
+    padding: 0 15px;
+    height: 30px;
+    line-height: 30px;
+    border-left: 3px solid #00a0e9;
+}
+
+.layui-title-text {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+} */
+
+
+/* 页脚样式 */
+
+.footer {
+    left: 0!important;
+    margin-top: 8px;
+    background: linear-gradient(166deg, rgba(0, 143, 240, 1) 0%, rgba(24, 116, 203, 1) 100%)!important;
+    z-index: 999;
+    height: 65px!important;
+    line-height: normal!important;
+}
+
+.footer_in {
+    width: 80%;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.ri {
+    color: #fff;
+    padding-top: 8px;
+    padding-right: 12px
+}
+
+.footer_in div.ri a {
+    color: #fff;
+    opacity: 1;
+}
+
+.footer_in div.ri p {
+    color: #9badc7;
+    padding-top: 15px;
+}
+
+
+/* 表头颜色 */
+
+.layui-table-header .layui-table {
+    color: #448EE0;
+}
+
+
+.explainList {
+    border: 1px solid #FF8C85;
+    margin: 10px 15px;
+    padding: 5px 10px;
+    /*max-height: 100px;*/
+    /*overflow: auto;*/
+}
+.explainListWord {
+    color: #ff8c85;
+    padding-left: 5px;
+}
+.explainList a {
+    display: block;
+    text-decoration: underline;
+    cursor: pointer;
+}

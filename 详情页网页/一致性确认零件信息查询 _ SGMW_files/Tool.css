@@ -1,0 +1,415 @@
+/*
+* Created: 2020-09-18
+* Author : zhangqi
+* Description: 全局公用样式
+* */
+
+/*表格上方按钮组（新增，删除，下载等所占用位置的样式）部分的样式*/
+.g-btn-group-div {
+    width: calc(100% - 30px);
+    margin: 0 auto;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.g-btn-blue {
+    font-size: 14px;
+    line-height: 28px;
+    height: 30px;
+    width: 50px;
+    padding: 0px 5px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    border: none;
+    border-radius: 0px;
+    cursor: pointer;
+    background-color: #55B7FF;
+}
+
+.g-btn-blue-large {
+    font-size: 14px;
+    line-height: 28px;
+    height: 30px;
+    width: 85px;
+    padding: 0px 5px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    border: none;
+    border-radius: 0px;
+    cursor: pointer;
+    background-color: #55B7FF;
+}
+
+.g-btn-red {
+    font-size: 14px;
+    line-height: 28px;
+    height: 30px;
+    width: 50px;
+    padding: 0px 5px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    border: none;
+    border-radius: 0px;
+    cursor: pointer;
+    background-color: #FF8C85;
+}
+
+.g-btn-green {
+    font-size: 14px;
+    line-height: 28px;
+    height: 30px;
+    width: 50px;
+    padding: 0px 5px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    border: none;
+    border-radius: 0px;
+    cursor: pointer;
+    background-color: #2ecc71;
+}
+
+
+.g-btn-nostyle {
+    color: rgba(148, 148, 148, 1);
+    /* width: 121px; */
+    padding: 0 10px;
+    line-height: 28px;
+    height: 30px;
+    background: rgba(255, 255, 255, 1);
+    border-radius: 0px;
+    border: 1px solid rgba(202, 202, 202, 1);
+    font-size: 14px;
+    margin-left: 10px;
+    cursor: pointer;
+}
+
+.g-btn-nostyle img {
+    margin-right: 5px;
+    margin-top: -4px;
+}
+
+.g-form-style {
+    margin-top: 40px;
+}
+
+.g-form-bottom-btn {
+    display: flex;
+    justify-content: center;
+    margin-top: 25px;
+}
+
+.g-spacing {
+    margin-bottom: 15px;
+}
+
+.g-tabs-div {
+    position: initial !important;
+}
+
+.layui-input-textarea {
+    padding-right: 20px;
+    margin-left: 125px;
+}
+
+/*分页器样式*/
+.layui-laypage {
+    display: block;
+    text-align: right;
+    padding-bottom: 12px;
+}
+
+.layui-laypage-count {
+    float: left;
+}
+
+.layui-laypage-limits {
+    float: left;
+}
+
+.layui-laypage-prev {
+    border: none !important;
+}
+
+.layui-laypage-next {
+    border: none !important;
+    margin-left: 1px !important;
+}
+
+.layui-laypage .layui-laypage-curr .layui-laypage-em {
+    background-color: transparent;
+    border: 1px solid #37ABFF;
+    box-sizing: border-box;
+}
+
+.layui-laypage .layui-laypage-curr {
+    border: none;
+}
+
+.layui-laypage .layui-laypage-curr em {
+    color: #37ABFF;
+}
+
+.layui-laypage a {
+    border: none;
+}
+
+.layui-laypage .layui-laypage-spr {
+    border: none;
+}
+
+/*导入文件模块的样式*/
+.g-layui-upload {
+    width: calc(100% - 30px);
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10%;
+}
+
+.g-layui-upload-input {
+    height: 30px;
+    line-height: 28px;
+    border: 1px solid rgb(230, 230, 230);
+    background-color: #fff;
+    border-radius: 0px;
+    display: block;
+    width: 60%;
+    padding-left: 10px;
+}
+
+.g-layui-upload-btn-group {
+    margin-top: 40px;
+    text-align: center;
+}
+
+.g-layui-upload-btn {
+    border-radius: 0px;
+}
+
+.g-layui-upload-flie-type-tips {
+    display: block;
+    margin-left: 65px;
+    margin-top: 5px;
+    color: red;
+    font-size: 14px;
+}
+
+input:disabled {
+    background-color: rgb(245, 247, 250) !important;
+    cursor: not-allowed;
+}
+
+.layui-disabled {
+    background-color: rgb(245, 247, 250) !important;
+    color: rgb(150, 150, 150) !important;
+    cursor: not-allowed;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+button:disabled:hover {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.g-form-module-title-div {
+    width: 150px;
+    height: 30px;
+    margin-left: 20px;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    border-bottom: 2px solid #000000;
+}
+
+.g-form-module-title-span {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/*
+* Created: 2020-09-18
+* Author : zhangqi
+* Description: 以下样式为之前系统中一些样式，可以作为全局的样式，所以将下方的样式引入到此css文件中,修改为带有前缀‘g-’的全局样式
+* */
+/**********************************搜索面板样式**********************************/
+.g-search {
+    background: #fff;
+    margin: 10px 0 10px 0;
+}
+
+.g-search .layui-form-item {
+    padding-top: 10px;
+    margin-bottom: 0;
+}
+
+.g-search .layui-form-item .search-btn a {
+    margin-right: 10px;
+}
+
+.g-search .layui-form-item .search-btn button {
+    width: 85px;
+
+}
+
+.g-search-r {
+    float: right;
+    padding-right: 35px;
+    line-height: 42px;
+}
+
+/**********************************数据列表样式**********************************/
+.g-tableList {
+    background: #fff;
+    margin: 10px 0 10px 0;
+}
+
+.g-table-round {
+    /*padding: 0 15px 15px 12px;*/
+    padding: 0 15px 0 12px;
+}
+
+/**********************************各模块公共样式**********************************/
+.g-search .layui-form, .g-tableList .layui-form {
+    background: #fff;
+}
+
+.g-search .g-search-title button, .tip .tip-title button, .g-tableList .g-tableList-title button {
+    height: 27px;
+    border: 2px solid #C1C0BF;
+    font-weight: bolder;
+    background-color: #F1F1F1;
+    border-radius: 8px;
+    padding-left: 5px;
+    padding-right: 5px;
+
+}
+
+.g-search .g-search-title, .g-tableList .g-tableList-title {
+    height: 42px;
+    width: 100%;
+    border-bottom: solid 1px #e3dfdf;
+}
+.g-tableList-title{
+    height:auto !important;
+    border: 0 !important;
+}
+.g-title-l i {
+    background-color: #00a0e9;
+    border-radius: 50%;
+    font-size: 25px !important;
+    color: #fff;
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
+.g-title-l {
+    font-size: 14px;
+    font-family: PingFangSC-Semibold, sans-serif;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.65);
+    line-height: 32px;
+    float: left;
+}
+
+.g-search-l, .g-table-l {
+    border-left: solid 3px #00a0e9;
+    height: 32px;
+    margin-top: 5px;
+}
+
+.g-search-l label, .g-table-l label {
+    font-size: 16px;
+    font-family: PingFangSC-Semibold, sans-serif;
+    font-weight: 600;
+    color: rgba(24, 24, 24, 1);
+    line-height: 32px;
+    float: left;
+    margin-left: 20px;
+}
+
+.g-search-r label {
+    width: 28px;
+    height: 24px;
+    font-size: 14px;
+    font-family: PingFang-SC-Medium, sans-serif;
+    font-weight: 500;
+    color: rgba(90, 90, 90, 1);
+    line-height: 24px;
+    margin-right: 15px;
+}
+
+.g-search-r img {
+    margin-left: 3px;
+}
+
+.hide {
+    display: none;
+}
+
+.nostyle-btn img {
+    margin-right: 5px;
+    margin-top: -4px;
+}
+
+/**********************************layui样式覆盖**********************************/
+.layui-form-label {
+    white-space: nowrap;
+}
+
+.layui-card {
+    /*background: none;*/
+    /*border: none;*/
+}
+
+.layui-input-block {
+    padding-right: 10px;
+    margin-left: 135px;
+}
+
+.layui-layer-content {
+    overflow: auto !important;
+}
+
+/*.layui-layout-admin .layui-body {*/
+/*overflow-y: auto;*/
+/*}*/
+
+/*.layui-table-header .layui-form-checkbox {*/
+/*display: none;*/
+/*}*/
+.layui-table-grid-down {
+    display: none;
+}
+
+
+/**********************************下拉菜单含有分页表格的插件样式**********************************/
+
+/*如零件编码，供应商代码数据非常多的时候，系统中将这个类型的下拉菜单修改为了下拉分页表格类型了，
+以下是对下拉菜单含有分页表格的插件进行样式修改*/
+.tableSelect .tableSelectBar {
+    margin-bottom: 10px;
+}
+
+.tableSelect .layui-table-box {
+    margin-bottom: 0px;
+}
+
